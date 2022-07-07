@@ -2,6 +2,7 @@ from tkinter.filedialog import FileDialog
 import tkinter as tk
 from guizero import *
 from PIL import Image, ImageTk
+from xmlviewer import XML_Viwer, autoscroll
 
 game_dir = ''
 
@@ -10,6 +11,8 @@ level_dim = [90,120]
 level_scale = 4
 level_img = Image.open("game\\wmw\\assets\\Levels\\_seb_test_3_mystery.png")
 level_img = level_img.resize((level_img.width*level_scale, level_img.height*level_scale), Image.Resampling.NEAREST)
+with open('game/wmw/assets/Levels/_seb_test_3_mystery.xml') as file:
+    level_xml = file.read()
 
 border = 1
 
@@ -44,9 +47,12 @@ menubar = MenuBar(app,
 # button = PushButton(app, text="Press me", align=)
 # objects = Canvas(width=200, height=300)
 objects = tk.Canvas(highlightthickness=border, highlightbackground='black')
-img = tk.PhotoImage(file="C:\\Users\\christineka\\Pictures\\Super Mario Maker v.6 New Logo.png")
-objects.create_image(0,0, image=img)
-objects.create_text(50,50, text='this is a test', fill="black")
+# img = tk.PhotoImage(file="C:\\Users\\christineka\\Pictures\\Super Mario Maker v.6 New Logo.png")
+# objects.create_image(0,0, image=img)
+# objects.create_text(50,50, text='this is a test', fill="black")
+
+XML_Viwer(objects, level_xml, heading_text="objects").pack()
+
 app.add_tk_widget(objects, grid=[0,0], width=200, height=300)
 
 properties = tk.Canvas()
