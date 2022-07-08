@@ -64,6 +64,41 @@ def getObject(path):
             image.show()
             print('done')
 
+            # image, name, offset, size, rect
+
+            def constructor(self, image, offset, size, rect):
+                self.image = image
+
+                offset = offset.split()
+                x = int(offset[0])
+                y = int(offset[1])
+
+                self.offset = [x,y]
+
+                newsize = size.split()
+                w = int(newsize[0])
+                h = int(newsize[1])
+
+                self.size = [w,h]
+
+                left, up, right, down = rect.split()
+                left = int(left)
+                up = int(up)
+                right = int(right)
+                down = int(down)
+                right = left + right
+                down = up + down
+
+                self.rect = [left, up, right, down]
+
+            frame = type("frame", (object, ), {
+                # constructor
+                "__init__": constructor,
+                "name": image_info['name']
+            })
+
+            return frame(image, image_info['offset'], image_info['size'], image_info['rect'])
+
         # assets = os.path.dirname(os.path.dirname(spritePath))
         
         with open(spritePath) as file:
@@ -72,6 +107,7 @@ def getObject(path):
         
         print(len(tree))
         print(tree.tag)
+        animations = []
         for animation_element in tree:
             print(animation_element)
                 
@@ -91,8 +127,26 @@ def getObject(path):
                 frame['name'] = f.get('name')
                 frames.append(frame)
 
-            for f in frames:
-                findInImagelist(assets + info['atlas'], f['name'])
+            for f in range(len(frames)):
+                frames[f] = findInImagelist(assets + info['atlas'], frames[f]['name'])
+
+            def constructor(self, name, frames):
+                self.name = name
+                self.frames = frames
+
+            animation = type("animation", (object, ), {
+                # constructor
+                "__init__": constructor,
+                "textureBasePath": info['textureBasePath'],
+                "atlas": info['atlas'],
+                "fps": info['fps'],
+                "playbackMode": info['playbackMode'],
+                "loopCount": info['loopCount']
+            })
+
+            animations.append(animation(info['name'],frames))
+
+        return animations
 
         
 
@@ -118,9 +172,11 @@ def getObject(path):
 
         sprites.append(sprite)
 
-    for s in sprites:
-        getImage(assets + s['filename'])
+    for s in range(len(sprites)):
+        sprites[s] = getImage(assets + sprites[s]['filename'])
+
+    return sprites
 
     
 if __name__ == '__main__':
-    getObject('/game/wmw/assets/balloon.hs')
+    print(getObject('game/wmw/assets/Objects/balloon.hs'))
