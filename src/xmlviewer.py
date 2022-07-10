@@ -183,5 +183,6 @@ if __name__ == "__main__":
         <body>I will not</body>
       </note>
     </messages>"""
+    root.geometry('500x200')
     XML_Viwer(root, xml, heading_text="Email").pack()
     root.mainloop()
