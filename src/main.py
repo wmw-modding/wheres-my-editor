@@ -99,6 +99,13 @@ class Window(tk.Tk):
         help.add_command(label= 'About', command = popups.about_dialog)
         bar.add_cascade(label= 'Help', menu=help)
 
+        # object_viewer = tk.Canvas(highlightthickness=border, highlightbackground='black')
+        display = self.level_canvas.create_image(50, 100, anchor='nw', image=None)
+        print('display: ' + str(display))
+        # window = self.level_canvas.create_window(0, 0, anchor='nw', window=display)
+
+        bomb = createObject('game/wmw/assets/Objects/bomb.hs')
+        bomb.playAnimation(self, self.level_canvas, display, bomb.sprites[0].animations[1])
 
     def action(self):
         pass

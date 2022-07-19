@@ -1,8 +1,9 @@
 import lxml
 from lxml import etree
 import os
-from PIL import Image
+from PIL import Image, ImageTk
 import time
+import itertools
 
 class createObject():
     def __init__(self,path):
@@ -27,6 +28,27 @@ class createObject():
             sprite_obj = self.sprite(assets + sprite['filename'], sprite)
 
             self.sprites.append(sprite_obj)
+
+        images = []
+
+        background = None
+        
+        for s in self.sprites:
+            if s.isBackground:
+                background = s
+            if s.visible:
+                images.append(s)
+
+        if background == None:
+            background = images[0]
+            # del images[0]
+
+        self.image = background.animations[0].frames[0].image.copy()
+        for i in images:
+            print(i.gridSize[0])
+            self.image.paste(i.animations[0].frames[0].image, i.pos, i.animations[0].frames[0].image)
+
+        self.image.show()
 
         self.properties = {}
         prop = tree[findTag(tree, 'DefaultProperties')]
@@ -67,12 +89,17 @@ class createObject():
 
                 self.animations.append(self.animation(frames, info))
 
-                self.filename = properties['filename'],
-                self.pos = properties['pos'],
-                self.angle = properties['angle'],
-                self.gridSize = properties['gridSize'],
-                self.isBackground = properties['isBackground'],
+                print(properties)
+                self.filename = properties['filename']
+                pos = properties['pos'].split()
+                self.pos = (float(pos[0]),float(pos[1]))
+                self.angle = float(properties['angle'])
+                gridSize = properties['gridSize'].split()
+                self.gridSize = (float(gridSize[0]), float(gridSize[1]))
+                # self.gridSize = properties['gridSize']
+                self.isBackground = properties['isBackground']
                 self.visible = properties['visible']
+                print(self.pos,self.angle,self.gridSize,self.isBackground,self.visible)
         
         def findInImagelist(self, path, name):
             with open(path) as file:
@@ -159,9 +186,42 @@ class createObject():
                 self.playbackMode = properties['playbackMode']
                 self.loopCount = properties['loopCount']
 
+    def playAnimation(self, app, root, display, animation):
+        no_of_frames = len(animation.frames)
+        duration = float(animation.fps)
+        duration = int(duration)*10
 
+        frame_list = animation.frames
 
-                
+        tkframe_list = [ImageTk.PhotoImage(image=fr.image) for fr in frame_list]
+        tkframe_sequence = itertools.cycle(tkframe_list)
+        tkframe_iterator = iter(tkframe_list)
+
+        # object_viewer = tk.Canvas(highlightthickness=border, highlightbackground='black')
+        # display = level_canvas.create_image(0, 0, anchor='nw', image=tkframe_list[0])
+        # print('display: ' + str(display))
+        # window = level_canvas.create_window(0, 0, anchor='nw', window=display)
+
+        def show_animation():
+            global after_id
+            after_id = app.after(duration, show_animation)
+            img = next(tkframe_sequence)
+            root.itemconfig(display, image=img)
+
+        def stop_animation(*event):
+            app.after_cancel(after_id)
+
+        def run_animation_once():
+            global after_id
+            after_id = app.after(duration, run_animation_once)
+            try:
+                img = next(tkframe_iterator)
+            except StopIteration:
+                stop_animation()
+            else:
+                root.itemconfig(display, image=img)
+
+        app.after(0, show_animation)
 
 def findTag(root, tag):
     element = 0
@@ -174,4 +234,4 @@ def findTag(root, tag):
             break
 
 if __name__ == '__main__':
-    print(createObject('game/wmw/assets/Objects/balloon.hs'))
+    print(createObject('game/wmw/assets/Objects/shower_head.hs'))
