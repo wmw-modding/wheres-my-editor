@@ -1,3 +1,4 @@
+from ast import Pass
 from email.mime import image
 from tkinter.filedialog import FileDialog
 import tkinter as tk
@@ -9,6 +10,11 @@ from xmlviewer import XML_Viwer, autoscroll
 from getObject import *
 import itertools
 
+import lxml
+from lxml import etree
+
+images = []
+
 class Window(tk.Tk):
     def __init__(self, parent):
         tk.Tk.__init__(self,parent)
@@ -18,18 +24,21 @@ class Window(tk.Tk):
         self.objects_canvas = tk.Canvas(parent, width=200, height=300)
         self.prop_canvas = tk.Canvas(parent, width=200, height=300)
 
+        self.scale = 5
+
         self.gamedir = 'game/wmw/'
         with open(self.gamedir + 'assets/Levels/_seb_test_3_mystery.xml') as file:
             self.level_xml = file.read()
 
-        image = Image.open(self.gamedir + 'assets/Levels/_seb_test_3_mystery.png')
-        image = image.resize((image.width*5, image.height*5), Image.Resampling.NEAREST)
-        self.level_img = ImageTk.PhotoImage(image=image)
+        # image = Image.open(self.gamedir + 'assets/Levels/_seb_test_3_mystery.png')
+        # image = image.resize((image.width*self.scale, image.height*self.scale), Image.Resampling.NEAREST)
+        # self.level_img = ImageTk.PhotoImage(image=image)
 
         self.objects = []
             
         self.initialize()
-        self.title('WMW Level Editor')
+
+        self.title("Where's my Editor")
         self.geometry('%dx%d' % (760 , 610) )
 
     def initialize(self):
@@ -38,10 +47,12 @@ class Window(tk.Tk):
         self.level_canvas.grid(row=0, column=1, rowspan=2)
         self.objects_canvas.grid(row=0, column=0)
         self.prop_canvas.grid(row=1, column=0)
-
+        
         XML_Viwer(self.objects_canvas, self.level_xml, heading_text='objects').pack()
 
-        self.level_img_index = self.level_canvas.create_image(0,0, image=self.level_img, anchor='nw')
+        # self.level_img_index = self.level_canvas.create_image(0,0, image=None, anchor='nw')
+
+        self.open_level_img(self.gamedir + 'assets/Levels/_seb_test_3_mystery.png')
 
         buttons = ttk.LabelFrame(self.prop_canvas, text='properties')
         ttk.Button(buttons, text='Add', command=self.action).pack()
@@ -100,12 +111,19 @@ class Window(tk.Tk):
         bar.add_cascade(label= 'Help', menu=help)
 
         # object_viewer = tk.Canvas(highlightthickness=border, highlightbackground='black')
-        display = self.level_canvas.create_image(50, 100, anchor='nw', image=None)
-        print('display: ' + str(display))
         # window = self.level_canvas.create_window(0, 0, anchor='nw', window=display)
 
-        bomb = createObject('game/wmw/assets/Objects/bomb.hs')
-        bomb.playAnimation(self, self.level_canvas, display, bomb.sprites[0].animations[1])
+        # bomb = object('game/wmw/assets/Objects/bomb.hs')
+        # display = self.level_canvas.create_image(50, 100, anchor='nw', image=ImageTk.PhotoImage(bomb.image))
+        # print('display: ' + str(display))
+        # bomb.playAnimation(self, self.level_canvas, display, bomb.sprites[0].animations[0])
+        self.mouseUp()
+
+        self.addObj(self.gamedir + 'assets/Objects/bomb.hs', pos=(0,20))
+        self.addObj(self.gamedir + 'assets/Objects/bomb.hs', pos=(0,0))
+
+        self.level_canvas.bind('<B1-Motion>', self.moveObj)
+        self.level_canvas.bind('<ButtonRelease-1>', self.mouseUp)
 
     def action(self):
         pass
@@ -115,120 +133,81 @@ class Window(tk.Tk):
         self.open_level_img(path)
 
     def open_level_img(self, path):
+        try:
+            self.level_img_index
+        except:
+            self.level_img_index = self.level_canvas.create_image(0,0, image=None, anchor='nw')
+
         image = Image.open(path)
-        image = image.resize((image.width*5, image.height*5), Image.Resampling.NEAREST)
+        image = image.resize((image.width*self.scale, image.height*self.scale), Image.Resampling.NEAREST)
         self.level_img = ImageTk.PhotoImage(image=image)
+        self.level_size = (image.width, image.height)
 
         self.level_canvas.itemconfig(self.level_img_index, image=self.level_img)
 
-    
+    def loadXML(self, path):
+        Pass
 
-# game_dir = ''
+    def truePos(self, pos):
+        x = pos[0] * self.scale
+        y = pos[1] * self.scale
 
-# level_img = None
-# level_dim = [90,120]
-# level_scale = 4
-# level_img = Image.open("game\\wmw\\assets\\Levels\\_seb_test_3_mystery.png")
-# level_img = level_img.resize((level_img.width*level_scale, level_img.height*level_scale), Image.Resampling.NEAREST)
-# with open('game/wmw/assets/Levels/_seb_test_3_mystery.xml') as file:
-#     level_xml = file.read()
+        x = x + (self.level_size[0] / 2)
+        y = y + (self.level_size[1] / 2)
 
-# border = 1
+        return (x,y)
 
-# def file_function():
-#     print("File option")
+    def gamePos(self, pos):
+        x = pos[0]
+        y = pos[1]
 
-# def edit_function():
-#     print("Edit option")
+        x = x - (self.level_size[0] / 2)
+        y = y - (self.level_size[1] / 2)
 
-# def open_png():
-#     global level_img, level, level_canvas, tk_level_img
-#     path = filedialog.askopenfilename(title='choose video', defaultextension="*.png", filetypes=(('wmw level', '*.png'),('any', '*.*')))
-#     print(path)
-#     if path == '':
-#         return
-#     level_img = Image.open(path)
-#     level_img = level_img.resize((level_img.width*level_scale, level_img.height*level_scale), Image.Resampling.NEAREST)
+        x = x / self.scale
+        y = y / self.scale
 
-#     tk_level_img = ImageTk.PhotoImage(level_img)
-#     level_canvas.itemconfig(level, image=tk_level_img)
+        return (x,y)
+
+    def addObj(self, path, pos=(0,0)):
+
+        obj = newObject(path,pos=pos)
+        newPos = self.truePos(pos)
+        print(newPos)
+
+        object = {}
+        object['object'] = obj
+        global images
+        # obj.image = obj.image.resize((obj.image.width*self.scale,obj.image.height*self.scale))
+        img = ImageTk.PhotoImage(obj.image)
+        images.append(img)
+        object['size'] = obj.image.size
+        print(object['size'])
+
+        object['image'] = self.level_canvas.create_image(newPos[0], newPos[1], anchor='nw', image=img)
+        print(self.level_canvas.coords(object['image']))
+
+        self.objects.append(object)
+
+    def moveObj(self, event):
+        if self.currentObj == None:
+            self.currentObj = next((self.objects.index(obj) for obj in self.objects[::-1] if (event.x >= self.level_canvas.coords(obj['image'])[0] and event.x <= int(self.level_canvas.coords(obj['image'])[0]) + int(obj['size'][0])) and (event.y >= self.level_canvas.coords(obj['image'])[1] and event.y <= int(self.level_canvas.coords(obj['image'])[1]) + int(obj['size'][1]))), None)
+            print(self.currentObj)
+            self.prevMousePos = (event.x, event.y)
+        
+        if self.currentObj != None:
+            self.level_canvas.move(self.objects[self.currentObj]['image'], event.x - self.prevMousePos[0], event.y - self.prevMousePos[1])
+            self.objects[self.currentObj]['object'].pos = self.gamePos(self.level_canvas.coords(self.objects[self.currentObj]['image']))
+            print(self.objects[self.currentObj]['object'].pos)
+            print(self.currentObj)
+
+            self.prevMousePos = (event.x, event.y)
 
 
-# app = App(title="Hello world", layout='grid', width=200+(level_dim[0]*level_scale)+border*4, height=level_dim[1]*level_scale+border*2)
-# menubar = MenuBar(app,
-#                   toplevel=["File", "Edit"],
-#                   options=[
-#                       [ ["open png", open_png], ['open with selector', file_function], ["save", file_function], ['export xml', file_function], ['export png', file_function] ],
-#                       [ ["Edit option 1", edit_function], ["Edit option 2", edit_function] ]
-                      
-#                   ])
-
-# button = PushButton(app, text="Press me", align=)
-# objects = Canvas(width=200, height=300)
-# objects = tk.Canvas(highlightthickness=border, highlightbackground='black')
-# img = tk.PhotoImage(file="C:\\Users\\christineka\\Pictures\\Super Mario Maker v.6 New Logo.png")
-# objects.create_image(0,0, image=img)
-# objects.create_text(50,50, text='this is a test', fill="black")
-
-# XML_Viwer(objects, level_xml, heading_text="objects").pack()
-
-# app.add_tk_widget(objects, grid=[0,0], width=200, height=300)
-
-# properties = tk.Canvas()
-
-# level_canvas = tk.Canvas(highlightthickness=border, highlightbackground='black')
-
-# tk_level_img = ImageTk.PhotoImage(level_img)
-# level = level_canvas.create_image(0, 0, anchor='nw', image=tk_level_img)
-# print('level: ' + str(level))
-
-# app.add_tk_widget(level_canvas, grid=[1,0,1,2], width=level_dim[0]*level_scale, height=level_dim[1]*level_scale)
-
-# # animation viewer
-
-# bomb = getObject('game/wmw/assets/Objects/balloon.hs')
-
-# no_of_frames = len(bomb.sprites[0].animations[0].frames)
-# duration = float(bomb.sprites[0].animations[0].fps)
-# duration = int(duration)*10
-
-# frame_list = bomb.sprites[0].animations[0].frames
-
-# tkframe_list = [ImageTk.PhotoImage(image=fr.image) for fr in frame_list]
-# tkframe_sequence = itertools.cycle(tkframe_list)
-# tkframe_iterator = iter(tkframe_list)
-
-# object_viewer = tk.Canvas(highlightthickness=border, highlightbackground='black')
-# display = level_canvas.create_image(0, 0, anchor='nw', image=tkframe_list[0])
-# print('display: ' + str(display))
-# window = level_canvas.create_window(0, 0, anchor='nw', window=display)
-
-# def show_animation():
-#     global after_id
-#     after_id = app.tk.after(duration, show_animation)
-#     img = next(tkframe_sequence)
-#     level_canvas.itemconfig(display, image=img)
-
-# def stop_animation(*event):
-#     app.tk.after_cancel(after_id)
-
-# def run_animation_once():
-#     global after_id
-#     after_id = app.tk.after(duration, run_animation_once)
-#     try:
-#         img = next(tkframe_iterator)
-#     except StopIteration:
-#         stop_animation()
-#     else:
-#         level_canvas.itemconfig(display, image=img)
-
-# app.after(0, show_animation)
-
-# app.add_tk_widget(object_viewer, grid=[0,1])
-
-# picture = Picture(level, image=level_img)
-# prop = Text(properties, 'properties')
-# obj = Text(objects, 'objects')
+    def mouseUp(self, e=None):
+        self.currentObj = None
+        self.prevMousePos = None
+        print(self.currentObj)
 
 def main():
     # app.display()

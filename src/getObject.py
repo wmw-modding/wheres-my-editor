@@ -5,8 +5,8 @@ from PIL import Image, ImageTk
 import time
 import itertools
 
-class createObject():
-    def __init__(self,path):
+class newObject():
+    def __init__(self, path, pos=(0.0)):
         with open(path) as file:
             xml = etree.parse(file)
         assets = os.path.dirname(os.path.dirname(path))
@@ -37,7 +37,8 @@ class createObject():
             if s.isBackground:
                 background = s
             if s.visible:
-                images.append(s)
+                pass
+            images.append(s)
 
         if background == None:
             background = images[0]
@@ -48,12 +49,15 @@ class createObject():
             print(i.gridSize[0])
             self.image.paste(i.animations[0].frames[0].image, i.pos, i.animations[0].frames[0].image)
 
-        self.image.show()
+        # self.image.show()
 
         self.properties = {}
         prop = tree[findTag(tree, 'DefaultProperties')]
         for p in prop:
             self.properties[p.get('name')] = p.get('value')
+
+        self.pos = pos
+
 
     class sprite():
         def __init__(self, path, properties) -> None:
@@ -92,7 +96,7 @@ class createObject():
                 print(properties)
                 self.filename = properties['filename']
                 pos = properties['pos'].split()
-                self.pos = (float(pos[0]),float(pos[1]))
+                self.pos = (int(float(pos[0])*10),int(float(pos[1])*10))
                 self.angle = float(properties['angle'])
                 gridSize = properties['gridSize'].split()
                 self.gridSize = (float(gridSize[0]), float(gridSize[1]))
@@ -206,7 +210,8 @@ class createObject():
             global after_id
             after_id = app.after(duration, show_animation)
             img = next(tkframe_sequence)
-            root.itemconfig(display, image=img)
+            self.image = img
+            root.itemconfig(display, image=self.image)
 
         def stop_animation(*event):
             app.after_cancel(after_id)
@@ -219,7 +224,8 @@ class createObject():
             except StopIteration:
                 stop_animation()
             else:
-                root.itemconfig(display, image=img)
+                self.image = img
+                root.itemconfig(display, image=self.image)
 
         app.after(0, show_animation)
 
@@ -234,4 +240,4 @@ def findTag(root, tag):
             break
 
 if __name__ == '__main__':
-    print(createObject('game/wmw/assets/Objects/shower_head.hs'))
+    print(newObject('game/wmw/assets/Objects/shower_head.hs'))
