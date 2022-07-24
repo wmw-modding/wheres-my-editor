@@ -9,6 +9,7 @@ from PIL import Image, ImageTk
 from xmlviewer import XML_Viwer, autoscroll
 from getObject import *
 import itertools
+import json
 
 import lxml
 from lxml import etree
@@ -25,10 +26,9 @@ class Window(tk.Tk):
         self.prop_canvas = tk.Canvas(parent, width=200, height=300)
 
         self.scale = 5
+        
+        self.loadSettings()
 
-        self.gamedir = 'game/wmw/'
-        with open(self.gamedir + 'assets/Levels/_seb_test_3_mystery.xml') as file:
-            self.level_xml = file.read()
 
         # image = Image.open(self.gamedir + 'assets/Levels/_seb_test_3_mystery.png')
         # image = image.resize((image.width*self.scale, image.height*self.scale), Image.Resampling.NEAREST)
@@ -47,12 +47,19 @@ class Window(tk.Tk):
         self.level_canvas.grid(row=0, column=1, rowspan=2)
         self.objects_canvas.grid(row=0, column=0)
         self.prop_canvas.grid(row=1, column=0)
+        self.level_xml = '<root></root>'
+        self.level_size = (90 * self.scale, 120 * self.scale)
+
+        if self.settings['default_level']['xml'] != '':
+            with open(self.settings['default_level']['xml']) as file:
+                self.level_xml = file.read()
         
         XML_Viwer(self.objects_canvas, self.level_xml, heading_text='objects').pack()
 
         # self.level_img_index = self.level_canvas.create_image(0,0, image=None, anchor='nw')
 
-        self.open_level_img(self.gamedir + 'assets/Levels/_seb_test_3_mystery.png')
+        if self.settings['default_level']['image'] != '':
+            self.open_level_img(self.settings['default_level']['image'])
 
         buttons = ttk.LabelFrame(self.prop_canvas, text='properties')
         ttk.Button(buttons, text='Add', command=self.action).pack()
@@ -208,6 +215,30 @@ class Window(tk.Tk):
         self.currentObj = None
         self.prevMousePos = None
         print(self.currentObj)
+
+    def initSettings(self):
+        self.settings = {
+            "gameDir" : 'game/wmw/',
+            "default_level" : {
+                "image" : '',
+                "xml" : ''
+            }
+        }
+
+    def loadSettings(self):
+        try:
+            with open('settings.json', 'r') as file:
+                self.settings = json.load(file)
+        except:
+            self.initSettings()
+            self.exportSettings()
+        
+        self.gamedir = self.settings['gameDir']
+
+    def exportSettings(self):
+        file = open('settings.json', 'w+')
+        json.dump(self.settings, file, indent=2)
+        
 
 def main():
     # app.display()
