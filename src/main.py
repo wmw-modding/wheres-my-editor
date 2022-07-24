@@ -197,7 +197,7 @@ class Window(tk.Tk):
         self.objects.append(object)
 
     def moveObj(self, event):
-        if self.currentObj == None:
+        if self.currentObj == None and not self.mouseDown:
             self.currentObj = next((self.objects.index(obj) for obj in self.objects[::-1] if (event.x >= self.level_canvas.coords(obj['image'])[0] and event.x <= int(self.level_canvas.coords(obj['image'])[0]) + int(obj['size'][0])) and (event.y >= self.level_canvas.coords(obj['image'])[1] and event.y <= int(self.level_canvas.coords(obj['image'])[1]) + int(obj['size'][1]))), None)
             print(self.currentObj)
             self.prevMousePos = (event.x, event.y)
@@ -209,11 +209,14 @@ class Window(tk.Tk):
             print(self.currentObj)
 
             self.prevMousePos = (event.x, event.y)
+        
+        self.mouseDown = True
 
 
     def mouseUp(self, e=None):
         self.currentObj = None
         self.prevMousePos = None
+        self.mouseDown = False
         print(self.currentObj)
 
     def initSettings(self):
