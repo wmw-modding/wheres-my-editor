@@ -2,7 +2,7 @@ from ast import Pass
 from email.mime import image
 from tkinter.filedialog import FileDialog
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, simpledialog
 from guizero import *
 import popups
 from PIL import Image, ImageTk
@@ -127,8 +127,8 @@ class Window(tk.Tk):
         # bomb.playAnimation(self, self.level_canvas, display, bomb.sprites[0].animations[0])
         self.mouseUp()
 
-        self.addObj(self.gamedir + 'assets/Objects/bomb.hs', pos=(0,20))
-        self.addObj(self.gamedir + 'assets/Objects/bomb.hs', pos=(0,0))
+        self.addObj(self.gamedir + '/assets/Objects/bomb.hs', pos=(0,20))
+        self.addObj(self.gamedir + '/assets/Objects/bomb.hs', pos=(0,0))
 
         self.level_canvas.bind('<B1-Motion>', self.moveObj)
         self.level_canvas.bind('<ButtonRelease-1>', self.mouseUp)
@@ -251,8 +251,10 @@ class Window(tk.Tk):
         print(self.currentObj)
 
     def initSettings(self):
+        self.gamedir =  filedialog.askdirectory(title='Select game Directory')
+        
         self.settings = {
-            "gameDir" : 'game/wmw/',
+            "gameDir" : self.gamedir,
             "default_level" : {
                 "image" : '',
                 "xml" : ''
