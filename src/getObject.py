@@ -1,3 +1,4 @@
+from ast import Pass
 import lxml
 from lxml import etree
 import os
@@ -6,7 +7,7 @@ import time
 import itertools
 
 class newObject():
-    def __init__(self, path, pos=(0.0)):
+    def __init__(self, path, pos=(0.0), properties={}):
         with open(path) as file:
             xml = etree.parse(file)
         assets = os.path.dirname(os.path.dirname(path))
@@ -47,7 +48,10 @@ class newObject():
         self.image = background.animations[0].frames[0].image.copy()
         for i in images:
             print(i.gridSize[0])
-            self.image.paste(i.animations[0].frames[0].image, i.pos, i.animations[0].frames[0].image)
+            try:
+                self.image.paste(i.animations[0].frames[0].image, i.pos, i.animations[0].frames[0].image)
+            except:
+                Pass
 
         # self.image.show()
 
@@ -56,6 +60,9 @@ class newObject():
         for p in prop:
             self.properties[p.get('name')] = p.get('value')
 
+        for key in properties:
+            self.properties[key] = properties[key]
+        
         self.pos = pos
 
 
@@ -117,6 +124,10 @@ class newObject():
             sheet_info['file'] = imageList.get('file')
             sheet_info['textureBasePath'] = imageList.get('textureBasePath')
 
+            print(name)
+
+            image = None
+
             print(len(imageList))
             for i in imageList:
                 print(i.get('name'))
@@ -124,13 +135,23 @@ class newObject():
                     image = i
                     break
 
-            image_info = {}
-            image_info['name'] = image.get('name')
-            image_info['offset'] = image.get('offset')
-            image_info['size'] = image.get('size')
-            image_info['rect'] = image.get('rect')
+            if image == None:
+                image_info = {
+                    'name' : 'NO_TEX.png',
+                    'offset': '0 0',
+                    'size': '32 32',
+                    'rect': '0 0 32 32'
+                }
 
-            sheet = Image.open(self.assets + sheet_info['file'])
+                sheet = Image.open(self.assets + '/Textures/NO_TEX.png')
+            else:
+                image_info = {}
+                image_info['name'] = image.get('name')
+                image_info['offset'] = image.get('offset')
+                image_info['size'] = image.get('size')
+                image_info['rect'] = image.get('rect')
+
+                sheet = Image.open(self.assets + sheet_info['file'])
 
             left, up, right, down = image_info['rect'].split()
             left = int(left)

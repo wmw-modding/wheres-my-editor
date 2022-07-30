@@ -50,16 +50,17 @@ class Window(tk.Tk):
         self.level_xml = '<root></root>'
         self.level_size = (90 * self.scale, 120 * self.scale)
 
+        if self.settings['default_level']['image'] != '':
+            self.open_level_img(self.settings['default_level']['image'])
+
         if self.settings['default_level']['xml'] != '':
-            with open(self.settings['default_level']['xml']) as file:
-                self.level_xml = file.read()
+            self.open_level_xml(self.settings['default_level']['xml'])
+            # with open(self.settings['default_level']['xml']) as file:
+                # self.level_xml = file.read()
         
         XML_Viwer(self.objects_canvas, self.level_xml, heading_text='objects').pack()
 
         # self.level_img_index = self.level_canvas.create_image(0,0, image=None, anchor='nw')
-
-        if self.settings['default_level']['image'] != '':
-            self.open_level_img(self.settings['default_level']['image'])
 
         buttons = ttk.LabelFrame(self.prop_canvas, text='properties')
         ttk.Button(buttons, text='Add', command=self.action).pack()
@@ -152,12 +153,35 @@ class Window(tk.Tk):
 
         self.level_canvas.itemconfig(self.level_img_index, image=self.level_img)
 
-    def loadXML(self, path):
-        Pass
+    def open_level_xml(self, path):
+        with open(path) as file:
+            self.level_xml = file.read()
+            xml = etree.fromstring(self.level_xml)
+            print(xml)
+
+        root = xml
+        
+        for obj in range(len(root)):
+            if root[obj].tag == 'Object':
+                object = {}
+                object['name'] = root[obj].get('name')
+                pos = root[obj][findTag(root[obj], 'AbsoluteLocation')].get('value').split()
+                object['pos'] = (float(pos[0]), float(pos[1]))
+
+                object['properties'] = {}
+                for prop in root[obj][findTag(root[obj], 'Properties')]:
+                    object['properties'][prop.get('name')] = prop.get('value')
+
+                print(object)
+
+                self.addObj(self.gamedir + 'assets/' + object['properties']['Filename'], pos = object['pos'], properties=object['properties'])
+
+
+
 
     def truePos(self, pos):
-        x = pos[0] * self.scale
-        y = pos[1] * self.scale
+        x = pos[0] * 1 * self.scale
+        y = pos[1] * -1 * self.scale
 
         x = x + (self.level_size[0] / 2)
         y = y + (self.level_size[1] / 2)
@@ -176,29 +200,36 @@ class Window(tk.Tk):
 
         return (x,y)
 
-    def addObj(self, path, pos=(0,0)):
+    def addObj(self, path, pos=(0,0), properties={}):
 
-        obj = newObject(path,pos=pos)
+        obj = newObject(path,pos=pos, properties=properties)
         newPos = self.truePos(pos)
         print(newPos)
 
         object = {}
         object['object'] = obj
         global images
-        # obj.image = obj.image.resize((obj.image.width*self.scale,obj.image.height*self.scale))
-        img = ImageTk.PhotoImage(obj.image)
+        # obj.image = obj.image.resize((obj.image.width + 5, obj.image.height + 5))
+        print(properties)
+
+        try:
+            angle = float(obj.properties['Angle'])
+        except:
+            angle = 0
+
+        img = ImageTk.PhotoImage(obj.image.rotate(angle, expand=True))
         images.append(img)
         object['size'] = obj.image.size
         print(object['size'])
 
-        object['image'] = self.level_canvas.create_image(newPos[0], newPos[1], anchor='nw', image=img)
+        object['image'] = self.level_canvas.create_image(newPos[0], newPos[1], anchor='center', image=img)
         print(self.level_canvas.coords(object['image']))
 
         self.objects.append(object)
 
     def moveObj(self, event):
         if self.currentObj == None and not self.mouseDown:
-            self.currentObj = next((self.objects.index(obj) for obj in self.objects[::-1] if (event.x >= self.level_canvas.coords(obj['image'])[0] and event.x <= int(self.level_canvas.coords(obj['image'])[0]) + int(obj['size'][0])) and (event.y >= self.level_canvas.coords(obj['image'])[1] and event.y <= int(self.level_canvas.coords(obj['image'])[1]) + int(obj['size'][1]))), None)
+            self.currentObj = next((self.objects.index(obj) for obj in self.objects[::-1] if (event.x >= self.level_canvas.coords(obj['image'])[0] - (obj['size'][0] / 2) and event.x <= int(self.level_canvas.coords(obj['image'])[0]) + int(obj['size'][0]) / 2) and (event.y >= self.level_canvas.coords(obj['image'])[1] - (obj['size'][1] / 2) and event.y <= int(self.level_canvas.coords(obj['image'])[1]) + int(obj['size'][1]) / 2)), None)
             print(self.currentObj)
             self.prevMousePos = (event.x, event.y)
         
