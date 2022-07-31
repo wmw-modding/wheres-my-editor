@@ -1,5 +1,3 @@
-from ast import Pass
-from email.mime import image
 from tkinter.filedialog import FileDialog
 import tkinter as tk
 from tkinter import ttk, simpledialog
@@ -58,7 +56,9 @@ class Window(tk.Tk):
             # with open(self.settings['default_level']['xml']) as file:
                 # self.level_xml = file.read()
         
-        XML_Viwer(self.objects_canvas, self.level_xml, heading_text='objects').pack()
+        self.xml_viewer = XML_Viwer(self.objects_canvas, self.level_xml, heading_text='objects').pack()
+        print(self.xml_viewer)
+        time.sleep(2)
 
         # self.level_img_index = self.level_canvas.create_image(0,0, image=None, anchor='nw')
 
@@ -101,7 +101,8 @@ class Window(tk.Tk):
         
         fileMenu = tk.Menu(bar, tearoff=0)
         
-        fileMenu.add_command(label= 'Open', command = self.open_png)
+        fileMenu.add_command(label= 'Open png', command = self.open_png)
+        fileMenu.add_command(label='Open XML', command=self.open_xml)
         # fileMenu.add_command(label= 'Export XML', command = export)
         # fileMenu.add_command(label= 'Close Img', command = lambda: self.openIMG('assets/WMWmap.png'))
         fileMenu.add_separator()
@@ -140,6 +141,10 @@ class Window(tk.Tk):
         path = filedialog.askopenfilename(title='Open level image', defaultextension="*.png", filetypes=(('wmw level', '*.png'),('any', '*.*')), initialdir=self.gamedir+'assets/Levels')
         self.open_level_img(path)
 
+    def open_xml(self):
+        path = filedialog.askopenfilename(title='Open level XML', defaultextension="*.xml", filetypes=(('wmw level', '*.xml'),('any', '*.*')), initialdir=self.gamedir+'assets/Levels')
+        self.open_level_xml(path)
+
     def open_level_img(self, path):
         try:
             self.level_img_index
@@ -158,6 +163,10 @@ class Window(tk.Tk):
             self.level_xml = file.read()
             xml = etree.fromstring(self.level_xml)
             print(xml)
+
+        global images
+        self.objects = []
+        images = []
 
         root = xml
         
