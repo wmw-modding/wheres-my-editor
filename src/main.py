@@ -171,6 +171,8 @@ class Window(tk.Tk):
             xml = etree.fromstring(self.level_xml)
             print(xml)
 
+        dialog = popups.load_dialog()
+
         global images
         self.objects = []
         images = []
@@ -192,7 +194,7 @@ class Window(tk.Tk):
 
                 self.addObj(self.gamedir + 'assets/' + object['properties']['Filename'], pos = object['pos'], properties=object['properties'])
 
-
+        dialog.window.destroy()
 
 
     def truePos(self, pos):
