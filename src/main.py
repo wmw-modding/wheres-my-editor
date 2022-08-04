@@ -50,6 +50,8 @@ class Window(tk.Tk):
 
         if self.settings['default_level']['image'] != '':
             self.open_level_img(self.settings['default_level']['image'])
+        else:
+            self.open_level_img()
 
         if self.settings['default_level']['xml'] != '':
             self.open_level_xml(self.settings['default_level']['xml'])
@@ -145,14 +147,19 @@ class Window(tk.Tk):
         path = filedialog.askopenfilename(title='Open level XML', defaultextension="*.xml", filetypes=(('wmw level', '*.xml'),('any', '*.*')), initialdir=self.gamedir+'assets/Levels')
         self.open_level_xml(path)
 
-    def open_level_img(self, path):
+    def open_level_img(self, path=None):
         try:
             self.level_img_index
         except:
             self.level_img_index = self.level_canvas.create_image(0,0, image=None, anchor='nw')
 
-        image = Image.open(path)
+        if path != None:
+            image = Image.open(path)
+        else:
+            image = Image.new('P', (90,120), 255)
+
         image = image.resize((image.width*self.scale, image.height*self.scale), Image.Resampling.NEAREST)
+
         self.level_img = ImageTk.PhotoImage(image=image)
         self.level_size = (image.width, image.height)
 
