@@ -30,4 +30,7 @@ class load_dialog():
         pb.grid(column=0, row=0, columnspan=2, padx=10, pady=20)
 
         pb.start()
+
+    def close(self):
+        self.window.destroy()
     

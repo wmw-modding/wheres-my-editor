@@ -49,7 +49,7 @@ class newObject():
         for i in images:
             print(i.gridSize[0])
             try:
-                self.image.paste(i.animations[0].frames[0].image, i.pos, i.animations[0].frames[0].image)
+                self.image.paste(i.animations[0].frames[0].image, self.truePos(i.pos, self.image.size, i.animations[0].frames[0].image.size), i.animations[0].frames[0].image)
             except:
                 Pass
 
@@ -62,6 +62,8 @@ class newObject():
 
         for key in properties:
             self.properties[key] = properties[key]
+
+        self.size = self.image.size
         
         self.pos = pos
 
@@ -250,6 +252,30 @@ class newObject():
 
         app.after(0, show_animation)
 
+    def truePos(self, pos, source_size, image_size=None, scale=1, anchor='CENTER'):
+        def error(value):
+            raise NameError('anchor: ' + str(value) + ' is not valid')
+
+        if image_size == None:
+            image_size = source_size
+
+        print(pos)
+        x = pos[0] * scale
+        y = pos[1] * -1 * scale
+
+        x += source_size[0] / (2 if anchor in ['CENTER', 'C', 'N', 'S'] else (1 if anchor in ['NE', 'E', 'SE'] else (source_size[0] if anchor in ['NW', 'W', 'SW'] else error(anchor))))
+        y += source_size[1] / (2 if anchor in ['CENTER', 'C', 'W', 'E'] else (1 if anchor in ['SW', 'S', 'SE'] else (source_size[1] if anchor in ['NW', 'N', 'NW'] else error(anchor))))
+
+        x -= image_size[0] / (2 if anchor in ['CENTER', 'C', 'N', 'S'] else (1 if anchor in ['NE', 'E', 'SE'] else (image_size[0] if anchor in ['NW', 'W', 'SW'] else error(anchor))))
+        y -= image_size[1] / (2 if anchor in ['CENTER', 'C', 'W', 'E'] else (1 if anchor in ['SW', 'S', 'SE'] else (image_size[1] if anchor in ['NW', 'N', 'NW'] else error(anchor))))
+
+        x = round(x)
+        y = round(y)
+        
+        print(x,y)
+
+        return (x,y)
+
 def findTag(root, tag):
     element = 0
     curTag = ''
@@ -261,4 +287,6 @@ def findTag(root, tag):
             break
 
 if __name__ == '__main__':
-    print(newObject('game/wmw/assets/Objects/shower_head.hs'))
+    obj = newObject('game/wmw/assets/Objects/star.hs')
+    print(obj, obj.truePos((0,2), obj.image.size, anchor='d'))
+    obj.image.show()

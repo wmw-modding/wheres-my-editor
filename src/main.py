@@ -60,7 +60,7 @@ class Window(tk.Tk):
         
         self.xml_viewer = XML_Viwer(self.objects_canvas, self.level_xml, heading_text='objects').pack()
         print(self.xml_viewer)
-        time.sleep(2)
+        # time.sleep(2)
 
         # self.level_img_index = self.level_canvas.create_image(0,0, image=None, anchor='nw')
 
@@ -130,8 +130,8 @@ class Window(tk.Tk):
         # bomb.playAnimation(self, self.level_canvas, display, bomb.sprites[0].animations[0])
         self.mouseUp()
 
-        self.addObj(self.gamedir + '/assets/Objects/bomb.hs', pos=(0,20))
-        self.addObj(self.gamedir + '/assets/Objects/bomb.hs', pos=(0,0))
+        # self.addObj(self.gamedir + '/assets/Objects/bomb.hs', pos=(0,20))
+        # self.addObj(self.gamedir + '/assets/Objects/bomb.hs', pos=(0,0))
 
         self.level_canvas.bind('<B1-Motion>', self.moveObj)
         self.level_canvas.bind('<ButtonRelease-1>', self.mouseUp)
@@ -145,7 +145,9 @@ class Window(tk.Tk):
 
     def open_xml(self):
         path = filedialog.askopenfilename(title='Open level XML', defaultextension="*.xml", filetypes=(('wmw level', '*.xml'),('any', '*.*')), initialdir=self.gamedir+'assets/Levels')
+        dialog = popups.load_dialog()
         self.open_level_xml(path)
+        dialog.close()
 
     def open_level_img(self, path=None):
         try:
@@ -171,7 +173,6 @@ class Window(tk.Tk):
             xml = etree.fromstring(self.level_xml)
             print(xml)
 
-        dialog = popups.load_dialog()
 
         global images
         self.objects = []
@@ -194,21 +195,28 @@ class Window(tk.Tk):
 
                 self.addObj(self.gamedir + 'assets/' + object['properties']['Filename'], pos = object['pos'], properties=object['properties'])
 
-        dialog.window.destroy()
 
 
-    def truePos(self, pos):
-        x = pos[0] * 1 * self.scale
-        y = pos[1] * -1 * self.scale
+    def truePos(self, pos, size=None, anchor='CENTER'):
+        def error(value):
+            raise NameError('anchor: ' + str(value) + ' is not valid')
+
+        x,y = pos
+        
+        x *= 1 * self.scale
+        y *= -1 * self.scale
 
         x = x + (self.level_size[0] / 2)
         y = y + (self.level_size[1] / 2)
 
+        if size != None:
+            x = x - (size[0] / (2 if anchor in ['CENTER', 'C', 'N', 'S'] else (1 if anchor in ['NE', 'E', 'SE'] else (size[0] if anchor in ['NW', 'W', 'SW'] else error(anchor)))))
+            y = y - (size[1] / (2 if anchor in ['CENTER', 'C', 'W', 'E'] else (1 if anchor in ['SW', 'S', 'SE'] else (size[1] if anchor in ['NW', 'N', 'NW'] else error(anchor)))))
+
         return (x,y)
 
     def gamePos(self, pos):
-        x = pos[0]
-        y = pos[1]
+        x,y = pos
 
         x = x - (self.level_size[0] / 2)
         y = y - (self.level_size[1] / 2)
@@ -221,7 +229,8 @@ class Window(tk.Tk):
     def addObj(self, path, pos=(0,0), properties={}):
 
         obj = newObject(path,pos=pos, properties=properties)
-        newPos = self.truePos(pos)
+        # newPos = self.truePos(pos)
+        newPos = self.truePos(pos, size=obj.size, anchor='NW')
         print(newPos)
 
         object = {}
