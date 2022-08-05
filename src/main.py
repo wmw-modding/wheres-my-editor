@@ -1,3 +1,4 @@
+from threading import Thread
 from tkinter.filedialog import FileDialog
 import tkinter as tk
 from tkinter import ttk, simpledialog
@@ -27,6 +28,7 @@ class Window(tk.Tk):
         
         self.loadSettings()
 
+        self.active = True
 
         # image = Image.open(self.gamedir + 'assets/Levels/_seb_test_3_mystery.png')
         # image = image.resize((image.width*self.scale, image.height*self.scale), Image.Resampling.NEAREST)
@@ -145,9 +147,17 @@ class Window(tk.Tk):
 
     def open_xml(self):
         path = filedialog.askopenfilename(title='Open level XML', defaultextension="*.xml", filetypes=(('wmw level', '*.xml'),('any', '*.*')), initialdir=self.gamedir+'assets/Levels')
-        dialog = popups.load_dialog()
-        self.open_level_xml(path)
-        dialog.close()
+        dialog = popups.load_dialog(self)
+        # dialog.run(command=self.open_level_xml, args=(self, path, dialog))
+
+        self.active = False
+
+        # self.open_level_xml(path, dialog)
+
+        thread = Thread(target=self.open_level_xml, args=(path, dialog))
+        thread.start()
+
+        # dialog.close()
 
     def open_level_img(self, path=None):
         try:
@@ -167,7 +177,7 @@ class Window(tk.Tk):
 
         self.level_canvas.itemconfig(self.level_img_index, image=self.level_img)
 
-    def open_level_xml(self, path):
+    def open_level_xml(self, path, dialog=None):
         with open(path) as file:
             self.level_xml = file.read()
             xml = etree.fromstring(self.level_xml)
@@ -179,9 +189,16 @@ class Window(tk.Tk):
         images = []
 
         root = xml
+
+        if dialog:
+            dialog.bar['max'] = len(root)
         
         for obj in range(len(root)):
+            if dialog:
+                dialog.bar['value'] = obj
+
             if root[obj].tag == 'Object':
+
                 object = {}
                 object['name'] = root[obj].get('name')
                 pos = root[obj][findTag(root[obj], 'AbsoluteLocation')].get('value').split()
@@ -194,8 +211,10 @@ class Window(tk.Tk):
                 print(object)
 
                 self.addObj(self.gamedir + 'assets/' + object['properties']['Filename'], pos = object['pos'], properties=object['properties'])
-
-
+        
+        self.active = True
+        if dialog:
+            dialog.close()
 
     def truePos(self, pos, size=None, anchor='CENTER'):
         def error(value):
