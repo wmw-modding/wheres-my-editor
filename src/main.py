@@ -35,6 +35,7 @@ class Window(tk.Tk):
         # self.level_img = ImageTk.PhotoImage(image=image)
 
         self.objects = []
+        self.currentObj
             
         self.initialize()
 
@@ -147,17 +148,19 @@ class Window(tk.Tk):
 
     def open_xml(self):
         path = filedialog.askopenfilename(title='Open level XML', defaultextension="*.xml", filetypes=(('wmw level', '*.xml'),('any', '*.*')), initialdir=self.gamedir+'assets/Levels')
-        dialog = popups.load_dialog(self)
-        # dialog.run(command=self.open_level_xml, args=(self, path, dialog))
+        # print(path)
+        if path != '' and path != None:
+            dialog = popups.load_dialog(self)
+            # dialog.run(command=self.open_level_xml, args=(self, path, dialog))
 
-        self.active = False
+            self.active = False
 
-        # self.open_level_xml(path, dialog)
+            # self.open_level_xml(path, dialog)
 
-        thread = Thread(target=self.open_level_xml, args=(path, dialog))
-        thread.start()
+            thread = Thread(target=self.open_level_xml, args=(path, dialog))
+            thread.start()
 
-        # dialog.close()
+            # dialog.close()
 
     def open_level_img(self, path=None):
         try:
@@ -273,9 +276,15 @@ class Window(tk.Tk):
 
         self.objects.append(object)
 
+    def objAt(self, pos):
+        obj = next((self.objects.index(obj) for obj in self.objects[::-1] if (pos[0] >= self.level_canvas.coords(obj['image'])[0] - (obj['size'][0] / 2) and pos[0] <= int(self.level_canvas.coords(obj['image'])[0]) + int(obj['size'][0]) / 2) and (pos[1] >= self.level_canvas.coords(obj['image'])[1] - (obj['size'][1] / 2) and pos[1] <= int(self.level_canvas.coords(obj['image'])[1]) + int(obj['size'][1]) / 2)), None)
+        # print(obj)
+        return obj
+
     def moveObj(self, event):
-        if self.currentObj == None and not self.mouseDown:
-            self.currentObj = next((self.objects.index(obj) for obj in self.objects[::-1] if (event.x >= self.level_canvas.coords(obj['image'])[0] - (obj['size'][0] / 2) and event.x <= int(self.level_canvas.coords(obj['image'])[0]) + int(obj['size'][0]) / 2) and (event.y >= self.level_canvas.coords(obj['image'])[1] - (obj['size'][1] / 2) and event.y <= int(self.level_canvas.coords(obj['image'])[1]) + int(obj['size'][1]) / 2)), None)
+        if not self.mouseDown:
+            # self.currentObj = next((self.objects.index(obj) for obj in self.objects[::-1] if (event.x >= self.level_canvas.coords(obj['image'])[0] - (obj['size'][0] / 2) and event.x <= int(self.level_canvas.coords(obj['image'])[0]) + int(obj['size'][0]) / 2) and (event.y >= self.level_canvas.coords(obj['image'])[1] - (obj['size'][1] / 2) and event.y <= int(self.level_canvas.coords(obj['image'])[1]) + int(obj['size'][1]) / 2)), None)
+            self.currentObj = self.objAt((event.x, event.y))
             print(self.currentObj)
             self.prevMousePos = (event.x, event.y)
         
@@ -291,7 +300,7 @@ class Window(tk.Tk):
 
 
     def mouseUp(self, e=None):
-        self.currentObj = None
+        # self.currentObj = None
         self.prevMousePos = None
         self.mouseDown = False
         print(self.currentObj)
