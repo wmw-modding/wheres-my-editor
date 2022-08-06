@@ -20,11 +20,23 @@ class Window(tk.Tk):
         tk.Tk.__init__(self,parent)
         #tk.Tk.iconbitmap(self, default = 'assets/logo.xbm')
         self.parent = parent
-        self.level_canvas = tk.Canvas(parent, width=90*5, height=120*5)
-        self.objects_canvas = tk.Canvas(parent, width=200, height=300)
-        self.prop_canvas = tk.Canvas(parent, width=200, height=300)
-
         self.scale = 5
+
+        self.seperator = ttk.PanedWindow(orient='horizontal')
+        self.seperator.pack(fill=tk.BOTH, expand=1)
+
+        self.side_pane = ttk.PanedWindow(self.seperator, orient='vertical')
+        self.seperator.add(self.side_pane)
+
+        self.objects_canvas = tk.Canvas(self.side_pane, width=200, height=300)
+        self.side_pane.add(self.objects_canvas)
+
+        self.prop_canvas = tk.Canvas(self.side_pane, width=200, height=300)
+        self.side_pane.add(self.prop_canvas)
+
+        self.level_canvas = tk.Canvas(self.seperator, width=90*self.scale, height=120*self.scale)
+        self.seperator.add(self.level_canvas)
+
         
         self.loadSettings()
 
@@ -45,11 +57,13 @@ class Window(tk.Tk):
     def initialize(self):
         self.grid()
     
-        self.level_canvas.grid(row=0, column=1, rowspan=2)
-        self.objects_canvas.grid(row=0, column=0)
-        self.prop_canvas.grid(row=1, column=0)
+        # self.level_canvas.grid(row=0, column=2, rowspan=2)
+        # self.side_pane.grid(row=0, column=0, rowspan=2)
+        # self.objects_canvas.grid(row=0, column=0)
+        # self.prop_canvas.grid(row=1, column=0)
         self.level_xml = '<root></root>'
         self.level_size = (90 * self.scale, 120 * self.scale)
+
 
         if self.settings['default_level']['image'] != '':
             self.open_level_img(self.settings['default_level']['image'])
@@ -323,7 +337,10 @@ class Window(tk.Tk):
                 label = ttk.Label(self.prop_frame, text=key)
                 label.grid(column=0, row=row, sticky='w')
 
-                value = ttk.Entry(self.prop_frame, textvariable=self.objects[self.currentObj]['object'].properties[key])
+                if key.lower() == 'angle':
+                    value = ttk.Spinbox(self.prop_frame, textvariable=self.objects[self.currentObj]['object'].properties[key])
+                else:
+                    value = ttk.Entry(self.prop_frame, textvariable=self.objects[self.currentObj]['object'].properties[key])
                 value.delete(0, 'end')
                 value.insert(0, self.objects[self.currentObj]['object'].properties[key])
                 value.grid(column=1, row=row)
