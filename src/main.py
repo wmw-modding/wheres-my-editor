@@ -35,7 +35,7 @@ class Window(tk.Tk):
         # self.level_img = ImageTk.PhotoImage(image=image)
 
         self.objects = []
-        self.currentObj
+        self.currentObj = None
             
         self.initialize()
 
@@ -67,10 +67,13 @@ class Window(tk.Tk):
 
         # self.level_img_index = self.level_canvas.create_image(0,0, image=None, anchor='nw')
 
-        buttons = ttk.LabelFrame(self.prop_canvas, text='properties')
-        ttk.Button(buttons, text='Add', command=self.action).pack()
+        self.prop_frame = ttk.LabelFrame(self.prop_canvas, text='properties')
+        ttk.Button(self.prop_frame, text='Add', command=self.action).grid()
+        
 
-        self.prop_buttons = self.prop_canvas.create_window(0, 0, anchor='nw', window=buttons)
+        self.prop_buttons = self.prop_canvas.create_window(0, 0, anchor='nw', window=self.prop_frame)
+
+        self.prop_canvas.winfo_children()
 
         # self.openIMG('blank.png')
         
@@ -287,6 +290,8 @@ class Window(tk.Tk):
             self.currentObj = self.objAt((event.x, event.y))
             print(self.currentObj)
             self.prevMousePos = (event.x, event.y)
+
+            self.updateProps()
         
         if self.currentObj != None:
             self.level_canvas.move(self.objects[self.currentObj]['image'], event.x - self.prevMousePos[0], event.y - self.prevMousePos[1])
@@ -304,6 +309,28 @@ class Window(tk.Tk):
         self.prevMousePos = None
         self.mouseDown = False
         print(self.currentObj)
+
+    def updateProps(self):
+        for c in self.prop_frame.winfo_children():
+            c.destroy()
+        
+        
+        if self.currentObj:
+            row = 0
+            print(self.objects[self.currentObj]['object'].properties)
+            properties = self.objects[self.currentObj]['object'].properties
+            for key in properties:
+                label = ttk.Label(self.prop_frame, text=key)
+                label.grid(column=0, row=row, sticky='w')
+
+                value = ttk.Entry(self.prop_frame, textvariable=self.objects[self.currentObj]['object'].properties[key])
+                value.delete(0, 'end')
+                value.insert(0, self.objects[self.currentObj]['object'].properties[key])
+                value.grid(column=1, row=row)
+
+                row += 1
+        else:
+            print('no obj')
 
     def initSettings(self):
         self.gamedir =  filedialog.askdirectory(title='Select game Directory')
