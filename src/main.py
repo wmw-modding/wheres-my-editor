@@ -83,11 +83,13 @@ class Window(tk.Tk):
 
         self.prop_frame = ttk.LabelFrame(self.prop_canvas, text='properties')
         ttk.Button(self.prop_frame, text='Add', command=self.action).grid()
+        self.prop_frame.columnconfigure(1, weight=1)
         
 
         self.prop_buttons = self.prop_canvas.create_window(0, 0, anchor='nw', window=self.prop_frame)
-
-        self.prop_canvas.winfo_children()
+        # self.prop_canvas.bind('<Configure>', )
+        # self.prop_canvas.size()
+        # self.prop_canvas.config(width=)
 
         # self.openIMG('blank.png')
         
@@ -172,10 +174,10 @@ class Window(tk.Tk):
 
             self.active = False
 
-            # self.open_level_xml(path, dialog)
+            self.open_level_xml(path, dialog)
 
-            thread = Thread(target=self.open_level_xml, args=(path, dialog))
-            thread.start()
+            # thread = Thread(target=self.open_level_xml, args=(path, dialog))
+            # thread.start()
 
             # dialog.close()
 
@@ -216,6 +218,7 @@ class Window(tk.Tk):
         for obj in range(len(root)):
             if dialog:
                 dialog.bar['value'] = obj
+                dialog.window.update()
 
             if root[obj].tag == 'Object':
 
@@ -338,12 +341,12 @@ class Window(tk.Tk):
                 label.grid(column=0, row=row, sticky='w')
 
                 if key.lower() == 'angle':
-                    value = ttk.Spinbox(self.prop_frame, textvariable=self.objects[self.currentObj]['object'].properties[key])
+                    value = ttk.Spinbox(self.prop_frame, textvariable=self.objects[self.currentObj]['object'].properties[key], from_=0, to=360)
                 else:
                     value = ttk.Entry(self.prop_frame, textvariable=self.objects[self.currentObj]['object'].properties[key])
                 value.delete(0, 'end')
                 value.insert(0, self.objects[self.currentObj]['object'].properties[key])
-                value.grid(column=1, row=row)
+                value.grid(column=1, row=row, sticky='e')
 
                 row += 1
         else:
