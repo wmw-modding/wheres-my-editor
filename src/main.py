@@ -82,14 +82,23 @@ class Window(tk.Tk):
         # self.level_img_index = self.level_canvas.create_image(0,0, image=None, anchor='nw')
 
         self.prop_frame = ttk.LabelFrame(self.prop_canvas, text='properties')
-        ttk.Button(self.prop_frame, text='Add', command=self.action).grid()
-        self.prop_frame.columnconfigure(1, weight=1)
+
+        self.prop_panedWindow = ttk.PanedWindow(self.prop_frame, orient='horizontal')
+
+        self.prop_left_frame = ttk.Frame(self.prop_panedWindow, width=50, height=200)
+        self.prop_panedWindow.add(self.prop_left_frame)
+
+        self.prop_right_frame = ttk.Frame(self.prop_panedWindow, width=50, height=200)
+        self.prop_panedWindow.add(self.prop_right_frame)
+
+        self.prop_panedWindow.pack(fill='both')
+        
+        ttk.Button(self.prop_left_frame, text='Add', command=self.action).grid()
+        self.prop_right_frame.columnconfigure(0, weight=1)
         
 
-        self.prop_buttons = self.prop_canvas.create_window(0, 0, anchor='nw', window=self.prop_frame)
-        # self.prop_canvas.bind('<Configure>', )
-        # self.prop_canvas.size()
-        # self.prop_canvas.config(width=)
+        self.prop_buttons = self.prop_canvas.create_window(0, 0, anchor='nw', window=self.prop_frame, width=200, height=300)
+        self.prop_canvas.bind('<Configure>', self.prop_resize)
 
         # self.openIMG('blank.png')
         
@@ -160,6 +169,10 @@ class Window(tk.Tk):
 
     def action(self):
         pass
+
+    def prop_resize(self, e):
+        print(e.width,e.height)
+        self.prop_canvas.itemconfig(self.prop_buttons, width=float(e.width), height=float(e.height))
 
     def open_png(self):
         path = filedialog.askopenfilename(title='Open level image', defaultextension="*.png", filetypes=(('wmw level', '*.png'),('any', '*.*')), initialdir=self.gamedir+'assets/Levels')
@@ -328,25 +341,31 @@ class Window(tk.Tk):
         print(self.currentObj)
 
     def updateProps(self):
-        for c in self.prop_frame.winfo_children():
+        for c in self.prop_left_frame.winfo_children():
             c.destroy()
-        
+
+        for c in self.prop_right_frame.winfo_children():
+            c.destroy()
         
         if self.currentObj:
             row = 0
             print(self.objects[self.currentObj]['object'].properties)
             properties = self.objects[self.currentObj]['object'].properties
             for key in properties:
-                label = ttk.Label(self.prop_frame, text=key)
+                label = ttk.Label(self.prop_left_frame, text=key)
                 label.grid(column=0, row=row, sticky='w')
+                self.prop_left_frame.rowconfigure(row, minsize=21)
 
                 if key.lower() == 'angle':
-                    value = ttk.Spinbox(self.prop_frame, textvariable=self.objects[self.currentObj]['object'].properties[key], from_=0, to=360)
+                    value = ttk.Spinbox(self.prop_right_frame, textvariable=self.objects[self.currentObj]['object'].properties[key], from_=0, to=360)
                 else:
-                    value = ttk.Entry(self.prop_frame, textvariable=self.objects[self.currentObj]['object'].properties[key])
+                    value = ttk.Entry(self.prop_right_frame, textvariable=self.objects[self.currentObj]['object'].properties[key])
                 value.delete(0, 'end')
                 value.insert(0, self.objects[self.currentObj]['object'].properties[key])
-                value.grid(column=1, row=row, sticky='e')
+                value.grid(column=0, row=row, sticky='w')
+                self.prop_right_frame.rowconfigure(row, minsize=21)
+                
+                # label.config(height=value.winfo_height)
 
                 row += 1
         else:
