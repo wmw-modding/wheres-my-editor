@@ -176,6 +176,9 @@ class Window(tk.Tk):
         self.level_canvas.bind('<B1-Motion>', self.moveObj)
         self.level_canvas.bind('<ButtonRelease-1>', self.mouseUp)
 
+        self.bind_all("<Button-1>", lambda event: event.widget.focus_set())
+        self.bind('<KeyPress-Return>', lambda e: self.focus_set())
+
     def action(self):
         pass
 
