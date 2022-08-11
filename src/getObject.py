@@ -67,7 +67,6 @@ class newObject():
         
         self.pos = pos
 
-
     class sprite():
         def __init__(self, path, properties) -> None:
             self.assets = os.path.dirname(os.path.dirname(path))

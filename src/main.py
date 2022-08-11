@@ -191,6 +191,13 @@ class Window(tk.Tk):
         self.prop_panedWindow.config(width=e.width - sb_width - 2)
 
     def updateProps(self):
+        def callback(var, index, mode):
+            print(self.current_props['Angle'].get())
+
+        def update_sprite():
+            print(self.current_props['Angle'].get())
+            return True
+
         for c in self.prop_left_frame.winfo_children():
             c.destroy()
 
@@ -199,25 +206,42 @@ class Window(tk.Tk):
         
         row = 0
         if self.currentObj:
+            self.current_props = {
+                'Angle' : tk.StringVar()
+            }
+
             print(self.objects[self.currentObj]['object'].properties)
             properties = self.objects[self.currentObj]['object'].properties
+
+            label = ttk.Label(self.prop_left_frame, text='Angle')
+            label.grid(column=0, row=row, sticky='w')
+            self.prop_left_frame.rowconfigure(row, minsize=21)
+
+            # self.current_props['Angle'].trace_add('write', callback=callback)
+
+            value = ttk.Spinbox(self.prop_right_frame, textvariable=self.current_props['Angle'], from_=-360, to=360, validate='focusout', validatecommand=update_sprite)
+            value.delete(0, 'end')
+            value.insert(0, self.objects[self.currentObj]['object'].properties['Angle'])
+            value.grid(column=0, row=row, sticky='w')
+            self.prop_right_frame.rowconfigure(row, minsize=21)
+
+            row += 1
+
             for key in properties:
-                label = ttk.Label(self.prop_left_frame, text=key)
-                label.grid(column=0, row=row, sticky='w')
-                self.prop_left_frame.rowconfigure(row, minsize=21)
+                if not key.lower() in ['angle']:
+                    label = ttk.Label(self.prop_left_frame, text=key)
+                    label.grid(column=0, row=row, sticky='w')
+                    self.prop_left_frame.rowconfigure(row, minsize=21)
 
-                if key.lower() == 'angle':
-                    value = ttk.Spinbox(self.prop_right_frame, textvariable=self.objects[self.currentObj]['object'].properties[key], from_=-360, to=360)
-                else:
                     value = ttk.Entry(self.prop_right_frame, textvariable=self.objects[self.currentObj]['object'].properties[key])
-                value.delete(0, 'end')
-                value.insert(0, self.objects[self.currentObj]['object'].properties[key])
-                value.grid(column=0, row=row, sticky='w')
-                self.prop_right_frame.rowconfigure(row, minsize=21)
+                    value.delete(0, 'end')
+                    value.insert(0, self.objects[self.currentObj]['object'].properties[key])
+                    value.grid(column=0, row=row, sticky='w')
+                    self.prop_right_frame.rowconfigure(row, minsize=21)
                 
-                # label.config(height=value.winfo_height)
+                    # label.config(height=value.winfo_height)
 
-                row += 1
+                    row += 1
             self.prop_canvas.itemconfig(self.prop_buttons, height=(row+1) * 21)
             self.prop_frame.config(height=(row+1) * 21)
             self.prop_canvas.configure(scrollregion=(0,0,500,self.prop_frame.winfo_height()))
@@ -227,6 +251,9 @@ class Window(tk.Tk):
             self.prop_canvas.itemconfig(self.prop_buttons, height=0)
             self.prop_frame.config(height=0)
             self.prop_canvas.configure(scrollregion=(0,0,500,0))
+
+    def update_current_obj(self):
+        self.level_canvas.itemconfig(self.objects[self.currentObj]['image'])
 
 
     def open_png(self):
@@ -394,6 +421,9 @@ class Window(tk.Tk):
         self.prevMousePos = None
         self.mouseDown = False
         print(self.currentObj)
+
+    def update_current_obj(self, event):
+        pass
 
     def initSettings(self):
         self.gamedir =  filedialog.askdirectory(title='Select game Directory')
