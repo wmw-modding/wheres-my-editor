@@ -10,7 +10,7 @@ class newObject():
     def __init__(self, path, pos=(0.0), properties={}):
         with open(path) as file:
             xml = etree.parse(file)
-        assets = os.path.dirname(os.path.dirname(path))
+        self.assets = os.path.dirname(os.path.dirname(path))
         tree = xml.getroot()
 
         elmt = findTag(tree, 'Sprites')
@@ -26,7 +26,7 @@ class newObject():
             sprite['isBackground'] = e.get('isBackground') == 'true'
             sprite['visible'] = e.get('visible') == 'true' or e.get('visible') == None
 
-            sprite_obj = self.sprite(assets + sprite['filename'], sprite)
+            sprite_obj = self.sprite(self.assets + sprite['filename'], sprite)
 
             self.sprites.append(sprite_obj)
 
@@ -63,9 +63,16 @@ class newObject():
         for key in properties:
             self.properties[key] = properties[key]
 
+        self._filename = self.properties['Filename']
+
         self.size = self.image.size
         
         self.pos = pos
+
+    def update(self):
+        if self._filename != self.properties['Filename']:
+            self._filename = self.properties['Filename']
+            self.__init__(self.assets + self._filename, properties=self.properties, pos=self.pos)
 
     class sprite():
         def __init__(self, path, properties) -> None:

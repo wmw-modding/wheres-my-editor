@@ -222,7 +222,7 @@ class Window(tk.Tk):
 
             # self.current_props['Angle'].trace_add('write', callback=callback)
 
-            value = ttk.Spinbox(self.prop_right_frame, textvariable=self.current_props['Angle'], from_=-360, to=360, validate='focusout', validatecommand=update_sprite)
+            value = ttk.Spinbox(self.prop_right_frame, textvariable=self.current_props['Angle'], from_=-360, to=360, validate='focusout', validatecommand=self.update_current_obj)
             value.delete(0, 'end')
             value.insert(0, self.objects[self.currentObj]['object'].properties['Angle'])
             value.grid(column=0, row=row, sticky='w')
@@ -236,11 +236,14 @@ class Window(tk.Tk):
                     label.grid(column=0, row=row, sticky='w')
                     self.prop_left_frame.rowconfigure(row, minsize=21)
 
-                    value = ttk.Entry(self.prop_right_frame, textvariable=self.objects[self.currentObj]['object'].properties[key])
+                    self.current_props[key] = tk.StringVar()
+
+                    value = ttk.Entry(self.prop_right_frame, textvariable=self.current_props[key], validate='focusout', validatecommand=self.update_current_obj)
                     value.delete(0, 'end')
                     value.insert(0, self.objects[self.currentObj]['object'].properties[key])
                     value.grid(column=0, row=row, sticky='w')
                     self.prop_right_frame.rowconfigure(row, minsize=21)
+
                 
                     # label.config(height=value.winfo_height)
 
@@ -425,8 +428,26 @@ class Window(tk.Tk):
         self.mouseDown = False
         print(self.currentObj)
 
-    def update_current_obj(self, event):
-        pass
+    def update_current_obj(self) -> True:
+        props = {}
+
+        for key in self.current_props:
+            props[key] = self.current_props[key].get()
+
+        angle = float(props['Angle'])
+
+        self.objects[self.currentObj]['object'].properties = props
+        self.objects[self.currentObj]['object'].update()
+
+        images[self.currentObj] = ImageTk.PhotoImage(self.objects[self.currentObj]['object'].image.rotate(angle, expand=True))
+        
+        self.level_canvas.itemconfig(self.objects[self.currentObj]['image'], image=images[self.currentObj])
+
+        # self.objects[self.currentObj]['object'].properties['Angle'] = props['Angle']
+
+        self.updateProps()
+
+        return True
 
     def initSettings(self):
         self.gamedir =  filedialog.askdirectory(title='Select game Directory')
