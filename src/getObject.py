@@ -56,9 +56,10 @@ class newObject():
         # self.image.show()
 
         self.properties = {
-            'Angle' : '0'
+            'Angle' : '0',
+            'Filename' : '/' + os.path.relpath(path, self.assets).replace('\\', '/')
         }
-        
+
         prop = tree[findTag(tree, 'DefaultProperties')]
         for p in prop:
             self.properties[p.get('name')] = p.get('value')
