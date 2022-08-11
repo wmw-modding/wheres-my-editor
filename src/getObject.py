@@ -55,7 +55,10 @@ class newObject():
 
         # self.image.show()
 
-        self.properties = {}
+        self.properties = {
+            'Angle' : '0'
+        }
+        
         prop = tree[findTag(tree, 'DefaultProperties')]
         for p in prop:
             self.properties[p.get('name')] = p.get('value')
