@@ -194,12 +194,18 @@ class Window(tk.Tk):
         self.prop_panedWindow.config(width=e.width - sb_width - 2)
 
     def updateProps(self):
-        def callback(var, index, mode):
-            print(self.current_props['Angle'].get())
+        def addProp(key, value, row):
+            label = ttk.Label(self.prop_left_frame, text=key)
+            label.grid(column=0, row=row, sticky='w')
+            self.prop_left_frame.rowconfigure(row, minsize=21)
 
-        def update_sprite():
-            print(self.current_props['Angle'].get())
-            return True
+            self.current_props[key] = tk.StringVar()
+
+            value = ttk.Entry(self.prop_right_frame, textvariable=self.current_props[key], validate='focusout', validatecommand=self.update_current_obj)
+            value.delete(0, 'end')
+            value.insert(0, self.objects[self.currentObj]['object'].properties[key])
+            value.grid(column=0, row=row, sticky='w')
+            self.prop_right_frame.rowconfigure(row, minsize=21)
 
         for c in self.prop_left_frame.winfo_children():
             c.destroy()
@@ -232,17 +238,19 @@ class Window(tk.Tk):
 
             for key in properties:
                 if not key.lower() in ['angle']:
-                    label = ttk.Label(self.prop_left_frame, text=key)
-                    label.grid(column=0, row=row, sticky='w')
-                    self.prop_left_frame.rowconfigure(row, minsize=21)
+                    # label = ttk.Label(self.prop_left_frame, text=key)
+                    # label.grid(column=0, row=row, sticky='w')
+                    # self.prop_left_frame.rowconfigure(row, minsize=21)
 
-                    self.current_props[key] = tk.StringVar()
+                    # self.current_props[key] = tk.StringVar()
 
-                    value = ttk.Entry(self.prop_right_frame, textvariable=self.current_props[key], validate='focusout', validatecommand=self.update_current_obj)
-                    value.delete(0, 'end')
-                    value.insert(0, self.objects[self.currentObj]['object'].properties[key])
-                    value.grid(column=0, row=row, sticky='w')
-                    self.prop_right_frame.rowconfigure(row, minsize=21)
+                    # value = ttk.Entry(self.prop_right_frame, textvariable=self.current_props[key], validate='focusout', validatecommand=self.update_current_obj)
+                    # value.delete(0, 'end')
+                    # value.insert(0, self.objects[self.currentObj]['object'].properties[key])
+                    # value.grid(column=0, row=row, sticky='w')
+                    # self.prop_right_frame.rowconfigure(row, minsize=21)
+
+                    addProp(key, value, row)
 
                 
                     # label.config(height=value.winfo_height)
@@ -346,8 +354,8 @@ class Window(tk.Tk):
 
         x,y = pos
         
-        x *= 1 * self.scale
-        y *= -1 * self.scale
+        x *= 1 * (self.scale + 1)
+        y *= -1 * (self.scale + 1)
 
         x = x + (self.level_size[0] / 2)
         y = y + (self.level_size[1] / 2)
@@ -380,6 +388,7 @@ class Window(tk.Tk):
         object['object'] = obj
         global images
         # obj.image = obj.image.resize((obj.image.width + 5, obj.image.height + 5))
+        obj.image = obj.scale_image(1.4)
         print(properties)
 
         try:

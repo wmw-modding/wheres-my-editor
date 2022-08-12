@@ -1,4 +1,5 @@
 from ast import Pass
+import math
 import lxml
 from lxml import etree
 import os
@@ -285,6 +286,18 @@ class newObject():
         print(x,y)
 
         return (x,y)
+
+    def scale_image(self, scale):
+
+        size = (self.image.width, self.image.height)
+        aspect_ratio = size[1]/size[0]
+
+        width = size[0] * scale
+        height = width * aspect_ratio
+
+        newSize = (math.floor(width), math.floor(height))
+
+        return self.image.resize(newSize)
 
 def findTag(root, tag):
     element = 0
