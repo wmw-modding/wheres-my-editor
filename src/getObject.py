@@ -1,4 +1,3 @@
-from ast import Pass
 import math
 import lxml
 from lxml import etree
