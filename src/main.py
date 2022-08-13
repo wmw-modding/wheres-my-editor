@@ -1,3 +1,4 @@
+from email.mime import image
 from threading import Thread
 from tkinter.filedialog import FileDialog
 import tkinter as tk
@@ -36,6 +37,8 @@ class Window(tk.Tk):
 
         self.level_canvas = tk.Canvas(self.seperator, width=90*self.scale, height=120*self.scale)
         self.seperator.add(self.level_canvas)
+
+        self.selection_rect = None
 
         self.style = ttk.Style()
 
@@ -173,11 +176,37 @@ class Window(tk.Tk):
         # self.addObj(self.gamedir + '/assets/Objects/bomb.hs', pos=(0,20))
         # self.addObj(self.gamedir + '/assets/Objects/bomb.hs', pos=(0,0))
 
-        self.level_canvas.bind('<B1-Motion>', self.moveObj)
-        self.level_canvas.bind('<ButtonRelease-1>', self.mouseUp)
+        self.level_canvas_hover = False
 
-        self.bind_all("<Button-1>", lambda event: event.widget.focus_set())
+        def set_hover(hover=False):
+            self.level_canvas_hover = hover
+
+        self.level_canvas.bind('<B1-Motion>', self.drag_obj)
+        self.level_canvas.bind('<ButtonRelease-1>', self.mouseUp)
+        self.level_canvas.bind('<Button-1>', self.select_obj)
+        self.level_canvas.bind('<Enter>', lambda e: set_hover(True))
+        self.level_canvas.bind('<Leave>', lambda e: set_hover(False))
+        
+        self.level_canvas.bind('<Left>', lambda e: self.move_obj(self.currentObj, (-2,0)))
+        self.level_canvas.bind('<Shift-Left>', lambda e: self.move_obj(self.currentObj, (-10,0)))
+        self.level_canvas.bind('<Control-Left>', lambda e: self.move_obj(self.currentObj, (-1,0)))
+
+        self.level_canvas.bind('<Right>', lambda e: self.move_obj(self.currentObj, (2,0)))
+        self.level_canvas.bind('<Shift-Right>', lambda e: self.move_obj(self.currentObj, (10,0)))
+        self.level_canvas.bind('<Control-Right>', lambda e: self.move_obj(self.currentObj, (1,0)))
+
+        self.level_canvas.bind('<Up>', lambda e: self.move_obj(self.currentObj, (0,-2)))
+        self.level_canvas.bind('<Shift-Up>', lambda e: self.move_obj(self.currentObj, (0,-10)))
+        self.level_canvas.bind('<Control-Up>', lambda e: self.move_obj(self.currentObj, (0,-1)))
+
+        self.level_canvas.bind('<Down>', lambda e: self.move_obj(self.currentObj, (0,2)))
+        self.level_canvas.bind('<Shift-Down>', lambda e: self.move_obj(self.currentObj, (0,10)))
+        self.level_canvas.bind('<Control-Down>', lambda e: self.move_obj(self.currentObj, (0,1)))
+
+
+        # self.bind_all("<Button-1>", lambda event: event.widget.focus_set())
         self.bind('<KeyPress-Return>', lambda e: self.focus_set())
+
 
     def action(self):
         pass
@@ -226,7 +255,6 @@ class Window(tk.Tk):
             label.grid(column=0, row=row, sticky='w')
             self.prop_left_frame.rowconfigure(row, minsize=21)
 
-            # self.current_props['Angle'].trace_add('write', callback=callback)
 
             value = ttk.Spinbox(self.prop_right_frame, textvariable=self.current_props['Angle'], from_=-360, to=360, validate='focusout', validatecommand=self.update_current_obj)
             value.delete(0, 'end')
@@ -260,6 +288,7 @@ class Window(tk.Tk):
             self.prop_frame.config(height=(row+1) * 21)
             self.prop_canvas.configure(scrollregion=(0,0,500,self.prop_frame.winfo_height()))
 
+            # self.current_props['Angle'].trace_add('write', callback=lambda var, index, mode: self.update_current_obj())
         else:
             print('no obj')
             self.prop_canvas.itemconfig(self.prop_buttons, height=0)
@@ -379,7 +408,7 @@ class Window(tk.Tk):
 
     def addObj(self, path, pos=(0,0), properties={}):
 
-        obj = newObject(path,pos=pos, properties=properties)
+        obj = newObject(path,pos=pos, properties=properties, scale=1.4)
         # newPos = self.truePos(pos)
         newPos = self.truePos(pos, size=obj.size, anchor='NW')
         print(newPos)
@@ -388,7 +417,7 @@ class Window(tk.Tk):
         object['object'] = obj
         global images
         # obj.image = obj.image.resize((obj.image.width + 5, obj.image.height + 5))
-        obj.image = obj.scale_image(1.4)
+        # obj.image = obj.scale_image(1.4)
         print(properties)
 
         try:
@@ -396,7 +425,10 @@ class Window(tk.Tk):
         except:
             angle = 0
 
-        img = ImageTk.PhotoImage(obj.image.rotate(angle, expand=True))
+        obj.rotate_image(angle)
+
+        img = ImageTk.PhotoImage(obj.image)
+
         images.append(img)
         object['size'] = obj.image.size
         print(object['size'])
@@ -406,36 +438,13 @@ class Window(tk.Tk):
 
         self.objects.append(object)
 
-    def objAt(self, pos):
-        obj = next((self.objects.index(obj) for obj in self.objects[::-1] if (pos[0] >= self.level_canvas.coords(obj['image'])[0] - (obj['size'][0] / 2) and pos[0] <= int(self.level_canvas.coords(obj['image'])[0]) + int(obj['size'][0]) / 2) and (pos[1] >= self.level_canvas.coords(obj['image'])[1] - (obj['size'][1] / 2) and pos[1] <= int(self.level_canvas.coords(obj['image'])[1]) + int(obj['size'][1]) / 2)), None)
-        # print(obj)
-        return obj
-
-    def moveObj(self, event):
-        if not self.mouseDown:
-            # self.currentObj = next((self.objects.index(obj) for obj in self.objects[::-1] if (event.x >= self.level_canvas.coords(obj['image'])[0] - (obj['size'][0] / 2) and event.x <= int(self.level_canvas.coords(obj['image'])[0]) + int(obj['size'][0]) / 2) and (event.y >= self.level_canvas.coords(obj['image'])[1] - (obj['size'][1] / 2) and event.y <= int(self.level_canvas.coords(obj['image'])[1]) + int(obj['size'][1]) / 2)), None)
-            self.currentObj = self.objAt((event.x, event.y))
-            print(self.currentObj)
-            self.prevMousePos = (event.x, event.y)
-
-            self.updateProps()
-        
-        if self.currentObj != None:
-            self.level_canvas.move(self.objects[self.currentObj]['image'], event.x - self.prevMousePos[0], event.y - self.prevMousePos[1])
-            self.objects[self.currentObj]['object'].pos = self.gamePos(self.level_canvas.coords(self.objects[self.currentObj]['image']))
-            print(self.objects[self.currentObj]['object'].pos)
-            print(self.currentObj)
-
-            self.prevMousePos = (event.x, event.y)
-        
-        self.mouseDown = True
-
-
-    def mouseUp(self, e=None):
-        # self.currentObj = None
-        self.prevMousePos = None
-        self.mouseDown = False
-        print(self.currentObj)
+    def del_obj(self, objectIndex):
+        try:
+            global images
+            del self.objects[objectIndex]
+            del image[objectIndex]
+        except:
+            return
 
     def update_current_obj(self) -> True:
         props = {}
@@ -448,15 +457,79 @@ class Window(tk.Tk):
         self.objects[self.currentObj]['object'].properties = props
         self.objects[self.currentObj]['object'].update()
 
-        images[self.currentObj] = ImageTk.PhotoImage(self.objects[self.currentObj]['object'].image.rotate(angle, expand=True))
-        
+        self.objects[self.currentObj]['object'].rotate_image(angle)
+
+        images[self.currentObj] = ImageTk.PhotoImage(self.objects[self.currentObj]['object'].image)
+
         self.level_canvas.itemconfig(self.objects[self.currentObj]['image'], image=images[self.currentObj])
 
         # self.objects[self.currentObj]['object'].properties['Angle'] = props['Angle']
 
         self.updateProps()
+        self.objects[self.currentObj]['size'] = self.objects[self.currentObj]['object'].image.size
+
+        self.update_selection(self.currentObj)
 
         return True
+
+    def objAt(self, pos):
+        obj = next((self.objects.index(obj) for obj in self.objects[::-1] if (pos[0] >= self.level_canvas.coords(obj['image'])[0] - (obj['size'][0] / 2) and pos[0] <= int(self.level_canvas.coords(obj['image'])[0]) + int(obj['size'][0]) / 2) and (pos[1] >= self.level_canvas.coords(obj['image'])[1] - (obj['size'][1] / 2) and pos[1] <= int(self.level_canvas.coords(obj['image'])[1]) + int(obj['size'][1]) / 2)), None)
+        # print(obj)
+        return obj
+
+    def select_obj(self, event):
+        self.currentObj = self.objAt((event.x, event.y))
+        self.prevMousePos = (event.x, event.y)
+        self.updateProps()
+
+        self.update_selection(self.currentObj)
+
+    def update_selection(self, objectIndex):
+        size = self.objects[objectIndex]['size']
+        pos = self.level_canvas.coords(self.objects[objectIndex]['image'])
+
+        if self.selection_rect:
+            self.level_canvas.coords(self.selection_rect, pos[0] - size[0] / 2, pos[1] - size[1] / 2, pos[0] + size[0] / 2, pos[1] + size[1] / 2)
+        else:
+            self.selection_rect = self.level_canvas.create_rectangle(pos[0] - size[0] / 2, pos[1] - size[1] / 2, pos[0] + size[0] / 2, pos[1] + size[1] / 2)
+
+    def drag_obj(self, event):
+        # if not self.mouseDown:
+        #     # self.currentObj = next((self.objects.index(obj) for obj in self.objects[::-1] if (event.x >= self.level_canvas.coords(obj['image'])[0] - (obj['size'][0] / 2) and event.x <= int(self.level_canvas.coords(obj['image'])[0]) + int(obj['size'][0]) / 2) and (event.y >= self.level_canvas.coords(obj['image'])[1] - (obj['size'][1] / 2) and event.y <= int(self.level_canvas.coords(obj['image'])[1]) + int(obj['size'][1]) / 2)), None)
+        #     self.currentObj = self.objAt((event.x, event.y))
+        #     print(self.currentObj)
+        #     self.prevMousePos = (event.x, event.y)
+
+        #     self.updateProps()
+        
+        if self.currentObj != None:
+            self.move_obj(self.currentObj, (event.x - self.prevMousePos[0], event.y - self.prevMousePos[1]))
+
+            # self.level_canvas.move(self.objects[self.currentObj]['image'], event.x - self.prevMousePos[0], event.y - self.prevMousePos[1])
+            # self.objects[self.currentObj]['object'].pos = self.gamePos(self.level_canvas.coords(self.objects[self.currentObj]['image']))
+            print(self.objects[self.currentObj]['object'].pos)
+            print(self.currentObj)
+
+            self.prevMousePos = (event.x, event.y)
+        
+        self.mouseDown = True
+
+    def move_obj(self, objectIndex, pos):
+        print(f'{self.level_canvas_hover=}')
+        if pos != None and self.level_canvas_hover:
+            self.level_canvas.move(self.objects[objectIndex]['image'], pos[0], pos[1])
+            self.objects[objectIndex]['object'].pos = self.gamePos(self.level_canvas.coords(self.objects[objectIndex]['image']))
+            
+            self.update_selection(objectIndex)
+            
+            print(self.objects[objectIndex]['object'].pos)
+            print(objectIndex)
+
+    def mouseUp(self, e=None):
+        # self.currentObj = None
+        self.prevMousePos = None
+        self.mouseDown = False
+        print(self.currentObj)
 
     def initSettings(self):
         self.gamedir =  filedialog.askdirectory(title='Select game Directory')

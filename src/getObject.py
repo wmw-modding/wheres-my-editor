@@ -8,7 +8,7 @@ import time
 import itertools
 
 class newObject():
-    def __init__(self, path, pos=(0.0), properties={}):
+    def __init__(self, path, pos=(0.0), properties={}, scale=1):
         with open(path) as file:
             xml = etree.parse(file)
         self.assets = os.path.dirname(os.path.dirname(path))
@@ -17,6 +17,7 @@ class newObject():
         elmt = findTag(tree, 'Sprites')
     
         self.sprites = []
+        self.scale = scale
 
         for e in tree[elmt]:
             sprite = {}
@@ -70,14 +71,23 @@ class newObject():
 
         self._filename = self.properties['Filename']
 
+        self._image = self.image
+
         self.size = self.image.size
+        self.image = self.scale_image(self.scale)
         
         self.pos = pos
+
+    def rotate_image(self, angle):
+        self.rotation = angle
+
+        self.image = self._image.rotate(angle, expand=True, resample=Image.BILINEAR)
+        self.image = self.scale_image(self.scale)
 
     def update(self):
         if self._filename != self.properties['Filename']:
             self._filename = self.properties['Filename']
-            self.__init__(self.assets + self._filename, properties=self.properties, pos=self.pos)
+            self.__init__(self.assets + self._filename, properties=self.properties, pos=self.pos, scale=self.scale)
 
     class sprite():
         def __init__(self, path, properties) -> None:
