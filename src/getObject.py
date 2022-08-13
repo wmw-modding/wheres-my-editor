@@ -52,7 +52,7 @@ class newObject():
             try:
                 self.image.paste(i.animations[0].frames[0].image, self.truePos(i.pos, self.image.size, i.animations[0].frames[0].image.size), i.animations[0].frames[0].image)
             except:
-                Pass
+                pass
 
         # self.image.show()
 
