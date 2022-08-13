@@ -1,11 +1,11 @@
 from threading import Thread
 from tkinter.filedialog import FileDialog
 import tkinter as tk
-from tkinter import ttk, simpledialog
+from tkinter import ttk, simpledialog, messagebox
 from guizero import *
 import popups
 from PIL import Image, ImageTk
-from xmlviewer import XML_Viwer, autoscroll
+from xmlviewer import *
 from getObject import *
 import itertools
 import json
@@ -442,7 +442,7 @@ class Window(tk.Tk):
 
         with open(path, mode='wb') as file:
             file.write(xml)
-            print('exported')
+            messagebox.showinfo('Success!', 'xml exported successfully')
 
     def truePos(self, pos, size=None, anchor='CENTER'):
         def error(value):
