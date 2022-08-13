@@ -1,4 +1,3 @@
-from email.mime import image
 from threading import Thread
 from tkinter.filedialog import FileDialog
 import tkinter as tk
@@ -176,16 +175,17 @@ class Window(tk.Tk):
         # self.addObj(self.gamedir + '/assets/Objects/bomb.hs', pos=(0,20))
         # self.addObj(self.gamedir + '/assets/Objects/bomb.hs', pos=(0,0))
 
-        self.level_canvas_hover = False
+        # self.level_canvas_hover = False
 
-        def set_hover(hover=False):
-            self.level_canvas_hover = hover
+        # def set_hover(hover=False):
+        #     self.level_canvas_hover = hover
 
         self.level_canvas.bind('<B1-Motion>', self.drag_obj)
         self.level_canvas.bind('<ButtonRelease-1>', self.mouseUp)
         self.level_canvas.bind('<Button-1>', self.select_obj)
-        self.level_canvas.bind('<Enter>', lambda e: set_hover(True))
-        self.level_canvas.bind('<Leave>', lambda e: set_hover(False))
+        # self.level_canvas.bind('<Enter>', lambda e: self.level_canvas.focus_set())
+        # self.level_canvas.bind('<Leave>', lambda e: set_hover(False))
+        print('binding')
         
         self.level_canvas.bind('<Left>', lambda e: self.move_obj(self.currentObj, (-2,0)))
         self.level_canvas.bind('<Shift-Left>', lambda e: self.move_obj(self.currentObj, (-10,0)))
@@ -205,7 +205,7 @@ class Window(tk.Tk):
 
 
         # self.bind_all("<Button-1>", lambda event: event.widget.focus_set())
-        self.bind('<KeyPress-Return>', lambda e: self.focus_set())
+        self.bind('<KeyPress-Return>', lambda e: self.level_canvas.focus_set())
 
 
     def action(self):
@@ -228,13 +228,21 @@ class Window(tk.Tk):
             label.grid(column=0, row=row, sticky='w')
             self.prop_left_frame.rowconfigure(row, minsize=21)
 
-            self.current_props[key] = tk.StringVar()
+            props = {
+                'value' : tk.StringVar(), 'entry': None
+            }
 
-            value = ttk.Entry(self.prop_right_frame, textvariable=self.current_props[key], validate='focusout', validatecommand=self.update_current_obj)
+            value = ttk.Entry(self.prop_right_frame, textvariable=props['value'], validate='focusout', validatecommand=self.update_current_obj)
             value.delete(0, 'end')
             value.insert(0, self.objects[self.currentObj]['object'].properties[key])
             value.grid(column=0, row=row, sticky='w')
             self.prop_right_frame.rowconfigure(row, minsize=21)
+            props['entry'] = value
+
+            self.current_props['properties'][key] = props
+
+        def restrict_num(var, index, mode):
+            print(var, index, mode)
 
         for c in self.prop_left_frame.winfo_children():
             c.destroy()
@@ -245,7 +253,10 @@ class Window(tk.Tk):
         row = 0
         if self.currentObj:
             self.current_props = {
-                'Angle' : tk.StringVar()
+                'Name' : {'value':'', 'entry':None},
+                'properties': {
+                    'Angle' : {'value':tk.StringVar(), 'entry': None}
+                }
             }
 
             print(self.objects[self.currentObj]['object'].properties)
@@ -255,12 +266,16 @@ class Window(tk.Tk):
             label.grid(column=0, row=row, sticky='w')
             self.prop_left_frame.rowconfigure(row, minsize=21)
 
-
-            value = ttk.Spinbox(self.prop_right_frame, textvariable=self.current_props['Angle'], from_=-360, to=360, validate='focusout', validatecommand=self.update_current_obj)
+            value = ttk.Spinbox(self.prop_right_frame, textvariable=self.current_props['properties']['Angle']['value'], from_=-360, to=360, validate='focusout', validatecommand=self.update_current_obj)
             value.delete(0, 'end')
             value.insert(0, self.objects[self.currentObj]['object'].properties['Angle'])
             value.grid(column=0, row=row, sticky='w')
             self.prop_right_frame.rowconfigure(row, minsize=21)
+
+            self.current_props['properties']['Angle']['entry'] = value
+
+            print(value)
+            # value.focus_set()
 
             row += 1
 
@@ -288,16 +303,12 @@ class Window(tk.Tk):
             self.prop_frame.config(height=(row+1) * 21)
             self.prop_canvas.configure(scrollregion=(0,0,500,self.prop_frame.winfo_height()))
 
-            # self.current_props['Angle'].trace_add('write', callback=lambda var, index, mode: self.update_current_obj())
+            # self.current_props['Angle'].trace_add('write', callback=restrict_num)
         else:
             print('no obj')
             self.prop_canvas.itemconfig(self.prop_buttons, height=0)
             self.prop_frame.config(height=0)
             self.prop_canvas.configure(scrollregion=(0,0,500,0))
-
-    def update_current_obj(self):
-        self.level_canvas.itemconfig(self.objects[self.currentObj]['image'])
-
 
     def open_png(self):
         path = filedialog.askopenfilename(title='Open level image', defaultextension="*.png", filetypes=(('wmw level', '*.png'),('any', '*.*')), initialdir=self.gamedir+'assets/Levels')
@@ -442,15 +453,21 @@ class Window(tk.Tk):
         try:
             global images
             del self.objects[objectIndex]
-            del image[objectIndex]
+            del images[objectIndex]
         except:
             return
 
     def update_current_obj(self) -> True:
+        current_focus = self.focus_get()
+        print(current_focus)
+
         props = {}
 
-        for key in self.current_props:
-            props[key] = self.current_props[key].get()
+        focus = None
+        for key in self.current_props['properties']:
+            props[key] = self.current_props['properties'][key]['value'].get()
+            if self.current_props['properties'][key]['entry'] == current_focus:
+                focus = key
 
         angle = float(props['Angle'])
 
@@ -469,6 +486,11 @@ class Window(tk.Tk):
         self.objects[self.currentObj]['size'] = self.objects[self.currentObj]['object'].image.size
 
         self.update_selection(self.currentObj)
+
+        if focus:
+            self.current_props['properties'][focus]['entry'].focus_set()
+        else:
+            current_focus.focus_set()
 
         return True
 
@@ -515,8 +537,8 @@ class Window(tk.Tk):
         self.mouseDown = True
 
     def move_obj(self, objectIndex, pos):
-        print(f'{self.level_canvas_hover=}')
-        if pos != None and self.level_canvas_hover:
+        print('moved')
+        if pos != None:
             self.level_canvas.move(self.objects[objectIndex]['image'], pos[0], pos[1])
             self.objects[objectIndex]['object'].pos = self.gamePos(self.level_canvas.coords(self.objects[objectIndex]['image']))
             
