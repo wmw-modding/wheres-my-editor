@@ -52,6 +52,8 @@ class Window(tk.Tk):
 
         self.objects = []
         self.currentObj = None
+        self.room = {'pos':(0,0)}
+        self.level_properties = {}
             
         self.initialize()
 
@@ -147,7 +149,7 @@ class Window(tk.Tk):
         
         fileMenu.add_command(label= 'Open png', command = self.open_png)
         fileMenu.add_command(label='Open XML', command=self.open_xml)
-        # fileMenu.add_command(label= 'Export XML', command = export)
+        fileMenu.add_command(label='Export XML', command=self.export_xml)
         # fileMenu.add_command(label= 'Close Img', command = lambda: self.openIMG('assets/WMWmap.png'))
         fileMenu.add_separator()
         # fileMenu.add_command(label= 'Exit', command = self.client_exit)
@@ -206,7 +208,6 @@ class Window(tk.Tk):
 
         # self.bind_all("<Button-1>", lambda event: event.widget.focus_set())
         self.bind('<KeyPress-Return>', lambda e: self.level_canvas.focus_set())
-
 
     def action(self):
         pass
@@ -303,7 +304,7 @@ class Window(tk.Tk):
             self.prop_frame.config(height=(row+1) * 21)
             self.prop_canvas.configure(scrollregion=(0,0,500,self.prop_frame.winfo_height()))
 
-            # self.current_props['Angle'].trace_add('write', callback=restrict_num)
+            self.current_props['properties']['Angle']['value'].trace_add('write', callback=restrict_num)
         else:
             print('no obj')
             self.prop_canvas.itemconfig(self.prop_buttons, height=0)
@@ -329,6 +330,12 @@ class Window(tk.Tk):
             # thread.start()
 
             # dialog.close()
+
+    def export_xml(self):
+        path = filedialog.asksaveasfilename(title='Save XML', defaultextension="*.xml", filetypes=(('wmw level', '*.xml'),('any', '*.*')), initialdir=self.gamedir+'assets/Levels')
+        print(path)
+        if path != '' and path != None:
+            self.export_level_xml(path)
 
     def open_level_img(self, path=None):
         try:
@@ -382,11 +389,60 @@ class Window(tk.Tk):
 
                 print(object)
 
-                self.addObj(self.gamedir + 'assets/' + object['properties']['Filename'], pos = object['pos'], properties=object['properties'])
+                self.addObj(self.gamedir + 'assets/' + object['properties']['Filename'], pos = object['pos'], properties=object['properties'], name=object['name'])
+            
+            elif root[obj].tag == 'Room':
+                pos = root[obj][findTag(root[obj], 'AbsoluteLocation')].get('value').split()
+                self.room['pos'] = (float(pos[0]), float(pos[1]))
+
+            elif root[obj].tag == 'Properties':
+                self.level_properties = {}
+                for prop in root[obj]:
+                    if prop.tag == 'Property':
+                        self.level_properties[prop.get('name')] = prop.get('value')
         
         self.active = True
         if dialog:
             dialog.close()
+
+    def export_level_xml(self, path):
+        print('exporting')
+
+        root = etree.Element("Objects")
+
+        for obj in self.objects:
+            object = etree.SubElement(root, 'Object')
+            object.set('name', obj['name'])
+
+            location = etree.SubElement(object, 'AbsoluteLocation')
+            pos = str(obj['object'].pos[0]) + ' ' + str(obj['object'].pos[1])
+            location.set('value', pos)
+
+            properties = etree.SubElement(object, 'Properties')
+
+            for prop in obj['object'].properties:
+                property = etree.SubElement(properties, 'Property')
+                property.set('name', prop)
+                property.set('value', obj['object'].properties[prop])
+
+        room = etree.SubElement(root, 'Room')
+        location = etree.SubElement(room, 'AbsoluteLocation')
+        pos = str(self.room['pos'][0]) + ' ' + str(self.room['pos'][1])
+        location.set('value', pos)
+
+        level_properties = etree.SubElement(root, 'Properties')
+        for prop in self.level_properties:
+            property = etree.SubElement(level_properties, 'Property')
+            property.set('name', prop)
+            property.set('value', self.level_properties[prop])
+
+        xml = etree.tostring(root, pretty_print=True, xml_declaration=True, encoding='utf-8', standalone=True)
+
+        print(xml)
+
+        with open(path, mode='wb') as file:
+            file.write(xml)
+            print('exported')
 
     def truePos(self, pos, size=None, anchor='CENTER'):
         def error(value):
@@ -406,25 +462,27 @@ class Window(tk.Tk):
 
         return (x,y)
 
-    def gamePos(self, pos):
+    def gamePos(self, pos) -> tuple:
         x,y = pos
 
         x = x - (self.level_size[0] / 2)
         y = y - (self.level_size[1] / 2)
 
-        x = x / self.scale
-        y = y / self.scale
+        x = x / (self.scale + 1)
+        y = y / (self.scale + 1)
+
+        y = -y
 
         return (x,y)
 
-    def addObj(self, path, pos=(0,0), properties={}):
-
+    def addObj(self, path, pos=(0,0), properties={}, name='object'):
         obj = newObject(path,pos=pos, properties=properties, scale=1.4)
         # newPos = self.truePos(pos)
         newPos = self.truePos(pos, size=obj.size, anchor='NW')
         print(newPos)
 
         object = {}
+        object['name'] = name
         object['object'] = obj
         global images
         # obj.image = obj.image.resize((obj.image.width + 5, obj.image.height + 5))
