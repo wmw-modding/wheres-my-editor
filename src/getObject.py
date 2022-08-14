@@ -7,78 +7,79 @@ import time
 import itertools
 
 class newObject():
-    def __init__(self, path, pos=(0.0), properties={}, scale=1):
-        if path == 'room':
-            pass
-        else:
-            with open(path) as file:
-                xml = etree.parse(file)
+    def __init__(self, path, pos=(0.0), properties={}, scale=1, assetpath=None):
+        with open(path) as file:
+            xml = etree.parse(file)
+
+        if assetpath == None:
             self.assets = os.path.dirname(os.path.dirname(path))
-            tree = xml.getroot()
+        else:
+            self.assets = assetpath
+        tree = xml.getroot()
 
-            elmt = findTag(tree, 'Sprites')
+        elmt = findTag(tree, 'Sprites')
 
-            self.sprites = []
-            self.scale = scale
+        self.sprites = []
+        self.scale = scale
 
-            for e in tree[elmt]:
-                newSprite = {}
-                newSprite['filename'] = e.get('filename')
-                newSprite['pos'] = e.get('pos')
-                newSprite['angle'] = e.get('angle')
-                newSprite['gridSize'] = e.get('gridSize')
-                newSprite['isBackground'] = e.get('isBackground') == 'true'
-                newSprite['visible'] = e.get('visible') == 'true' or e.get('visible') == None
+        for e in tree[elmt]:
+            newSprite = {}
+            newSprite['filename'] = e.get('filename')
+            newSprite['pos'] = e.get('pos')
+            newSprite['angle'] = e.get('angle')
+            newSprite['gridSize'] = e.get('gridSize')
+            newSprite['isBackground'] = e.get('isBackground') == 'true'
+            newSprite['visible'] = e.get('visible') == 'true' or e.get('visible') == None
 
-                sprite_obj = sprite(self.assets + newSprite['filename'], newSprite, self.assets)
+            sprite_obj = sprite(self.assets + newSprite['filename'], newSprite, self.assets)
 
-                self.sprites.append(sprite_obj)
+            self.sprites.append(sprite_obj)
 
-            images = []
+        images = []
 
-            background = None
+        background = None
 
-            for s in self.sprites:
-                if s.isBackground:
-                    background = s
-                if s.visible:
-                    pass
-                images.append(s)
+        for s in self.sprites:
+            if s.isBackground:
+                background = s
+            if s.visible:
+                pass
+            images.append(s)
 
-            if background == None:
-                background = images[0]
-                # del images[0]
+        if background == None:
+            background = images[0]
+            # del images[0]
 
-            self.image = background.animations[0].frames[0].image.copy()
-            for i in images:
-                print(i.gridSize[0])
-                try:
-                    self.image.paste(i.animations[0].frames[0].image, self.truePos(i.pos, self.image.size, i.animations[0].frames[0].image.size), i.animations[0].frames[0].image)
-                except:
-                    pass
+        self.image = background.animations[0].frames[0].image.copy()
+        for i in images:
+            print(i.gridSize[0])
+            try:
+                self.image.paste(i.animations[0].frames[0].image, self.truePos(i.pos, self.image.size, i.animations[0].frames[0].image.size), i.animations[0].frames[0].image)
+            except:
+                pass
 
-            # self.image.show()
+        # self.image.show()
 
-            self.properties = {
-                'Angle' : '0',
-                'Filename' : '/' + os.path.relpath(path, self.assets).replace('\\', '/')
-            }
+        self.properties = {
+            'Angle' : '0',
+            'Filename' : '/' + os.path.relpath(path, self.assets).replace('\\', '/')
+        }
 
-            prop = tree[findTag(tree, 'DefaultProperties')]
-            for p in prop:
-                self.properties[p.get('name')] = p.get('value')
+        prop = tree[findTag(tree, 'DefaultProperties')]
+        for p in prop:
+            self.properties[p.get('name')] = p.get('value')
 
-            for key in properties:
-                self.properties[key] = properties[key]
+        for key in properties:
+            self.properties[key] = properties[key]
 
-            self._filename = self.properties['Filename']
+        self._filename = self.properties['Filename']
 
-            self._image = self.image
+        self._image = self.image
 
-            self.size = self.image.size
-            self.image = self.scale_image(self.scale)
+        self.size = self.image.size
+        self.image = self.scale_image(self.scale)
 
-            self.pos = pos
+        self.pos = pos
 
     def rotate_image(self, angle):
         self.rotation = angle
