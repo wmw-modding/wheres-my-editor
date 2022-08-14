@@ -6,7 +6,7 @@ from guizero import *
 import popups
 from PIL import Image, ImageTk
 from xmlviewer import *
-from getObject import *
+import getObject as getObj
 import itertools
 import json
 
@@ -380,11 +380,11 @@ class Window(tk.Tk):
 
                 object = {}
                 object['name'] = root[obj].get('name')
-                pos = root[obj][findTag(root[obj], 'AbsoluteLocation')].get('value').split()
+                pos = root[obj][getObj.findTag(root[obj], 'AbsoluteLocation')].get('value').split()
                 object['pos'] = (float(pos[0]), float(pos[1]))
 
                 object['properties'] = {}
-                for prop in root[obj][findTag(root[obj], 'Properties')]:
+                for prop in root[obj][getObj.findTag(root[obj], 'Properties')]:
                     object['properties'][prop.get('name')] = prop.get('value')
 
                 print(object)
@@ -392,7 +392,7 @@ class Window(tk.Tk):
                 self.addObj(self.gamedir + 'assets/' + object['properties']['Filename'], pos = object['pos'], properties=object['properties'], name=object['name'])
             
             elif root[obj].tag == 'Room':
-                pos = root[obj][findTag(root[obj], 'AbsoluteLocation')].get('value').split()
+                pos = root[obj][getObj.findTag(root[obj], 'AbsoluteLocation')].get('value').split()
                 self.room['pos'] = (float(pos[0]), float(pos[1]))
 
             elif root[obj].tag == 'Properties':
@@ -476,7 +476,7 @@ class Window(tk.Tk):
         return (x,y)
 
     def addObj(self, path, pos=(0,0), properties={}, name='object'):
-        obj = newObject(path,pos=pos, properties=properties, scale=1.4)
+        obj = getObj.newObject(path,pos=pos, properties=properties, scale=1.4)
         # newPos = self.truePos(pos)
         newPos = self.truePos(pos, size=obj.size, anchor='NW')
         print(newPos)
@@ -563,6 +563,7 @@ class Window(tk.Tk):
         self.updateProps()
 
         self.update_selection(self.currentObj)
+        self.level_canvas.focus_set()
 
     def update_selection(self, objectIndex):
         size = self.objects[objectIndex]['size']

@@ -8,74 +8,77 @@ import itertools
 
 class newObject():
     def __init__(self, path, pos=(0.0), properties={}, scale=1):
-        with open(path) as file:
-            xml = etree.parse(file)
-        self.assets = os.path.dirname(os.path.dirname(path))
-        tree = xml.getroot()
+        if path == 'room':
+            pass
+        else:
+            with open(path) as file:
+                xml = etree.parse(file)
+            self.assets = os.path.dirname(os.path.dirname(path))
+            tree = xml.getroot()
 
-        elmt = findTag(tree, 'Sprites')
-    
-        self.sprites = []
-        self.scale = scale
+            elmt = findTag(tree, 'Sprites')
 
-        for e in tree[elmt]:
-            sprite = {}
-            sprite['filename'] = e.get('filename')
-            sprite['pos'] = e.get('pos')
-            sprite['angle'] = e.get('angle')
-            sprite['gridSize'] = e.get('gridSize')
-            sprite['isBackground'] = e.get('isBackground') == 'true'
-            sprite['visible'] = e.get('visible') == 'true' or e.get('visible') == None
+            self.sprites = []
+            self.scale = scale
 
-            sprite_obj = self.sprite(self.assets + sprite['filename'], sprite)
+            for e in tree[elmt]:
+                newSprite = {}
+                newSprite['filename'] = e.get('filename')
+                newSprite['pos'] = e.get('pos')
+                newSprite['angle'] = e.get('angle')
+                newSprite['gridSize'] = e.get('gridSize')
+                newSprite['isBackground'] = e.get('isBackground') == 'true'
+                newSprite['visible'] = e.get('visible') == 'true' or e.get('visible') == None
 
-            self.sprites.append(sprite_obj)
+                sprite_obj = sprite(self.assets + newSprite['filename'], newSprite, self.assets)
 
-        images = []
+                self.sprites.append(sprite_obj)
 
-        background = None
-        
-        for s in self.sprites:
-            if s.isBackground:
-                background = s
-            if s.visible:
-                pass
-            images.append(s)
+            images = []
 
-        if background == None:
-            background = images[0]
-            # del images[0]
+            background = None
 
-        self.image = background.animations[0].frames[0].image.copy()
-        for i in images:
-            print(i.gridSize[0])
-            try:
-                self.image.paste(i.animations[0].frames[0].image, self.truePos(i.pos, self.image.size, i.animations[0].frames[0].image.size), i.animations[0].frames[0].image)
-            except:
-                pass
+            for s in self.sprites:
+                if s.isBackground:
+                    background = s
+                if s.visible:
+                    pass
+                images.append(s)
 
-        # self.image.show()
+            if background == None:
+                background = images[0]
+                # del images[0]
 
-        self.properties = {
-            'Angle' : '0',
-            'Filename' : '/' + os.path.relpath(path, self.assets).replace('\\', '/')
-        }
+            self.image = background.animations[0].frames[0].image.copy()
+            for i in images:
+                print(i.gridSize[0])
+                try:
+                    self.image.paste(i.animations[0].frames[0].image, self.truePos(i.pos, self.image.size, i.animations[0].frames[0].image.size), i.animations[0].frames[0].image)
+                except:
+                    pass
 
-        prop = tree[findTag(tree, 'DefaultProperties')]
-        for p in prop:
-            self.properties[p.get('name')] = p.get('value')
+            # self.image.show()
 
-        for key in properties:
-            self.properties[key] = properties[key]
+            self.properties = {
+                'Angle' : '0',
+                'Filename' : '/' + os.path.relpath(path, self.assets).replace('\\', '/')
+            }
 
-        self._filename = self.properties['Filename']
+            prop = tree[findTag(tree, 'DefaultProperties')]
+            for p in prop:
+                self.properties[p.get('name')] = p.get('value')
 
-        self._image = self.image
+            for key in properties:
+                self.properties[key] = properties[key]
 
-        self.size = self.image.size
-        self.image = self.scale_image(self.scale)
-        
-        self.pos = pos
+            self._filename = self.properties['Filename']
+
+            self._image = self.image
+
+            self.size = self.image.size
+            self.image = self.scale_image(self.scale)
+
+            self.pos = pos
 
     def rotate_image(self, angle):
         self.rotation = angle
@@ -87,152 +90,7 @@ class newObject():
         if self._filename != self.properties['Filename']:
             self._filename = self.properties['Filename']
             self.__init__(self.assets + self._filename, properties=self.properties, pos=self.pos, scale=self.scale)
-
-    class sprite():
-        def __init__(self, path, properties) -> None:
-            self.assets = os.path.dirname(os.path.dirname(path))
-            with open(path) as file:
-                xml = etree.parse(file)
-                tree = xml.getroot()
-
-            print(len(tree))
-            print(tree.tag)
-            self.animations = []
-            for animation_element in tree:
-                print(animation_element)
-
-                info = {}
-
-                info['name'] = animation_element.get('name')
-                info['textureBasePath'] = animation_element.get('textureBasePath')
-                info['atlas'] = animation_element.get('atlas')
-                info['fps'] = animation_element.get('fps')
-                info['playbackMode'] = animation_element.get('playbackMode')
-                info['loopCount'] = animation_element.get('loopCount')
-
-                frames = []
-
-                for f in animation_element:
-                    frame = {}
-                    frame['name'] = f.get('name')
-                    frames.append(frame)
-
-                for f in range(len(frames)):
-                    frames[f] = self.findInImagelist(self.assets + info['atlas'], frames[f]['name'])
-
-                self.animations.append(self.animation(frames, info))
-
-                print(properties)
-                self.filename = properties['filename']
-                pos = properties['pos'].split()
-                self.pos = (int(float(pos[0])*10),int(float(pos[1])*10))
-                self.angle = float(properties['angle'])
-                gridSize = properties['gridSize'].split()
-                self.gridSize = (float(gridSize[0]), float(gridSize[1]))
-                # self.gridSize = properties['gridSize']
-                self.isBackground = properties['isBackground']
-                self.visible = properties['visible']
-                print(self.pos,self.angle,self.gridSize,self.isBackground,self.visible)
-        
-        def findInImagelist(self, path, name):
-            with open(path) as file:
-                xml = etree.parse(file)
-                tree = xml.getroot()
-
-            imageList = tree
             
-            sheet_info = {}
-            sheet_info['imgSize'] = imageList.get('imgSize')
-            sheet_info['file'] = imageList.get('file')
-            sheet_info['textureBasePath'] = imageList.get('textureBasePath')
-
-            print(name)
-
-            image = None
-
-            print(len(imageList))
-            for i in imageList:
-                print(i.get('name'))
-                if i.get('name') == name:
-                    image = i
-                    break
-
-            if image == None:
-                image_info = {
-                    'name' : 'NO_TEX.png',
-                    'offset': '0 0',
-                    'size': '32 32',
-                    'rect': '0 0 32 32'
-                }
-
-                sheet = Image.open(self.assets + '/Textures/NO_TEX.png')
-            else:
-                image_info = {}
-                image_info['name'] = image.get('name')
-                image_info['offset'] = image.get('offset')
-                image_info['size'] = image.get('size')
-                image_info['rect'] = image.get('rect')
-
-                sheet = Image.open(self.assets + sheet_info['file'])
-
-            left, up, right, down = image_info['rect'].split()
-            left = int(left)
-            up = int(up)
-            right = int(right)
-            down = int(down)
-            right = left + right
-            down = up + down
-            print(left, right, up, down)
-
-            image = sheet.crop((left, up, right, down))
-            x,y = image_info['size'].split()
-            x = int(x)
-            y = int(y)
-            # image = image.resize((x,y))
-            
-            # image.show()
-            print('got frame ' + image_info['name'])
-
-            return self.frame(image, image_info)
-
-        class frame():
-            def __init__(self, image, properties) -> None:
-                self.name = properties['name']
-
-                self.image = image
-
-                offset = properties['offset'].split()
-                x = int(offset[0])
-                y = int(offset[1])
-
-                self.offset = [x,y]
-
-                newsize = properties['size'].split()
-                w = int(newsize[0])
-                h = int(newsize[1])
-
-                self.size = [w,h]
-
-                left, up, right, down = properties['rect'].split()
-                left = int(left)
-                up = int(up)
-                right = int(right)
-                down = int(down)
-                right = left + right
-                down = up + down
-
-                self.rect = [left, up, right, down]
-
-        class animation():
-            def __init__(self, frames, properties) -> None:
-                self.frames = frames
-                self.name = properties['name']
-                self.textureBasePath = properties['textureBasePath']
-                self.atlas = properties['atlas']
-                self.fps = properties['fps']
-                self.playbackMode = properties['playbackMode']
-                self.loopCount = properties['loopCount']
-
     def playAnimation(self, app, root, display, animation):
         no_of_frames = len(animation.frames)
         duration = float(animation.fps)
@@ -308,6 +166,153 @@ class newObject():
 
         return self.image.resize(newSize)
 
+class sprite():
+    def __init__(self, path, properties, assetspath) -> None:
+        self.assets = assetspath
+        self.assets = os.path.dirname(os.path.dirname(path))
+        with open(path) as file:
+            xml = etree.parse(file)
+            tree = xml.getroot()
+
+        print(len(tree))
+        print(tree.tag)
+        self.animations = []
+        for animation_element in tree:
+            print(animation_element)
+
+            info = {}
+
+            info['name'] = animation_element.get('name')
+            info['textureBasePath'] = animation_element.get('textureBasePath')
+            info['atlas'] = animation_element.get('atlas')
+            info['fps'] = animation_element.get('fps')
+            info['playbackMode'] = animation_element.get('playbackMode')
+            info['loopCount'] = animation_element.get('loopCount')
+
+            frames = []
+
+            for f in animation_element:
+                frame = {}
+                frame['name'] = f.get('name')
+                frames.append(frame)
+
+            for f in range(len(frames)):
+                frames[f] = findInImagelist(self.assets + info['atlas'], frames[f]['name'], self.assets)
+
+            self.animations.append(animation(frames, info))
+
+            print(properties)
+            self.filename = properties['filename']
+            pos = properties['pos'].split()
+            self.pos = (int(float(pos[0])*10),int(float(pos[1])*10))
+            self.angle = float(properties['angle'])
+            gridSize = properties['gridSize'].split()
+            self.gridSize = (float(gridSize[0]), float(gridSize[1]))
+            # self.gridSize = properties['gridSize']
+            self.isBackground = properties['isBackground']
+            self.visible = properties['visible']
+            print(self.pos,self.angle,self.gridSize,self.isBackground,self.visible)
+    
+def findInImagelist(path, name, assetspath):
+    with open(path) as file:
+        xml = etree.parse(file)
+        tree = xml.getroot()
+
+    imageList = tree
+    
+    sheet_info = {}
+    sheet_info['imgSize'] = imageList.get('imgSize')
+    sheet_info['file'] = imageList.get('file')
+    sheet_info['textureBasePath'] = imageList.get('textureBasePath')
+
+    print(name)
+
+    image = None
+
+    print(len(imageList))
+    for i in imageList:
+        print(i.get('name'))
+        if i.get('name') == name:
+            image = i
+            break
+
+    if image == None:
+        image_info = {
+            'name' : 'NO_TEX.png',
+            'offset': '0 0',
+            'size': '32 32',
+            'rect': '0 0 32 32'
+        }
+
+        sheet = Image.open(assetspath + '/Textures/NO_TEX.png')
+    else:
+        image_info = {}
+        image_info['name'] = image.get('name')
+        image_info['offset'] = image.get('offset')
+        image_info['size'] = image.get('size')
+        image_info['rect'] = image.get('rect')
+
+        sheet = Image.open(assetspath + sheet_info['file'])
+
+    left, up, right, down = image_info['rect'].split()
+    left = int(left)
+    up = int(up)
+    right = int(right)
+    down = int(down)
+    right = left + right
+    down = up + down
+    print(left, right, up, down)
+
+    image = sheet.crop((left, up, right, down))
+    x,y = image_info['size'].split()
+    x = int(x)
+    y = int(y)
+    # image = image.resize((x,y))
+    
+    # image.show()
+    print('got frame ' + image_info['name'])
+
+    return frame(image, image_info)
+
+class frame():
+    def __init__(self, image, properties) -> None:
+        self.name = properties['name']
+
+        self.image = image
+
+        offset = properties['offset'].split()
+        x = int(offset[0])
+        y = int(offset[1])
+
+        self.offset = [x,y]
+
+        newsize = properties['size'].split()
+        w = int(newsize[0])
+        h = int(newsize[1])
+
+        self.size = [w,h]
+
+        left, up, right, down = properties['rect'].split()
+        left = int(left)
+        up = int(up)
+        right = int(right)
+        down = int(down)
+        right = left + right
+        down = up + down
+
+        self.rect = [left, up, right, down]
+
+class animation():
+    def __init__(self, frames, properties) -> None:
+        self.frames = frames
+        self.name = properties['name']
+        self.textureBasePath = properties['textureBasePath']
+        self.atlas = properties['atlas']
+        self.fps = properties['fps']
+        self.playbackMode = properties['playbackMode']
+        self.loopCount = properties['loopCount']
+
+
 def findTag(root, tag):
     element = 0
     curTag = ''
@@ -320,5 +325,7 @@ def findTag(root, tag):
 
 if __name__ == '__main__':
     obj = newObject('game/wmw/assets/Objects/star.hs')
-    print(obj, obj.truePos((0,2), obj.image.size, anchor='d'))
+    room = findInImagelist('game/wmw/assets/Textures/objects.imagelist', 'Portal_Exterior.png', 'game/wmw/assets/')
+    # print(obj, obj.truePos((0,2), obj.image.size, anchor='d'))
+    room.image.show()
     obj.image.show()
