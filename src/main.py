@@ -96,16 +96,19 @@ class Window(tk.Tk):
 
         self.update_level_scroll()
 
+        self.level_canvas.bind('<MouseWheel>', lambda e: self.level_scroll((0, e.delta/120)))
+        self.level_canvas.bind('<Shift-MouseWheel>', lambda e: self.level_scroll((e.delta/120, 0)))
+
         # self.level_img_index = self.level_canvas.create_image(0,0, image=None, anchor='nw')
 
-        self.prop_frame = ttk.LabelFrame(self.prop_canvas, text='properties')
+        self.prop_frame = ttk.LabelFrame(self.prop_canvas, text='properties', class_='prop')
 
-        self.prop_panedWindow = ttk.PanedWindow(self.prop_frame, orient='horizontal')
+        self.prop_panedWindow = ttk.PanedWindow(self.prop_frame, orient='horizontal', class_='prop')
 
-        self.prop_left_frame = ttk.Frame(self.prop_panedWindow, width=50)
+        self.prop_left_frame = ttk.Frame(self.prop_panedWindow, width=50, class_='prop')
         self.prop_panedWindow.add(self.prop_left_frame)
 
-        self.prop_right_frame = ttk.Frame(self.prop_panedWindow, width=50)
+        self.prop_right_frame = ttk.Frame(self.prop_panedWindow, width=50, class_='prop')
         self.prop_panedWindow.add(self.prop_right_frame)
 
         # self.prop_frame.columnconfigure(1, weight=1)
@@ -124,6 +127,8 @@ class Window(tk.Tk):
         self.prop_scrollbar.pack(side='right', fill='both')
 
         self.prop_canvas.config(yscrollcommand=self.prop_scrollbar.set)
+
+        self.prop_canvas.bind_class('prop', '<MouseWheel>', lambda e: self.prop_canvas.yview_scroll(int(-1*e.delta/120), 'units'))
 
         
         # self.canvas.tag_bind('object', '<ButtonPress-1>', self.on_press)
@@ -240,7 +245,9 @@ class Window(tk.Tk):
 
         self.level_canvas.config(scrollregion=(minX - 200, minY - 200, maxX + 200, maxY + 200))
 
-    
+    def level_scroll(self, amount: tuple):
+        self.level_canvas.xview_scroll(int(-1*amount[0]), 'units')
+        self.level_canvas.yview_scroll(int(-1*amount[1]), 'units')
 
     def prop_right_resize(self, e):
         for c in self.prop_right_frame.winfo_children():
@@ -255,7 +262,7 @@ class Window(tk.Tk):
 
     def updateProps(self):
         def addProp(key, value, row):
-            label = ttk.Label(self.prop_left_frame, text=key)
+            label = ttk.Label(self.prop_left_frame, text=key, class_='prop')
             label.grid(column=0, row=row, sticky='w')
             self.prop_left_frame.rowconfigure(row, minsize=21)
 
@@ -263,7 +270,7 @@ class Window(tk.Tk):
                 'value' : tk.StringVar(), 'entry': None
             }
 
-            value = ttk.Entry(self.prop_right_frame, textvariable=props['value'], validate='focusout', validatecommand=self.update_current_obj)
+            value = ttk.Entry(self.prop_right_frame, textvariable=props['value'], validate='focusout', validatecommand=self.update_current_obj, class_='prop')
             value.delete(0, 'end')
             value.insert(0, self.objects[self.currentObj]['object'].properties[key])
             value.grid(column=0, row=row, sticky='w')
@@ -584,8 +591,13 @@ class Window(tk.Tk):
 
     def objAt(self, pos):
         pos = (self.level_canvas.canvasx(pos[0]), self.level_canvas.canvasy(pos[1]))
-        object = self.level_canvas.find_overlapping(pos[0], pos[1], pos[0], pos[1])[-1]
+        object = self.level_canvas.find_overlapping(pos[0], pos[1], pos[0], pos[1])
         # print(f'{object=}')
+        if len(object) == 0:
+            object == 1
+        else:
+            object = object[-1]
+
         if object == 1 or object == self.selection_rect:
             obj = None
         else:
