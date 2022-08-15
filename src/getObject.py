@@ -3,7 +3,6 @@ import lxml
 from lxml import etree
 import os
 from PIL import Image, ImageTk
-import time
 import itertools
 
 class newObject():

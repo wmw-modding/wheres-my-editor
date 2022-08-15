@@ -7,7 +7,6 @@ import popups
 from PIL import Image, ImageTk
 from xmlviewer import *
 import getObject as getObj
-import itertools
 import json
 
 import lxml
@@ -85,6 +84,16 @@ class Window(tk.Tk):
         print(self.xml_viewer)
         # time.sleep(2)
 
+        self.level_scrollbars = []
+        self.level_scrollbars.append(ttk.Scrollbar(self.level_canvas, orient='vertical', command=self.level_canvas.yview))
+        self.level_scrollbars[0].pack(side='right', fill='both')
+
+        self.level_scrollbars.append(ttk.Scrollbar(self.level_canvas, orient='horizontal', command=self.level_canvas.xview))
+        self.level_scrollbars[1].pack(side='bottom', fill='both')
+
+        self.level_canvas.config(yscrollcommand=self.level_scrollbars[0].set)
+        self.level_canvas.config(xscrollcommand=self.level_scrollbars[1].set)
+
         # self.level_img_index = self.level_canvas.create_image(0,0, image=None, anchor='nw')
 
         self.prop_frame = ttk.LabelFrame(self.prop_canvas, text='properties')
@@ -149,9 +158,9 @@ class Window(tk.Tk):
         
         fileMenu.add_command(label= 'Open png', command = self.open_png)
         fileMenu.add_command(label='Open XML', command=self.open_xml)
+        fileMenu.add_separator()
         fileMenu.add_command(label='Export XML', command=self.export_xml)
         # fileMenu.add_command(label= 'Close Img', command = lambda: self.openIMG('assets/WMWmap.png'))
-        fileMenu.add_separator()
         # fileMenu.add_command(label= 'Exit', command = self.client_exit)
         bar.add_cascade(label= 'File', menu=fileMenu)
         
@@ -162,7 +171,7 @@ class Window(tk.Tk):
         
         help = tk.Menu(bar, tearoff=0)
         help.add_command(label= 'View help.txt')
-        help.add_command(label= 'About', command = popups.about_dialog)
+        # help.add_command(label= 'About', command = popups.about_dialog)
         bar.add_cascade(label= 'Help', menu=help)
 
         # object_viewer = tk.Canvas(highlightthickness=border, highlightbackground='black')
@@ -211,6 +220,23 @@ class Window(tk.Tk):
 
     def action(self):
         pass
+
+    def level_scroll(self):
+        xlist = []
+        ylist = []
+        for obj in self.objects:
+            x,y = self.level_canvas.coords(obj['image'])
+            xlist.append(x)
+            ylist.append(y)
+
+        minX = min([0] + xlist)
+        minY = min([0] + ylist)
+        maxX = max([self.level_size[0]] + xlist)
+        maxY = max([self.level_size[1]] + ylist)
+
+        print(f'{minX=} {minY=} {maxX=} {maxY=}')
+
+        self.level_canvas.config(scrollregion=(minX - 200, minY - 200, maxX + 200, maxY + 200))
 
     def prop_right_resize(self, e):
         for c in self.prop_right_frame.winfo_children():
@@ -553,8 +579,15 @@ class Window(tk.Tk):
         return True
 
     def objAt(self, pos):
-        obj = next((self.objects.index(obj) for obj in self.objects[::-1] if (pos[0] >= self.level_canvas.coords(obj['image'])[0] - (obj['size'][0] / 2) and pos[0] <= int(self.level_canvas.coords(obj['image'])[0]) + int(obj['size'][0]) / 2) and (pos[1] >= self.level_canvas.coords(obj['image'])[1] - (obj['size'][1] / 2) and pos[1] <= int(self.level_canvas.coords(obj['image'])[1]) + int(obj['size'][1]) / 2)), None)
-        # print(obj)
+        pos = (self.level_canvas.canvasx(pos[0]), self.level_canvas.canvasy(pos[1]))
+        object = self.level_canvas.find_overlapping(pos[0], pos[1], pos[0], pos[1])[-1]
+        print(f'{object=}')
+        if object == 1 or object == self.selection_rect:
+            obj = None
+        else:
+            obj = next((self.objects.index(obj) for obj in self.objects if obj['image'] == object), None)
+        # obj = next((self.objects.index(obj) for obj in self.objects[::-1] if (pos[0] >= self.level_canvas.coords(obj['image'])[0] - (obj['size'][0] / 2) and pos[0] <= int(self.level_canvas.coords(obj['image'])[0]) + int(obj['size'][0]) / 2) and (pos[1] >= self.level_canvas.coords(obj['image'])[1] - (obj['size'][1] / 2) and pos[1] <= int(self.level_canvas.coords(obj['image'])[1]) + int(obj['size'][1]) / 2)), None)
+        print(obj)
         return obj
 
     def select_obj(self, event):
@@ -566,13 +599,17 @@ class Window(tk.Tk):
         self.level_canvas.focus_set()
 
     def update_selection(self, objectIndex):
-        size = self.objects[objectIndex]['size']
-        pos = self.level_canvas.coords(self.objects[objectIndex]['image'])
-
-        if self.selection_rect:
-            self.level_canvas.coords(self.selection_rect, pos[0] - size[0] / 2, pos[1] - size[1] / 2, pos[0] + size[0] / 2, pos[1] + size[1] / 2)
+        if self.currentObj == None:
+            self.level_canvas.itemconfig(self.selection_rect, state='hidden')
         else:
-            self.selection_rect = self.level_canvas.create_rectangle(pos[0] - size[0] / 2, pos[1] - size[1] / 2, pos[0] + size[0] / 2, pos[1] + size[1] / 2)
+            self.level_canvas.itemconfig(self.selection_rect, state='normal')
+            size = self.objects[objectIndex]['size']
+            pos = self.level_canvas.coords(self.objects[objectIndex]['image'])
+
+            if self.selection_rect:
+                self.level_canvas.coords(self.selection_rect, pos[0] - size[0] / 2, pos[1] - size[1] / 2, pos[0] + size[0] / 2, pos[1] + size[1] / 2)
+            else:
+                self.selection_rect = self.level_canvas.create_rectangle(pos[0] - size[0] / 2, pos[1] - size[1] / 2, pos[0] + size[0] / 2, pos[1] + size[1] / 2)
 
     def drag_obj(self, event):
         # if not self.mouseDown:
@@ -605,6 +642,8 @@ class Window(tk.Tk):
             
             print(self.objects[objectIndex]['object'].pos)
             print(objectIndex)
+
+        self.level_scroll()
 
     def mouseUp(self, e=None):
         # self.currentObj = None
