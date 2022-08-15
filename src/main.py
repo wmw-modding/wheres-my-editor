@@ -94,6 +94,8 @@ class Window(tk.Tk):
         self.level_canvas.config(yscrollcommand=self.level_scrollbars[0].set)
         self.level_canvas.config(xscrollcommand=self.level_scrollbars[1].set)
 
+        self.update_level_scroll()
+
         # self.level_img_index = self.level_canvas.create_image(0,0, image=None, anchor='nw')
 
         self.prop_frame = ttk.LabelFrame(self.prop_canvas, text='properties')
@@ -221,7 +223,7 @@ class Window(tk.Tk):
     def action(self):
         pass
 
-    def level_scroll(self):
+    def update_level_scroll(self):
         xlist = []
         ylist = []
         for obj in self.objects:
@@ -237,6 +239,8 @@ class Window(tk.Tk):
         print(f'{minX=} {minY=} {maxX=} {maxY=}')
 
         self.level_canvas.config(scrollregion=(minX - 200, minY - 200, maxX + 200, maxY + 200))
+
+    
 
     def prop_right_resize(self, e):
         for c in self.prop_right_frame.winfo_children():
@@ -581,13 +585,13 @@ class Window(tk.Tk):
     def objAt(self, pos):
         pos = (self.level_canvas.canvasx(pos[0]), self.level_canvas.canvasy(pos[1]))
         object = self.level_canvas.find_overlapping(pos[0], pos[1], pos[0], pos[1])[-1]
-        print(f'{object=}')
+        # print(f'{object=}')
         if object == 1 or object == self.selection_rect:
             obj = None
         else:
             obj = next((self.objects.index(obj) for obj in self.objects if obj['image'] == object), None)
         # obj = next((self.objects.index(obj) for obj in self.objects[::-1] if (pos[0] >= self.level_canvas.coords(obj['image'])[0] - (obj['size'][0] / 2) and pos[0] <= int(self.level_canvas.coords(obj['image'])[0]) + int(obj['size'][0]) / 2) and (pos[1] >= self.level_canvas.coords(obj['image'])[1] - (obj['size'][1] / 2) and pos[1] <= int(self.level_canvas.coords(obj['image'])[1]) + int(obj['size'][1]) / 2)), None)
-        print(obj)
+        # print(obj)
         return obj
 
     def select_obj(self, event):
@@ -643,7 +647,7 @@ class Window(tk.Tk):
             print(self.objects[objectIndex]['object'].pos)
             print(objectIndex)
 
-        self.level_scroll()
+        self.update_level_scroll()
 
     def mouseUp(self, e=None):
         # self.currentObj = None
