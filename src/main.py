@@ -82,21 +82,19 @@ class Window(tk.Tk):
 
 
         self.selector = ttk.Treeview(self.objects_canvas, show='tree')
-        self.selector.pack()
         # self.selector
-        # self.objects_canvas.bind('<Configure>', lambda e: self.selector.config(height=e.height))
 
-        def update_selector(width):
-            # print(self.selector.attributeList)
-            # self.selector.column(1, width=width)
-            pass
+        self.selector_scrollbar = ttk.Scrollbar(self.objects_canvas, orient='vertical', command=self.selector.yview)
+        self.selector.config(yscrollcommand=self.selector_scrollbar.set)
 
-        self.selector.insert('','end',text='test')
+        self.objects_canvas.bind('<Configure>', lambda e: self.selector.config(height=e.height))
 
-        self.objects_canvas.bind('<Configure>', lambda e: update_selector(e.width))
-        print(self.selector.winfo_width)
-        self.selector.winfo_width = 500
-        
+        self.selector_root = self.selector.insert('','end',text='Objects')
+
+        # print(self.selector.winfo_width)
+
+        self.selector_scrollbar.pack(fill='y', side='right')
+        self.selector.pack(fill='x')
         
         # self.xml_viewer = XML_Viwer(self.objects_canvas, self.level_xml, heading_text='objects').pack()
         # print(self.xml_viewer)
@@ -121,7 +119,7 @@ class Window(tk.Tk):
 
         self.prop_frame = ttk.LabelFrame(self.prop_canvas, text='properties', class_='prop')
 
-        self.prop_panedWindow = ttk.PanedWindow(self.prop_frame, orient='horizontal', class_='prop')
+        self.prop_panedWindow = ttk.PanedWindow(self.prop_frame, orient='horizontal')
 
         self.prop_left_frame = ttk.Frame(self.prop_panedWindow, width=50, class_='prop')
         self.prop_panedWindow.add(self.prop_left_frame)
@@ -242,6 +240,8 @@ class Window(tk.Tk):
 
         # self.bind_all("<Button-1>", lambda event: event.widget.focus_set())
         self.bind('<KeyPress-Return>', lambda e: self.level_canvas.focus_set())
+        
+        self.update_selector()
 
     def action(self):
         pass
@@ -267,6 +267,17 @@ class Window(tk.Tk):
         self.level_canvas.xview_scroll(int(-1*amount[0]), 'units')
         self.level_canvas.yview_scroll(int(-1*amount[1]), 'units')
 
+    def update_selector(self):
+        for item in self.selector.get_children(self.selector_root):
+            self.selector.delete(item)
+
+        # self.selector_root = self.selector.insert('', 'end', text='Objects')
+
+        for obj in self.objects:
+            self.selector.insert(self.selector_root, 'end', text=obj['name'])
+
+        self.selector.insert(self.selector_root, 'end', text='Room')
+
     def prop_right_resize(self, e):
         for c in self.prop_right_frame.winfo_children():
             c.configure(width=e.width - 20)
@@ -288,7 +299,7 @@ class Window(tk.Tk):
                 'value' : tk.StringVar(), 'entry': None
             }
 
-            value = ttk.Entry(self.prop_right_frame, textvariable=props['value'], validate='focusout', validatecommand=self.update_current_obj, class_='prop')
+            value = ttk.Entry(self.prop_right_frame, textvariable=props['value'], validate='focusout', validatecommand=self.update_current_obj)
             value.delete(0, 'end')
             value.insert(0, self.objects[self.currentObj]['object'].properties[key])
             value.grid(column=0, row=row, sticky='w')
@@ -309,14 +320,27 @@ class Window(tk.Tk):
         row = 0
         if self.currentObj:
             self.current_props = {
-                'Name' : {'value':'', 'entry':None},
+                'Name' : {'value':tk.StringVar(), 'entry':None},
                 'properties': {
                     'Angle' : {'value':tk.StringVar(), 'entry': None}
                 }
             }
 
-            print(self.objects[self.currentObj]['object'].properties)
             properties = self.objects[self.currentObj]['object'].properties
+
+            print(self.objects[self.currentObj]['object'].properties)
+            label = ttk.Label(self.prop_left_frame, text='Name')
+            label.grid(column=0, row=row, sticky='w')
+            self.prop_left_frame.rowconfigure(row, minsize=21)
+
+            value = ttk.Entry(self.prop_right_frame, textvariable=self.current_props['Name']['value'], validate='focusout', validatecommand=self.update_current_obj)
+            value.delete(0, 'end')
+            value.insert(0, self.objects[self.currentObj]['name'])
+            value.grid(column=0, row=row, sticky='w')
+            self.prop_right_frame.rowconfigure(row, minsize=21)
+
+            self.current_props['Name']['entry'] = value
+            row += 1
 
             label = ttk.Label(self.prop_left_frame, text='Angle')
             label.grid(column=0, row=row, sticky='w')
@@ -577,6 +601,10 @@ class Window(tk.Tk):
         props = {}
 
         focus = None
+        self.objects[self.currentObj]['name'] = self.current_props['Name']['value'].get()
+        if self.current_props['Name']['entry'] == current_focus:
+            focus = 'Name'
+
         for key in self.current_props['properties']:
             props[key] = self.current_props['properties'][key]['value'].get()
             if self.current_props['properties'][key]['entry'] == current_focus:
@@ -601,9 +629,14 @@ class Window(tk.Tk):
         self.update_selection(self.currentObj)
 
         if focus:
-            self.current_props['properties'][focus]['entry'].focus_set()
+            if focus == 'Name':
+                self.current_props[focus]['entry'].focus_set()
+            else:
+                self.current_props['properties'][focus]['entry'].focus_set()
         else:
             current_focus.focus_set()
+
+        self.update_selector()
 
         return True
 
