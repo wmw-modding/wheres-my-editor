@@ -66,7 +66,7 @@ class Window(tk.Tk):
         # self.side_pane.grid(row=0, column=0, rowspan=2)
         # self.objects_canvas.grid(row=0, column=0)
         # self.prop_canvas.grid(row=1, column=0)
-        self.level_xml = '<root></root>'
+        # self.level_xml = '<root></root>'
         self.level_size = (90 * self.scale, 120 * self.scale)
 
 
@@ -79,9 +79,27 @@ class Window(tk.Tk):
             self.open_level_xml(self.settings['default_level']['xml'])
             # with open(self.settings['default_level']['xml']) as file:
                 # self.level_xml = file.read()
+
+
+        self.selector = ttk.Treeview(self.objects_canvas, show='tree')
+        self.selector.pack()
+        # self.selector
+        # self.objects_canvas.bind('<Configure>', lambda e: self.selector.config(height=e.height))
+
+        def update_selector(width):
+            # print(self.selector.attributeList)
+            # self.selector.column(1, width=width)
+            pass
+
+        self.selector.insert('','end',text='test')
+
+        self.objects_canvas.bind('<Configure>', lambda e: update_selector(e.width))
+        print(self.selector.winfo_width)
+        self.selector.winfo_width = 500
         
-        self.xml_viewer = XML_Viwer(self.objects_canvas, self.level_xml, heading_text='objects').pack()
-        print(self.xml_viewer)
+        
+        # self.xml_viewer = XML_Viwer(self.objects_canvas, self.level_xml, heading_text='objects').pack()
+        # print(self.xml_viewer)
         # time.sleep(2)
 
         self.level_scrollbars = []
