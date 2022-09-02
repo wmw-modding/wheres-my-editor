@@ -117,14 +117,14 @@ class Window(tk.Tk):
 
         # self.level_img_index = self.level_canvas.create_image(0,0, image=None, anchor='nw')
 
-        self.prop_frame = ttk.LabelFrame(self.prop_canvas, text='properties', class_='prop')
+        self.prop_frame = ttk.LabelFrame(self.prop_canvas, text='properties', class_='scroll-prop')
 
         self.prop_panedWindow = ttk.PanedWindow(self.prop_frame, orient='horizontal')
 
-        self.prop_left_frame = ttk.Frame(self.prop_panedWindow, width=50, class_='prop')
+        self.prop_left_frame = ttk.Frame(self.prop_panedWindow, width=50, class_='scroll-prop')
         self.prop_panedWindow.add(self.prop_left_frame)
 
-        self.prop_right_frame = ttk.Frame(self.prop_panedWindow, width=50, class_='prop')
+        self.prop_right_frame = ttk.Frame(self.prop_panedWindow, width=50, class_='scroll-prop')
         self.prop_panedWindow.add(self.prop_right_frame)
 
         # self.prop_frame.columnconfigure(1, weight=1)
@@ -132,7 +132,7 @@ class Window(tk.Tk):
 
         self.prop_panedWindow.grid(column=0, row=0)
         
-        ttk.Button(self.prop_left_frame, text='Add', command=self.action).pack()
+        # ttk.Button(self.prop_left_frame, text='Add', command=self.action).pack()
         self.prop_right_frame.columnconfigure(0, weight=3)
         self.prop_right_frame.bind('<Configure>', self.prop_right_resize)
 
@@ -145,6 +145,8 @@ class Window(tk.Tk):
         self.prop_canvas.config(yscrollcommand=self.prop_scrollbar.set)
 
         self.prop_canvas.bind_class('prop', '<MouseWheel>', lambda e: self.prop_canvas.yview_scroll(int(-1*e.delta/120), 'units'))
+        # self.prop_canvas.bind_class('prop', '<Button-1>', lambda e: e.widget.focus_set())
+        self.prop_canvas.bind_class('scroll-prop', '<MouseWheel>', lambda e: self.prop_canvas.yview_scroll(int(-1*e.delta/120), 'units'))
 
         
         # self.canvas.tag_bind('object', '<ButtonPress-1>', self.on_press)
@@ -213,6 +215,9 @@ class Window(tk.Tk):
 
         # def set_hover(hover=False):
         #     self.level_canvas_hover = hover
+
+        # self.style.configure('TButton.prop-label', )
+
 
         self.level_canvas.bind('<B1-Motion>', self.drag_obj)
         self.level_canvas.bind('<ButtonRelease-1>', self.mouseUp)
@@ -329,9 +334,11 @@ class Window(tk.Tk):
             properties = self.objects[self.currentObj]['object'].properties
 
             print(self.objects[self.currentObj]['object'].properties)
-            label = ttk.Label(self.prop_left_frame, text='Name')
+            label = ttk.Label(self.prop_left_frame, text='Name', class_='prop')
             label.grid(column=0, row=row, sticky='w')
             self.prop_left_frame.rowconfigure(row, minsize=21)
+
+            label.bind('<Button-1>',  lambda event: event.widget.focus_set())
 
             value = ttk.Entry(self.prop_right_frame, textvariable=self.current_props['Name']['value'], validate='focusout', validatecommand=self.update_current_obj)
             value.delete(0, 'end')
@@ -342,9 +349,11 @@ class Window(tk.Tk):
             self.current_props['Name']['entry'] = value
             row += 1
 
-            label = ttk.Label(self.prop_left_frame, text='Angle')
+            label = ttk.Label(self.prop_left_frame, text='Angle', class_='prop')
             label.grid(column=0, row=row, sticky='w')
             self.prop_left_frame.rowconfigure(row, minsize=21)
+
+            label.bind('<Button-1>',  lambda event: event.widget.focus_set())
 
             value = ttk.Spinbox(self.prop_right_frame, textvariable=self.current_props['properties']['Angle']['value'], from_=-360, to=360, validate='focusout', validatecommand=self.update_current_obj)
             value.delete(0, 'end')
