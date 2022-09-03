@@ -185,6 +185,7 @@ class Window(tk.Tk):
         fileMenu.add_command(label='Open XML', command=self.open_xml)
         fileMenu.add_separator()
         fileMenu.add_command(label='Export XML', command=self.export_xml)
+        fileMenu.add_command(label='Settings', command=self.show_settings)
         # fileMenu.add_command(label= 'Close Img', command = lambda: self.openIMG('assets/WMWmap.png'))
         # fileMenu.add_command(label= 'Exit', command = self.client_exit)
         bar.add_cascade(label= 'File', menu=fileMenu)
@@ -303,6 +304,7 @@ class Window(tk.Tk):
             props = {
                 'value' : tk.StringVar(), 'entry': None
             }
+            label.bind('<Button-1>',  lambda event: event.widget.focus_set())
 
             value = ttk.Entry(self.prop_right_frame, textvariable=props['value'], validate='focusout', validatecommand=self.update_current_obj)
             value.delete(0, 'end')
@@ -738,19 +740,25 @@ class Window(tk.Tk):
             }
         }
 
-    def loadSettings(self):
+    def loadSettings(self, **kwargs):
         try:
-            with open('settings.json', 'r') as file:
-                self.settings = json.load(file)
+            self.setting = kwargs['settings']
         except:
-            self.initSettings()
-            self.exportSettings()
+            try:
+                with open('settings.json', 'r') as file:
+                    self.settings = json.load(file)
+            except:
+                self.initSettings()
+                self.exportSettings()
         
         self.gamedir = self.settings['gameDir']
 
     def exportSettings(self):
         file = open('settings.json', 'w+')
         json.dump(self.settings, file, indent=2)
+
+    def show_settings(self):
+        dialog = popups.settings_dialog(self, self.settings)
         
 
 def main():
