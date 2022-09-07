@@ -1,6 +1,7 @@
+from importlib.resources import path
 import threading
 import tkinter as tk
-from tkinter import ttk
+from tkinter import StringVar, ttk
 
 def commingsoon():
     popup = tk.Toplevel()
@@ -80,50 +81,63 @@ class settings_dialog():
         def gamedir():
             def update_game_dir(game, path):
                 games = {
-                    'wmw' : wmw_entry
+                    'wmw' : game_paths['wmw']
                 }
 
                 games['wmw']
 
-
             label_frame = ttk.LabelFrame(frame, text='Game paths')
-            wmw_label = ttk.Label(label_frame, text="Where's My Water?")
-            wmw_var = tk.StringVar
-            wmw_entry = ttk.Entry(label_frame, width=50)
-            wmw_button = ttk.Button(label_frame, text='browse')
+            vars = {
+                'wmw' : tk.StringVar()
+            }
+            game_paths = {
+                'wmw' : {
+                    "label" : ttk.Label(label_frame, text="Where's My Water?"),
+                    "entry" : ttk.Entry(label_frame, width=50, textvariable=vars['wmw']),
+                    "button" : ttk.Button(label_frame, text='browse')
+                }
+            }
 
             label_frame.pack(anchor='w', fill='x')
 
             label_frame.columnconfigure(0, minsize=120)
             label_frame.columnconfigure(1, weight=1)
-            # label_frame.columnconfigure(, weight=2)
 
-            wmw_label.grid(column=0, row=0, sticky='e', padx=10)
-            wmw_entry.grid(column=1, row=0, sticky='e')
-            wmw_button.grid(column=2, row=0, sticky='w', padx=5)
+            game_paths['wmw']['label'].grid(column=0, row=0, sticky='e', padx=10)
+            game_paths['wmw']['entry'].grid(column=1, row=0, sticky='e')
+            game_paths['wmw']['button'].grid(column=2, row=0, sticky='w', padx=5)
 
         def defualt_paths():
             label_frame = ttk.LabelFrame(frame, text='Defualt level')
-            png_label = ttk.Label(label_frame, text='Image')
-            png_entry = ttk.Entry(label_frame, width=50)
-            png_button = ttk.Button(label_frame, text='browse')
+
+            vars = {
+                "png" : tk.StringVar(),
+                "xml" : tk.StringVar()
+            }
+            paths = {
+                "png" : {
+                    "label" : ttk.Label(label_frame, text='Image'),
+                    "entry" : ttk.Entry(label_frame, width=50, textvariable=vars['png']),
+                    "button" : ttk.Button(label_frame, text='browse')
+                },
+                "xml" : {
+                    "label" : ttk.Label(label_frame, text='XML'),
+                    "entry" : ttk.Entry(label_frame, width=50, textvariable=vars['xml']),
+                    "button" : ttk.Button(label_frame, text='browse')
+                }
+            }
 
             label_frame.pack(anchor='w', fill='x')
             label_frame.columnconfigure(0, minsize=120)
             label_frame.columnconfigure(1, weight=1)
-            # label_frame.columnconfigure(, weight=2)
 
-            png_label.grid(column=0, row=0, sticky='e', padx=10)
-            png_entry.grid(column=1, row=0, sticky='e')
-            png_button.grid(column=2, row=0, sticky='w', padx=5)
+            paths['png']['label'].grid(column=0, row=0, sticky='e', padx=10)
+            paths['png']['entry'].grid(column=1, row=0, sticky='e')
+            paths['png']['button'].grid(column=2, row=0, sticky='w', padx=5)
 
-            xml_label = ttk.Label(label_frame, text='XML')
-            xml_entry = ttk.Entry(label_frame, width=50)
-            xml_button = ttk.Button(label_frame, text='browse')
-
-            xml_label.grid(column=0, row=1, sticky='e', padx=10)
-            xml_entry.grid(column=1, row=1, sticky='e')
-            xml_button.grid(column=2, row=1, sticky='w', padx=5)
+            paths['xml']['label'].grid(column=0, row=1, sticky='e', padx=10)
+            paths['xml']['entry'].grid(column=1, row=1, sticky='e')
+            paths['xml']['button'].grid(column=2, row=1, sticky='w', padx=5)
 
         frame = ttk.Frame(self.notebook)
         # frame.grid()
