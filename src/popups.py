@@ -1,4 +1,5 @@
 from importlib.resources import path
+import json
 import threading
 import tkinter as tk
 from tkinter import StringVar, ttk, filedialog
@@ -81,26 +82,23 @@ class settings_dialog():
 
     def paths(self):
         def gamedir():
+            def update_game_dir(game, path):
+                game_vars[game].set(os.path.abspath(path))
+                self.settings['gamedir'] = os.path.abspath(path)
+                print(os.path.abspath(path))
+                print(self.settings['gamedir'])
+
             label_frame = ttk.LabelFrame(frame, text='Game paths')
             game_vars = {
                 'wmw' : tk.StringVar()
             }
-            game_vars['wmw'].set('')
             game_paths = {
                 'wmw' : {
                     "label" : ttk.Label(label_frame, text="Where's My Water?"),
-                    "entry" : ttk.Entry(label_frame, width=50, textvariable=game_vars['wmw']),
+                    "entry" : ttk.Entry(label_frame, width=900, textvariable=game_vars['wmw']),
                     "button" : ttk.Button(label_frame, text='browse', command=lambda: update_game_dir('wmw', filedialog.askdirectory(initialdir=self.settings['gamedir'], mustexist=True, title="Where's my water? game directory")))
                 }
             }
-            def update_game_dir(game, path):
-                # print(os.path.abspath(path))
-                # game_paths[game]['entry'].delete(0, 'end')
-                game_vars[game].set(os.path.abspath(path))
-                self.settings['gamdir'] = os.path.relpath(path)
-                # print(game_vars[game].get())
-                # game_paths[game]['entry'].insert(0, os.path.abspath(path))
-
 
             label_frame.pack(anchor='w', fill='x')
 
@@ -109,13 +107,19 @@ class settings_dialog():
 
             update_game_dir('wmw', self.settings['gamedir'])
             game_paths['wmw']['label'].grid(column=0, row=0, sticky='e', padx=10)
-            game_paths['wmw']['entry'].grid(column=1, row=0, sticky='e')
+            game_paths['wmw']['entry'].grid(column=1, row=0, sticky='w')
             game_paths['wmw']['button'].grid(column=2, row=0, sticky='w', padx=5)
 
             print(game_vars['wmw'])
             # print(game_paths['wmw']['entry'].config()['textvariable'].get())
 
         def defualt_paths():
+            def update_path_dir(name, path):
+                path_vars[name].set(os.path.abspath(path))
+                self.settings['default_level'][name] = os.path.abspath(path)
+                print(os.path.abspath(path))
+                print(self.settings['default_level'][name])
+
             label_frame = ttk.LabelFrame(frame, text='Defualt level')
 
             path_vars = {
@@ -125,13 +129,13 @@ class settings_dialog():
             paths = {
                 "png" : {
                     "label" : ttk.Label(label_frame, text='Image'),
-                    "entry" : ttk.Entry(label_frame, width=50, textvariable=path_vars['png']),
-                    "button" : ttk.Button(label_frame, text='browse')
+                    "entry" : ttk.Entry(label_frame, width=900, textvariable=path_vars['png']),
+                    "button" : ttk.Button(label_frame, text='browse', command=lambda: update_path_dir('png', filedialog.askopenfilename(title='Level image', defaultextension='*.png', filetypes=(('wmw level', '*.png'),('any', '*.*')), initialdir=self.settings['gamedir']+'assets/Levels')))
                 },
                 "xml" : {
                     "label" : ttk.Label(label_frame, text='XML'),
-                    "entry" : ttk.Entry(label_frame, width=50, textvariable=path_vars['xml']),
-                    "button" : ttk.Button(label_frame, text='browse')
+                    "entry" : ttk.Entry(label_frame, width=900, textvariable=path_vars['xml']),
+                    "button" : ttk.Button(label_frame, text='browse', command=lambda: update_path_dir('xml', filedialog.askopenfilename(title='Level XML', defaultextension='*.xml', filetypes=(('wmw level', '*.xml'),('any', '*.*')), initialdir=self.settings['gamedir']+'assets/Levels')))
                 }
             }
 
@@ -140,12 +144,15 @@ class settings_dialog():
             label_frame.columnconfigure(1, weight=1)
 
             paths['png']['label'].grid(column=0, row=0, sticky='e', padx=10)
-            paths['png']['entry'].grid(column=1, row=0, sticky='e')
+            paths['png']['entry'].grid(column=1, row=0, sticky='w')
             paths['png']['button'].grid(column=2, row=0, sticky='w', padx=5)
 
             paths['xml']['label'].grid(column=0, row=1, sticky='e', padx=10)
-            paths['xml']['entry'].grid(column=1, row=1, sticky='e')
+            paths['xml']['entry'].grid(column=1, row=1, sticky='w')
             paths['xml']['button'].grid(column=2, row=1, sticky='w', padx=5)
+
+            update_path_dir('png', self.settings['default_level']['image'])
+            update_path_dir('xml', self.settings['default_level']['xml'])
 
         frame = ttk.Frame(self.notebook)
         # frame.grid()
@@ -155,3 +162,10 @@ class settings_dialog():
         defualt_paths()
 
         return frame
+
+if __name__ == '__main__':
+    with open('settings.json') as file:
+        settings = json.load(file)
+
+    app = tk.Tk()
+    settings_dialog(app, settings)
