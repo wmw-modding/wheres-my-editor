@@ -733,7 +733,7 @@ class Window(tk.Tk):
         self.gamedir =  filedialog.askdirectory(title='Select game Directory')
         
         self.settings = {
-            "gameDir" : self.gamedir,
+            "gamedir" : self.gamedir,
             "default_level" : {
                 "image" : '',
                 "xml" : ''
@@ -751,7 +751,7 @@ class Window(tk.Tk):
                 self.initSettings()
                 self.exportSettings()
         
-        self.gamedir = self.settings['gameDir']
+        self.gamedir = self.settings['gamedir']
 
     def exportSettings(self):
         file = open('settings.json', 'w+')

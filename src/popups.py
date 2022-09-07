@@ -1,7 +1,8 @@
 from importlib.resources import path
 import threading
 import tkinter as tk
-from tkinter import StringVar, ttk
+from tkinter import StringVar, ttk, filedialog
+import os
 
 def commingsoon():
     popup = tk.Toplevel()
@@ -69,60 +70,67 @@ class settings_dialog():
 
         for tab in self.tabs:
             print('adding: ', tab)
-            self.notebook.add(self.tabs[tab], text=tab)
+            self.notebook.add(self.tabs[tab](), text=tab)
 
         self.window.transient(root)
         self.window.wait_window()
 
     def load_tabs(self):
-        self.tabs['Paths'] = self.paths()
+        # self.paths()
+        self.tabs['Paths'] = self.paths
 
     def paths(self):
         def gamedir():
-            def update_game_dir(game, path):
-                games = {
-                    'wmw' : game_paths['wmw']
-                }
-
-                games['wmw']
-
             label_frame = ttk.LabelFrame(frame, text='Game paths')
-            vars = {
+            game_vars = {
                 'wmw' : tk.StringVar()
             }
+            game_vars['wmw'].set('')
             game_paths = {
                 'wmw' : {
                     "label" : ttk.Label(label_frame, text="Where's My Water?"),
-                    "entry" : ttk.Entry(label_frame, width=50, textvariable=vars['wmw']),
-                    "button" : ttk.Button(label_frame, text='browse')
+                    "entry" : ttk.Entry(label_frame, width=50, textvariable=game_vars['wmw']),
+                    "button" : ttk.Button(label_frame, text='browse', command=lambda: update_game_dir('wmw', filedialog.askdirectory(initialdir=self.settings['gamedir'], mustexist=True, title="Where's my water? game directory")))
                 }
             }
+            def update_game_dir(game, path):
+                # print(os.path.abspath(path))
+                # game_paths[game]['entry'].delete(0, 'end')
+                game_vars[game].set(os.path.abspath(path))
+                self.settings['gamdir'] = os.path.relpath(path)
+                # print(game_vars[game].get())
+                # game_paths[game]['entry'].insert(0, os.path.abspath(path))
+
 
             label_frame.pack(anchor='w', fill='x')
 
             label_frame.columnconfigure(0, minsize=120)
             label_frame.columnconfigure(1, weight=1)
 
+            update_game_dir('wmw', self.settings['gamedir'])
             game_paths['wmw']['label'].grid(column=0, row=0, sticky='e', padx=10)
             game_paths['wmw']['entry'].grid(column=1, row=0, sticky='e')
             game_paths['wmw']['button'].grid(column=2, row=0, sticky='w', padx=5)
 
+            print(game_vars['wmw'])
+            # print(game_paths['wmw']['entry'].config()['textvariable'].get())
+
         def defualt_paths():
             label_frame = ttk.LabelFrame(frame, text='Defualt level')
 
-            vars = {
+            path_vars = {
                 "png" : tk.StringVar(),
                 "xml" : tk.StringVar()
             }
             paths = {
                 "png" : {
                     "label" : ttk.Label(label_frame, text='Image'),
-                    "entry" : ttk.Entry(label_frame, width=50, textvariable=vars['png']),
+                    "entry" : ttk.Entry(label_frame, width=50, textvariable=path_vars['png']),
                     "button" : ttk.Button(label_frame, text='browse')
                 },
                 "xml" : {
                     "label" : ttk.Label(label_frame, text='XML'),
-                    "entry" : ttk.Entry(label_frame, width=50, textvariable=vars['xml']),
+                    "entry" : ttk.Entry(label_frame, width=50, textvariable=path_vars['xml']),
                     "button" : ttk.Button(label_frame, text='browse')
                 }
             }
