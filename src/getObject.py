@@ -213,6 +213,54 @@ class sprite():
             self.visible = properties['visible']
             print(self.pos,self.angle,self.gridSize,self.isBackground,self.visible)
     
+def exportImagelist(filename, assetspath):
+    with open(filename, 'r') as file:
+        xml = etree.parse(file)
+        tree = xml.getroot()
+
+    imageList = tree
+    sheet_info = {}
+    sheet_info['imgSize'] = imageList.get('imgSize')
+    sheet_info['file'] = imageList.get('file')
+    sheet_info['textureBasePath'] = imageList.get('textureBasePath')
+
+    image = None
+    images = []
+
+    print(len(imageList))
+    for i in imageList:
+        print(i.get('name'))
+        image = i
+        
+        image_info = {}
+        image_info['name'] = image.get('name')
+        image_info['offset'] = image.get('offset')
+        image_info['size'] = image.get('size')
+        image_info['rect'] = image.get('rect')
+
+        sheet = Image.open(assetspath + sheet_info['file'])
+
+        left, up, right, down = image_info['rect'].split()
+        left = int(left)
+        up = int(up)
+        right = int(right)
+        down = int(down)
+        right = left + right
+        down = up + down
+        print(left, right, up, down)
+
+        image = sheet.crop((left, up, right, down))
+        x,y = image_info['size'].split()
+        x = int(x)
+        y = int(y)
+        # image = image.resize((x,y))
+
+        # image.show()
+        images.append(frame(image, image_info))
+        print('got frame ' + image_info['name'])
+
+    return images
+
 def findInImagelist(path, name, assetspath):
     with open(path) as file:
         xml = etree.parse(file)
