@@ -1,8 +1,9 @@
 from threading import Thread
 from tkinter.filedialog import FileDialog
+import tkinter.filedialog as filedialog
 import tkinter as tk
 from tkinter import ttk, simpledialog, messagebox
-from guizero import *
+# from guizero import *
 import popups
 from PIL import Image, ImageTk
 from xmlviewer import *
@@ -246,6 +247,8 @@ class Window(tk.Tk):
 
         # self.bind_all("<Button-1>", lambda event: event.widget.focus_set())
         self.bind('<KeyPress-Return>', lambda e: self.level_canvas.focus_set())
+
+        self.bind('<ButtonRelease-3>', self.rightClick)
         
         self.update_selector()
 
@@ -599,6 +602,10 @@ class Window(tk.Tk):
 
     def del_obj(self, objectIndex):
         try:
+            print(f'{objectIndex=}\n{self.currentObj=}')
+            if objectIndex == self.currentObj:
+                self.currentObj = None
+                self.update_selection()
             global images
             del self.objects[objectIndex]
             del images[objectIndex]
@@ -654,13 +661,15 @@ class Window(tk.Tk):
     def objAt(self, pos):
         pos = (self.level_canvas.canvasx(pos[0]), self.level_canvas.canvasy(pos[1]))
         object = self.level_canvas.find_overlapping(pos[0], pos[1], pos[0], pos[1])
-        # print(f'{object=}')
+        print(f'{object=}')
         if len(object) == 0:
-            object == 1
+            object == 0
         else:
             object = object[-1]
 
-        if object == 1 or object == self.selection_rect:
+        print(f'{object = }\n{self.selection_rect = }')
+
+        if object == 0 or object == self.selection_rect:
             obj = None
         else:
             obj = next((self.objects.index(obj) for obj in self.objects if obj['image'] == object), None)
@@ -676,8 +685,10 @@ class Window(tk.Tk):
         self.update_selection(self.currentObj)
         self.level_canvas.focus_set()
 
-    def update_selection(self, objectIndex):
-        if self.currentObj == None:
+    def update_selection(self, objectIndex=None):
+        if objectIndex == None:
+            objectIndex = self.currentObj
+        if objectIndex == None:
             self.level_canvas.itemconfig(self.selection_rect, state='hidden')
         else:
             self.level_canvas.itemconfig(self.selection_rect, state='normal')
@@ -740,6 +751,26 @@ class Window(tk.Tk):
             }
         }
 
+    def rightClick(self, event):
+        self.select_obj(event)
+        
+        if self.currentObj:
+            m = tk.Menu(self, tearoff = 0)
+            m.add_command(label ="Remove", command = lambda : self.del_obj(self.currentObj))
+            m.add_command(label ="Cut")
+            m.add_command(label ="Copy")
+            m.add_command(label ="Paste")
+        else:
+            m = tk.Menu(self, tearoff = 0)
+            m.add_command(label ="Add")
+            m.add_command(label ="Paste")
+
+        try:
+            m.tk_popup(event.x_root, event.y_root)
+        finally:
+            m.grab_release()
+
+
     def loadSettings(self, **kwargs):
         try:
             self.setting = kwargs['settings']
@@ -747,6 +778,8 @@ class Window(tk.Tk):
             try:
                 with open('settings.json', 'r') as file:
                     self.settings = json.load(file)
+
+                print(self.settings)
             except:
                 self.initSettings()
                 self.exportSettings()
