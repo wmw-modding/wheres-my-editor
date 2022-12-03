@@ -160,3 +160,5 @@ src/test.py
 src/uber-apk-signer.jar
 *.apk
 src/signapk.jar
+
+android/
