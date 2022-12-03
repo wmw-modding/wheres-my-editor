@@ -162,3 +162,4 @@ src/uber-apk-signer.jar
 src/signapk.jar
 
 android/
+.vscode
