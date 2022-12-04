@@ -8,10 +8,10 @@
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}\\src\\",
+            "program": "${workspaceFolder}\\src",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "cwd": "${workspaceFolder}\\src\\"
+            "cwd": "${workspaceFolder}\\src"
         }
     ]
 }
