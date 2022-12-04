@@ -9,6 +9,8 @@ from PIL import Image, ImageTk
 from xmlviewer import *
 import getObject as getObj
 import json
+import datetime
+import os
 
 import lxml
 from lxml import etree
@@ -328,7 +330,7 @@ class Window(tk.Tk):
             c.destroy()
         
         row = 0
-        if self.currentObj:
+        if self.currentObj != None:
             self.current_props = {
                 'Name' : {'value':tk.StringVar(), 'entry':None},
                 'properties': {
@@ -601,16 +603,23 @@ class Window(tk.Tk):
         self.objects.append(object)
 
     def del_obj(self, objectIndex):
-        try:
-            print(f'{objectIndex=}\n{self.currentObj=}')
-            if objectIndex == self.currentObj:
-                self.currentObj = None
-                self.update_selection()
-            global images
-            del self.objects[objectIndex]
-            del images[objectIndex]
-        except:
-            return
+        # try:
+        print(f'{objectIndex=}\n{self.currentObj=}')
+        if objectIndex == self.currentObj:
+            self.currentObj = None
+            self.update_selection()
+            self.updateProps()
+        global images
+        # print(f'{self.objects[objectIndex] = }\n{images[objectIndex] = }\n{objectIndex}')
+        # filename = os.getcwd() + '/debug/' + datetime.datetime.now().strftime("%d-%m-%Y_%H-%M-%S") + '.png'
+        # print(f'{filename = }')
+        # ImageTk.getimage(images[objectIndex]).save(filename, format="png")
+        
+        self.level_canvas.delete(self.objects[objectIndex]['image'])
+        del self.objects[objectIndex]
+        del images[objectIndex]
+        # except:
+            # return
 
     def update_current_obj(self) -> True:
         current_focus = self.focus_get()
@@ -754,7 +763,7 @@ class Window(tk.Tk):
     def rightClick(self, event):
         self.select_obj(event)
         
-        if self.currentObj:
+        if self.currentObj != None:
             m = tk.Menu(self, tearoff = 0)
             m.add_command(label ="Remove", command = lambda : self.del_obj(self.currentObj))
             m.add_command(label ="Cut")
