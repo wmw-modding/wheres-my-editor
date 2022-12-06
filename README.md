@@ -18,7 +18,7 @@ Start by extracting your where's my water apk file into a directory. When you ru
 
 - [x] Export `xml` file
 - [ ] Export `png` file
-- [ ] Add and remove objects
+- [x] Add and remove objects
 - [ ] Room object
 - [ ] Image editor
 - [ ] Complete settings menu

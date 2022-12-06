@@ -783,7 +783,7 @@ class Window(tk.Tk):
             m.add_command(label ="Paste")
         else:
             m = tk.Menu(self, tearoff = 0)
-            m.add_command(label ="Add")
+            m.add_command(label ="Add", command=lambda : self.addObj(filedialog.askopenfilename(title='Object', defaultextension="*.hs", filetypes=(('wmw object', '*.hs'),('any', '*.*')), initialdir=os.path.join(self.gamedir, self.assets, 'Objects')), pos=self.gamePos((event.x_root, event.y_root))))
             m.add_command(label ="Paste")
 
         try:
