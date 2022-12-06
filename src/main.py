@@ -407,11 +407,11 @@ class Window(tk.Tk):
             self.prop_canvas.configure(scrollregion=(0,0,500,0))
 
     def open_png(self):
-        path = filedialog.askopenfilename(title='Open level image', defaultextension="*.png", filetypes=(('wmw level', '*.png'),('any', '*.*')), initialdir=self.gamedir+'assets/Levels')
+        path = filedialog.askopenfilename(title='Open level image', defaultextension="*.png", filetypes=(('wmw level', '*.png'),('any', '*.*')), initialdir=os.path.join(self.gamedir, self.assets, 'Levels'))
         self.open_level_img(path)
 
     def open_xml(self):
-        path = filedialog.askopenfilename(title='Open level XML', defaultextension="*.xml", filetypes=(('wmw level', '*.xml'),('any', '*.*')), initialdir=self.gamedir+'assets/Levels')
+        path = filedialog.askopenfilename(title='Open level XML', defaultextension="*.xml", filetypes=(('wmw level', '*.xml'),('any', '*.*')), initialdir=os.path.join(self.gamedir, self.assets, 'Levels'))
         # print(path)
         if path != '' and path != None:
             dialog = popups.load_dialog(self)
@@ -427,7 +427,7 @@ class Window(tk.Tk):
             # dialog.close()
 
     def export_xml(self):
-        path = filedialog.asksaveasfilename(title='Save XML', defaultextension="*.xml", filetypes=(('wmw level', '*.xml'),('any', '*.*')), initialdir=self.gamedir+'assets/Levels')
+        path = filedialog.asksaveasfilename(title='Save XML', defaultextension="*.xml", filetypes=(('wmw level', '*.xml'),('any', '*.*')), initialdir=os.path.join(self.gamedir, self.assets, 'Levels'))
         print(path)
         if path != '' and path != None:
             self.export_level_xml(path)
@@ -484,7 +484,14 @@ class Window(tk.Tk):
 
                 print(object)
 
-                self.addObj(self.gamedir + 'assets/' + object['properties']['Filename'], pos = object['pos'], properties=object['properties'], name=object['name'])
+                print(self.gamedir)
+
+                objpath = object['properties']['Filename']
+
+                if objpath[0] in ['/', '\\']:
+                    objpath = objpath[1:]
+
+                self.addObj(os.path.join(self.gamedir, self.assets, objpath), pos = object['pos'], properties=object['properties'], name=object['name'])
             
             elif root[obj].tag == 'Room':
                 pos = root[obj][getObj.findTag(root[obj], 'AbsoluteLocation')].get('value').split()
@@ -571,7 +578,8 @@ class Window(tk.Tk):
         return (x,y)
 
     def addObj(self, path, pos=(0,0), properties={}, name='object'):
-        obj = getObj.newObject(path,pos=pos, properties=properties, scale=1.4)
+        print(path)
+        obj = getObj.newObject(path, pos=pos, properties=properties, scale=1.4, assetpath=os.path.join(self.gamedir, self.assets))
         # newPos = self.truePos(pos)
         newPos = self.truePos(pos, size=obj.size, anchor='NW')
         print(newPos)
@@ -751,9 +759,13 @@ class Window(tk.Tk):
 
     def initSettings(self):
         self.gamedir =  filedialog.askdirectory(title='Select game Directory')
+        self.assets = filedialog.askdirectory(title='Select assets folder')
+        self.assets = os.path.relpath(self.assets, self.gamedir)
+        
         
         self.settings = {
             "gamedir" : self.gamedir,
+            "assets" : self.assets,
             "default_level" : {
                 "image" : '',
                 "xml" : ''
@@ -793,7 +805,8 @@ class Window(tk.Tk):
                 self.initSettings()
                 self.exportSettings()
         
-        self.gamedir = self.settings['gamedir']
+        self.gamedir = os.path.abspath(self.settings['gamedir'])
+        self.assets = self.settings['assets']
 
     def exportSettings(self):
         file = open('settings.json', 'w+')

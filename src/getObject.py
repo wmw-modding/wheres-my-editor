@@ -170,6 +170,7 @@ class sprite():
     def __init__(self, path, properties, assetspath) -> None:
         self.assets = assetspath
         self.assets = os.path.dirname(os.path.dirname(path))
+        print(path)
         with open(path) as file:
             xml = etree.parse(file)
             tree = xml.getroot()
