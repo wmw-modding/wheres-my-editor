@@ -154,6 +154,7 @@ cython_debug/
 # game files
 game/
 settings.json
+settings.json.bak
 src/commands.txt
 *.cmd
 src/test.py

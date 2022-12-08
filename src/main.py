@@ -56,6 +56,7 @@ class Window(tk.Tk):
         self.currentObj = None
         self.room = {'pos':(0,0)}
         self.level_properties = {}
+        self.current_props = None
             
         self.initialize()
 
@@ -301,6 +302,7 @@ class Window(tk.Tk):
         self.prop_panedWindow.config(width=e.width - sb_width - 2)
 
     def updateProps(self):
+        # self.update_current_obj()
         def addProp(key, value, row):
             label = ttk.Label(self.prop_left_frame, text=key, class_='prop')
             label.grid(column=0, row=row, sticky='w')
@@ -630,12 +632,18 @@ class Window(tk.Tk):
             # return
 
     def update_current_obj(self) -> True:
+        if not self.current_props or self.currentObj == None:
+            return
+            
         current_focus = self.focus_get()
         print(current_focus)
 
         props = {}
 
         focus = None
+
+        print(f'{self.currentObj = }')
+        
         self.objects[self.currentObj]['name'] = self.current_props['Name']['value'].get()
         if self.current_props['Name']['entry'] == current_focus:
             focus = 'Name'
@@ -695,8 +703,11 @@ class Window(tk.Tk):
         return obj
 
     def select_obj(self, event):
+        self.update_current_obj()
+
         self.currentObj = self.objAt((event.x, event.y))
         self.prevMousePos = (event.x, event.y)
+        
         self.updateProps()
 
         self.update_selection(self.currentObj)
@@ -783,7 +794,7 @@ class Window(tk.Tk):
             m.add_command(label ="Paste")
         else:
             m = tk.Menu(self, tearoff = 0)
-            m.add_command(label ="Add", command=lambda : self.addObj(filedialog.askopenfilename(title='Object', defaultextension="*.hs", filetypes=(('wmw object', '*.hs'),('any', '*.*')), initialdir=os.path.join(self.gamedir, self.assets, 'Objects')), pos=self.gamePos((event.x_root, event.y_root))))
+            m.add_command(label ="Add", command=lambda : self.addObj(filedialog.askopenfilename(title='Object', defaultextension="*.hs", filetypes=(('wmw object', '*.hs'),('any', '*.*')), initialdir=os.path.join(self.gamedir, self.assets, 'Objects')), pos=self.gamePos((event.x, event.y))))
             m.add_command(label ="Paste")
 
         try:
