@@ -1,38 +1,12 @@
-# Thanks to @campbellsonic for the wrapRawData script. It was originally written in C#, I just rewrote it in python. I couldn't have done it without them.
-
 import numpy
 from PIL import Image
 import math
 import json
 
-def getWaltexImage(path : str, size : tuple = (1024, 1024), colorspace : str = 'rgba4444', premultiplyAlpha : bool = False, dePremultiplyAlpha : bool = False):
-    colorspace = colorspace.lower()
-    
-    colorOrder = ''
-    bytesPerPixel = 0
-    bpprgba = []
-    
-    for i in range(len(colorspace)):
-        if colorspace[i].isnumeric():
-            bpprgba.append(int(colorspace[i]))
-        else:
-            colorOrder += colorspace[i]
-            
-    for i in range(len(bpprgba) - 4):
-        bpprgba.append(0)
-        
-    bytesPerPixel = round(sum(bpprgba) / 8)
-    print(colorspace, bytesPerPixel, colorOrder, bpprgba)
-    
-    with open(path, 'rb') as file:
-        return WrapRawData(file.read(), size[0], size[1], bytesPerPixel, bpprgba[0], bpprgba[1], bpprgba[2], bpprgba[3], colorOrder, premultiplyAlpha, dePremultiplyAlpha)
-
 def WrapRawData(rawData : bytes, width : int, height : int, bytesPerPixel : int, redBits : int, greenBits : int, blueBits : int, alphaBits : int, colorOrder : str, premultiplyAlpha : bool = False, dePremultiplyAlpha : bool = False):
     _8BIT_MASK = 256.0
     OUTBITDEPTH = 8
     DEBUG_MODE = False
-    
-    colorOrder = colorOrder.lower()
     
     # width and height are switched due to how PIL creates an image from array
     # image = [[(0, 0, 0, 0)] * height] * width
@@ -103,24 +77,24 @@ def WrapRawData(rawData : bytes, width : int, height : int, bytesPerPixel : int,
         # scale colors to 8-bit depth (not sure which method is better)
         
         # via floating point division
-        if (redMax > 1):
-            r = round(r * ((_8BIT_MASK - 1) / (redMax - 1)))
-        if (greenMax > 1):
-            g = round(g * ((_8BIT_MASK - 1) / (greenMax - 1)))
-        if (blueMax > 1):
-            b = round(b * ((_8BIT_MASK - 1) / (blueMax - 1)))
-        if (alphaMax > 1):
-            a = round(a * ((_8BIT_MASK - 1) / (alphaMax - 1)))
+        # if (redMax > 1):
+        #     r = round(r * ((_8BIT_MASK - 1) / (redMax - 1)))
+        # if (greenMax > 1):
+        #     g = round(g * ((_8BIT_MASK - 1) / (greenMax - 1)))
+        # if (blueMax > 1):
+        #     b = round(b * ((_8BIT_MASK - 1) / (blueMax - 1)))
+        # if (alphaMax > 1):
+        #     a = round(a * ((_8BIT_MASK - 1) / (alphaMax - 1)))
         
         # via bit shifting
-        # rShift = OUTBITDEPTH - redBits
-        # gShift = OUTBITDEPTH - greenBits
-        # bShift = OUTBITDEPTH - blueBits
-        # aShift = OUTBITDEPTH - alphaBits
-        # r = (r << rShift) + (r >> (redBits - rShift))
-        # g = (g << gShift) + (r >> (greenBits - gShift))
-        # b = (b << bShift) + (r >> (blueBits - bShift))
-        # a = (a << aShift) + (a >> (alphaBits - aShift))
+        rShift = OUTBITDEPTH - redBits
+        gShift = OUTBITDEPTH - greenBits
+        bShift = OUTBITDEPTH - blueBits
+        aShift = OUTBITDEPTH - alphaBits
+        r = (r << rShift) + (r >> (redBits - rShift))
+        g = (g << gShift) + (r >> (greenBits - gShift))
+        b = (b << bShift) + (r >> (blueBits - bShift))
+        a = (a << aShift) + (a >> (alphaBits - aShift))
         
         # print(f'After scale:\nR: {r} G: {g} B: {b} A: {a}')
         
@@ -176,13 +150,11 @@ def GenerateBinaryMask(numOnes):
     return binaryMask
 
 if __name__ == "__main__":
-    path = "C:/Users/christineka/Documents/android/unpacked apks/wmp-1.8.1/assets/Perry/Textures/Carl.waltex"
-    # with open(path, 'rb') as file:
-    #     rawData = file.read()
-    
-    image = getWaltexImage(path, (1024, 1024), 'rgba4444')
+    path = "Carl.waltex"
+    with open(path, 'rb') as file:
+        rawData = file.read()
         
-    # image = WrapRawData(rawData, 1024, 1024, 2, 4, 4, 4, 4, 'rgba', dePremultiplyAlpha=True)
+    image = WrapRawData(rawData, 1024, 1024, 2, 4, 4, 4, 4, 'rgba', dePremultiplyAlpha=True)
     # print(image)
     image.show()
     
