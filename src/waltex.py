@@ -1,14 +1,16 @@
 import numpy
 from PIL import Image
 import math
+import json
 
-def WrapRawData(rawData : bytes, width : int, height : int, bytesPerPixel : int, redBits : int, greenBits : int, blueBits : int, alphaBits : int, colorOrder : str):
+def WrapRawData(rawData : bytes, width : int, height : int, bytesPerPixel : int, redBits : int, greenBits : int, blueBits : int, alphaBits : int, colorOrder : str, premultiplyAlpha : bool = False, dePremultiplyAlpha : bool = False):
     _8BIT_MASK = 256.0
     OUTBITDEPTH = 8
     DEBUG_MODE = False
     
     # width and height are switched due to how PIL creates an image from array
-    image = [[(0, 0, 0, 0)] * width] * height
+    # image = [[(0, 0, 0, 0)] * height] * width
+    image = Image.new('RGBA', (width, height), (0, 0, 0, 0))
     x = 0
     y = 0
     
@@ -39,7 +41,7 @@ def WrapRawData(rawData : bytes, width : int, height : int, bytesPerPixel : int,
             # if (reverseBytes)
             nextByte = nextByte << (8 * j)
             # else
-            #     pixel = pixel << 8
+            # pixel = pixel << 8
             
             # append the next one
             pixel += nextByte
@@ -51,7 +53,7 @@ def WrapRawData(rawData : bytes, width : int, height : int, bytesPerPixel : int,
         r, g, b, a, = 0, 0, 0, 0
         
         # loop for each channel
-        for j in reversed(range(len(colorOrder) - 1)):
+        for j in reversed(range(len(colorOrder))):
             color = colorOrder[j]
             
             if color == 'r':
@@ -75,37 +77,52 @@ def WrapRawData(rawData : bytes, width : int, height : int, bytesPerPixel : int,
         # scale colors to 8-bit depth (not sure which method is better)
         
         # via floating point division
-        if (redMax > 1):
-            r = round(r * ((_8BIT_MASK - 1) / (redMax - 1)))
-        if (greenMax > 1):
-            g = round(g * ((_8BIT_MASK - 1) / (greenMax - 1)))
-        if (blueMax > 1):
-            b = round(b * ((_8BIT_MASK - 1) / (blueMax - 1)))
-        if (alphaMax > 1):
-            a = round(a * ((_8BIT_MASK - 1) / (alphaMax - 1)))
+        # if (redMax > 1):
+        #     r = round(r * ((_8BIT_MASK - 1) / (redMax - 1)))
+        # if (greenMax > 1):
+        #     g = round(g * ((_8BIT_MASK - 1) / (greenMax - 1)))
+        # if (blueMax > 1):
+        #     b = round(b * ((_8BIT_MASK - 1) / (blueMax - 1)))
+        # if (alphaMax > 1):
+        #     a = round(a * ((_8BIT_MASK - 1) / (alphaMax - 1)))
         
         # via bit shifting
-        # rShift = OUTBITDEPTH - redBits
-        # gShift = OUTBITDEPTH - greenBits
-        # bShift = OUTBITDEPTH - blueBits
-        # aShift = OUTBITDEPTH - alphaBits
-        # r = (r << rShift) + (r >> (redBits - rShift))
-        # g = (g << gShift) + (r >> (greenBits - gShift))
-        # b = (b << bShift) + (r >> (blueBits - bShift))
-        # a = (a << aShift) + (a >> (alphaBits - aShift))
+        rShift = OUTBITDEPTH - redBits
+        gShift = OUTBITDEPTH - greenBits
+        bShift = OUTBITDEPTH - blueBits
+        aShift = OUTBITDEPTH - alphaBits
+        r = (r << rShift) + (r >> (redBits - rShift))
+        g = (g << gShift) + (r >> (greenBits - gShift))
+        b = (b << bShift) + (r >> (blueBits - bShift))
+        a = (a << aShift) + (a >> (alphaBits - aShift))
         
         # print(f'After scale:\nR: {r} G: {g} B: {b} A: {a}')
         
         # if there are no bits allotted for an alpha channel, make pixel opaque rather than invisible
         if alphaBits == 0:
-            a == 255
+            a = 255
+            
+        # a = 255
+            
+        if premultiplyAlpha:
+            r = round(r * a / 255.0)
+            g = round(g * a / 255.0)
+            b = round(b * a / 255.0)
+            
+        if dePremultiplyAlpha:
+            if (a != 0):
+                r = round(r * 255.0 / a)
+                g = round(g * 255.0 / a)
+                b = round(b * 255.0 / a)
             
         # set the pixel
-        image[y][x] = (int(r), int(g), int(b), int(a))
+        rgba = (int(r), int(g), int(b), int(a))
+        # print(rgba)
+        # image[x][y] = rgba
+        image.putpixel((x,y), rgba)
         
         # break after first pixel if in debug mode
-        if (DEBUG_MODE):
-            break
+        
         
         # iterate coordinates
         x += 1
@@ -114,6 +131,8 @@ def WrapRawData(rawData : bytes, width : int, height : int, bytesPerPixel : int,
             y += 1
             if (y > (height - 300) or y % 100 == 0):
                 print(f'Line {y} of {height} done')
+                if (DEBUG_MODE):
+                    break
                 
         # if there's extra data (like the door overlays in the lawns), stop once the height is reached
         if y == height:
@@ -135,9 +154,19 @@ if __name__ == "__main__":
     with open(path, 'rb') as file:
         rawData = file.read()
         
-    image = WrapRawData(rawData, 1024, 1024, 2, 4, 4, 4, 4, 'rgba')
-    print(image)
-    pixels = numpy.array(image, dtype=numpy.uint8)
-    print(pixels)
-    new_image = Image.fromarray(pixels)
-    new_image.show()
+    image = WrapRawData(rawData, 1024, 1024, 2, 4, 4, 4, 4, 'rgba', dePremultiplyAlpha=True)
+    # print(image)
+    image.show()
+    
+    # with open('pixels.json', 'w') as file:
+    #     json.dump(image, file)
+        
+    # pixels = numpy.array(image, dtype=numpy.uint8)
+    # pixels = pixels.astype('uint8')
+    # print(pixels)
+    # new_image = Image.fromarray(pixels, 'RGBA')
+    # new_image = Image.new('RGBA', (1024, 1024))
+    # flattened = list(pixels.flatten())
+    # print(flattened)
+    # new_image.putdata(new_image)
+    # new_image.show()
