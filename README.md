@@ -26,4 +26,4 @@ Start by extracting your where's my water apk file into a directory. When you ru
 - [ ] Fix some objects not loading
 
 # Credits
-- Thanks to @campbellsonic for the script to load `waltex` images. I could not have done it without them.
+- Thanks to [campbellsonic](https://github.com/campbellsonic) for the script to load `waltex` images. I could not have done it without them.
