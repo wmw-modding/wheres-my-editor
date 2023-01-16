@@ -825,6 +825,11 @@ class Window(tk.Tk):
 
     def show_settings(self):
         dialog = popups.settings_dialog(self, self.settings)
+        self.settings = dialog.settings
+        self.exportSettings()
+        
+        self.gamedir = os.path.abspath(self.settings['gamedir'])
+        self.assets = self.settings['assets']
         
 
 def main():
