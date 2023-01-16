@@ -4,6 +4,9 @@ from lxml import etree
 import os
 from PIL import Image, ImageTk
 import itertools
+from waltex import getWaltexImage
+
+walteximages = {}
 
 class newObject():
     def __init__(self, path, pos=(0.0), properties={}, scale=1, assetpath=None):
@@ -22,17 +25,18 @@ class newObject():
         self.scale = scale
 
         for e in tree[elmt]:
-            newSprite = {}
-            newSprite['filename'] = e.get('filename')
-            newSprite['pos'] = e.get('pos')
-            newSprite['angle'] = e.get('angle')
-            newSprite['gridSize'] = e.get('gridSize')
-            newSprite['isBackground'] = e.get('isBackground') == 'true'
-            newSprite['visible'] = e.get('visible') == 'true' or e.get('visible') == None
+            if e.tag == 'Sprite':
+                newSprite = {}
+                newSprite['filename'] = e.get('filename')
+                newSprite['pos'] = e.get('pos')
+                newSprite['angle'] = e.get('angle')
+                newSprite['gridSize'] = e.get('gridSize')
+                newSprite['isBackground'] = e.get('isBackground') == 'true'
+                newSprite['visible'] = e.get('visible') == 'true' or e.get('visible') == None
 
-            sprite_obj = sprite(self.assets + newSprite['filename'], newSprite, self.assets)
+                sprite_obj = sprite(self.assets + newSprite['filename'], newSprite, self.assets)
 
-            self.sprites.append(sprite_obj)
+                self.sprites.append(sprite_obj)
 
         images = []
 
@@ -44,6 +48,7 @@ class newObject():
             if s.visible:
                 pass
             images.append(s)
+            
 
         if background == None:
             background = images[0]
@@ -273,6 +278,9 @@ def findInImagelist(path, name, assetspath):
     sheet_info['imgSize'] = imageList.get('imgSize')
     sheet_info['file'] = imageList.get('file')
     sheet_info['textureBasePath'] = imageList.get('textureBasePath')
+    
+    sheet_size = sheet_info['imgSize'].split(' ')
+    sheet_size = (int(sheet_size[0]), int(sheet_size[1]))
 
     print(name)
 
@@ -300,8 +308,17 @@ def findInImagelist(path, name, assetspath):
         image_info['offset'] = image.get('offset')
         image_info['size'] = image.get('size')
         image_info['rect'] = image.get('rect')
-
-        sheet = Image.open(assetspath + sheet_info['file'])
+        
+        if os.path.splitext(sheet_info['file'])[1] == '.waltex':
+            try:
+                sheet = walteximages[sheet_info['file']]
+            except:
+                settings = getTextureSettings(assetspath + os.path.dirname(os.path.dirname(sheet_info['textureBasePath'])) + '/Data/textureSettings.xml', sheet_info['file'])
+                sheet = getWaltexImage(assetspath + sheet_info['file'], sheet_size, settings['colorspace'], premultiplyAlpha=settings['premultiplyAlpha'])
+                
+                walteximages[sheet_info['file']] = sheet
+        else:
+            sheet = Image.open(assetspath + sheet_info['file'])
 
     left, up, right, down = image_info['rect'].split()
     left = int(left)
@@ -322,6 +339,39 @@ def findInImagelist(path, name, assetspath):
     print('got frame ' + image_info['name'])
 
     return frame(image, image_info)
+
+def getTextureSettings(path, name):
+    with open(path, 'r') as file:
+        xml = etree.parse(file)
+        root = xml.getroot()
+        
+    texture = None
+    
+    print(name)
+        
+    for element in root:
+        if element.tag == 'Texture':
+            print(element)
+            print(element.get('name'))
+            if element.get('name') in name:
+                texture = element
+                break
+    print(texture)
+            
+    texturesettings = {
+        'element': texture,
+        'name': name,
+        'colorspace': texture.get('colorspace'),
+        'premultiplyAlpha': texture.get('premultiplyAlpha'),
+        'alphaClip': texture.get('alphaClip'),
+        'outlineColor': texture.get('outlineColor'),
+        'greyTolerance': texture.get('greyTolerance'),
+        'wrapU': texture.get('wrapU'),
+        'wrapV': texture.get('wrapV'),
+        'uncompressedExt': texture.get('uncompressedExt'),
+    }
+    
+    return texturesettings
 
 class frame():
     def __init__(self, image, properties) -> None:
