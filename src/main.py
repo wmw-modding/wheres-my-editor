@@ -91,14 +91,14 @@ class Window(tk.Tk):
         self.selector_scrollbar = ttk.Scrollbar(self.objects_canvas, orient='vertical', command=self.selector.yview)
         self.selector.config(yscrollcommand=self.selector_scrollbar.set)
 
-        self.objects_canvas.bind('<Configure>', lambda e: self.selector.config(height=e.height))
+        # self.objects_canvas.bind('<Configure>', lambda e: self.selector.config(height=e.height))
 
         self.selector_root = self.selector.insert('','end',text='Objects')
 
         # print(self.selector.winfo_width)
 
         self.selector_scrollbar.pack(fill='y', side='right')
-        self.selector.pack(fill='x')
+        self.selector.pack(fill='both', expand=True)
         
         # self.xml_viewer = XML_Viwer(self.objects_canvas, self.level_xml, heading_text='objects').pack()
         # print(self.xml_viewer)
