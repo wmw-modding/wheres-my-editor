@@ -155,10 +155,10 @@ def WrapRawData(rawData : bytes, width : int, height : int, bytesPerPixel : int,
         if (x == width):
             x = 0
             y += 1
-            if (y > (height - 300) or y % 100 == 0):
-                print(f'Line {y} of {height} done')
-                if (DEBUG_MODE):
-                    break
+            # if (y > (height - 300) or y % 100 == 0):
+            #     print(f'Line {y} of {height} done')
+            #     if (DEBUG_MODE):
+            #         break
                 
         # if there's extra data (like the door overlays in the lawns), stop once the height is reached
         if y == height:
