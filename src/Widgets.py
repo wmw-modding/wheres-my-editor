@@ -49,6 +49,9 @@ class Widget():
         this.id = 0
         this.layer = 0
         
+        this.forceAspect = False
+        this.visible = True
+        
         this.getValues()
         
     def getValues(this):
@@ -63,7 +66,22 @@ class Widget():
             
         if (this.attributes['size']):
             this.size = [float(v) for v in tuple(this.attributes['size'].split(' '))]
+            
+        if (this.attributes['forceAspect']):
+            this.setForceAspect(this.attributes['forceAspect'])
+            
+        if (this.attributes['visible']):
+            this.visible = bool(this.attributes['visible'])
         
+    def setForceAspect(this, aspect = (1,1)):
+        if isinstance(aspect, str):
+            forceAspect = tuple([float(v) for v in aspect.split(':')])
+        elif not aspect:
+            forceAspect = False
+        else:
+            forceAspect = tuple(aspect)
+        
+        this.forceAspect = forceAspect
 
 # button
 class WT_PUSH_BUTTON(Widget):
