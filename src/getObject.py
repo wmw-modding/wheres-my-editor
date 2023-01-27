@@ -2,9 +2,9 @@ import math
 import lxml
 from lxml import etree
 import os
-from PIL import Image, ImageTk
 import itertools
-from waltex import getWaltexImage
+from PIL import Image, ImageTk
+from .waltex import getWaltexImage
 
 walteximages = {}
 
