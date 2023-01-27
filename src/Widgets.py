@@ -45,7 +45,7 @@ class Widget():
         this.gamePath = gamePath
         
         this.pos = (0, 0)
-        this.size = (1, 1)
+        this.size = (0, 0)
         this.id = 0
         this.layer = 0
         
@@ -60,6 +60,9 @@ class Widget():
             
         if (this.attributes['layer']):
             this.layer = float(this.attributes['layer'])
+            
+        if (this.attributes['size']):
+            this.size = [float(v) for v in tuple(this.attributes['size'].split(' '))]
         
 
 # button
