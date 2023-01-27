@@ -4,7 +4,7 @@ from PIL import Image, ImageTk
 from waltex import getWaltexImage
 
 class Widgets():
-    def __init__(this, element : etree.Element, gamePath : str, texturePath : str = None, baseLayoutFile : str = None) -> None:
+    def __init__(this, element : etree.Element, gamePath : str, screenSize = (), texturePath : str = None, baseLayoutFile : str = None) -> None:
         this.element = element
         
         this.attributes = this.element.attrib
@@ -38,7 +38,7 @@ class Widget():
     """
         Main widget
     """
-    def __init__(this, widget : etree.Element, gamePath, texturePath : str) -> None:
+    def __init__(this, widget : etree.Element, gamePath, texturePath : str, screenSize : tuple) -> None:
         this.widget = widget
         this.attributes = this.widget.attr
         this.name = this.type = this.attributes['type']
@@ -53,6 +53,8 @@ class Widget():
         this.visible = True
         
         this.getValues()
+        
+        this.image = Image.new('RGBA', (100,100))
         
     def getValues(this):
         if this.attributes['pos']:
