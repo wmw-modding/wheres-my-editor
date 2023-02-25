@@ -4,7 +4,7 @@ from lxml import etree
 import os
 import itertools
 from PIL import Image, ImageTk
-from .waltex import getWaltexImage
+from waltex import getWaltexImage
 
 walteximages = {}
 
