@@ -1,5 +1,7 @@
 # Where's My Editor
  A level editor for Where's My Water (android)
+ 
+ NOTE: If you came here to read a .waltex image, then go to [wmwpy](https://github.com/wmw-modding/wmwpy/blob/main/src/wmwpy/Utils/Waltex.py), because I will be removing Waltex.py from wme.
 
 # Setup
 
