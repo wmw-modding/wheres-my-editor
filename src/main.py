@@ -37,6 +37,7 @@ class WME(tk.Tk):
                 },
             }
         )
+        self.updateSettings()
 
         self.selection_rect = None
 
@@ -57,6 +58,7 @@ class WME(tk.Tk):
             self.settings.get('game.default_level.xml'),
             self.settings.get('game.default_level.image')
         )
+        self.updateLevel()
 
     def createWindow(self):
         self.seperator = ttk.PanedWindow(orient='horizontal')
@@ -73,13 +75,34 @@ class WME(tk.Tk):
 
         self.level_canvas = tk.Canvas(self.seperator, width=90*self.scale, height=120*self.scale)
         self.seperator.add(self.level_canvas)
+        self.level_images = {
+            'background': self.level_canvas.create_image(
+            0,0, anchor = 'nw', image = None
+        ),
+            'objects': {}
+        }
+    
+    def updateLevel(self):
+        self.level_canvas.itemconfig(self.level_images['background'], image = self.level.PhotoImage)
     
     def createMenubar(self):
         self.menubar = tk.Menu(self)
         self.config(menu = self.menubar)
         self.file_menu = tk.Menu(self.menubar, tearoff=0)
         
-        self.file_menu.add_command(label = 'Open')
+        self.file_menu.add_command(label = 'Open', command = self.openLevel)
+        self.file_menu.add_command(label = 'Save', command = self.saveLevel)
+        self.file_menu.add_command(label = 'Save as...', command = self.saveLevelAs)
+        self.menubar.add_cascade(label = 'File', menu = self.file_menu)
+    
+    def openLevel(self, *args):
+        pass
+    
+    def saveLevel(self, *args, filename = None):
+        pass
+    
+    def saveLevelAs(self, *args):
+        pass
     
     def getFile(self, path : str):
         if path.startswith(':game:'):
@@ -104,22 +127,41 @@ class WME(tk.Tk):
             )
             self.settings.set('game.gamepath', gamepath)
         
-        self.game = wmwpy.load(
-            self.settings.get('game.gamepath'),
-            assets = self.settings.get('game.assets'),
-            game = self.settings.get('game.game'),
-        )
+        try:
+            self.game = wmwpy.load(
+                self.settings.get('game.gamepath'),
+                assets = self.settings.get('game.assets'),
+                game = self.settings.get('game.game'),
+            )
+        except:
+            pass
     
     def loadLevel(self, xml : str, image : str):
+        if self.game in ['', None]:
+            return
         xml = self.getFile(xml)
         image = self.getFile(image)
         
-        # try:
-        self.level = self.game.Level(xml, image)
-        # except:
-        #     raise FileNotFoundError('Unable to load level')
+        try:
+            self.level = self.game.Level(xml, image)
+        except:
+            print('Unable to load level')
         
         return self.level
+    
+    def updateSettings(this):
+        try:
+            gamedir = this.settings.get('gamedir')
+            this.settings.set('game.gamepath', gamedir)
+            this.settings.remove('gamedir')
+        except:
+            pass
+        try:
+            default_level = this.settings.get('default_level')
+            this.settings.set('game.default_level', default_level)
+            this.settings.remove('default_level')
+        except:
+            pass
 
 def main():
     # app.display()
