@@ -76,25 +76,19 @@ class WME(tk.Tk):
 
         self.level_canvas = tk.Canvas(self.seperator, width=90*self.scale, height=120*self.scale)
         self.seperator.add(self.level_canvas)
+        
         self.level_images = {
             'background': self.level_canvas.create_image(
-            0,0, anchor = 'nw', image = None
+            0,0, anchor = 'c', image = None
         ),
             'objects': {}
         }
     
     def updateObject(self, obj : wmwpy.classes.Object):
-        offset = numpy.array(obj.offset)
-        # offset = offset * [-1,-1]
         photoImage = obj.PhotoImage
-        pos = obj.truePos(
-            obj.pos,
-            obj.size,
-            self.level.size,
-            obj_anchor = 'nw',
-            offset = offset,
-            scale = self.level.scale,
-        )
+        pos = numpy.array(obj.pos)
+        
+        pos = (pos * [1.25,-1.3]) * self.level.scale
         
         if obj.name in self.level_images['objects']:
             id = self.level_images['objects'][obj.name]
@@ -121,6 +115,8 @@ class WME(tk.Tk):
             self.level_images['background'],
             image = self.level.PhotoImage
         )
+        
+        self.level_canvas.config(scrollregion=((self.level.image.size[0] / 2) * -1,(self.level.image.size[1] / 2) * -1, (self.level.image.size[0] / 2), (self.level.image.size[1] / 2)))
         
         for obj in self.level.objects:
             self.updateObject(obj)
@@ -188,6 +184,7 @@ class WME(tk.Tk):
         except:
             print('Unable to load level')
         
+        self.level.scale = 5
         return self.level
     
     def updateSettings(this):
