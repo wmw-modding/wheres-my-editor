@@ -8,6 +8,7 @@ import datetime
 import os
 from settings import Settings
 from lxml import etree
+import numpy
 
 import wmwpy
 
@@ -82,8 +83,48 @@ class WME(tk.Tk):
             'objects': {}
         }
     
+    def updateObject(self, obj : wmwpy.classes.Object):
+        offset = numpy.array(obj.offset)
+        # offset = offset * [-1,-1]
+        photoImage = obj.PhotoImage
+        pos = obj.truePos(
+            obj.pos,
+            obj.size,
+            self.level.size,
+            obj_anchor = 'nw',
+            offset = offset,
+            scale = self.level.scale,
+        )
+        
+        if obj.name in self.level_images['objects']:
+            id = self.level_images['objects'][obj.name]
+            self.level_canvas.itemconfig(
+                id,
+                image = photoImage,
+            )
+            
+            self.level_canvas.moveto(
+                id,
+                pos[0],
+                pos[1],
+            )
+        else:
+            self.level_images['objects'][obj.name] = self.level_canvas.create_image(
+                pos[0],
+                pos[1],
+                anchor = 'c',
+                image = photoImage,
+            )
+    
     def updateLevel(self):
-        self.level_canvas.itemconfig(self.level_images['background'], image = self.level.PhotoImage)
+        self.level_canvas.itemconfig(
+            self.level_images['background'],
+            image = self.level.PhotoImage
+        )
+        
+        for obj in self.level.objects:
+            self.updateObject(obj)
+        
     
     def createMenubar(self):
         self.menubar = tk.Menu(self)
