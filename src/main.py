@@ -84,17 +84,22 @@ class WME(tk.Tk):
             'objects': {}
         }
     
+    OBJECT_OFFSET = [1.25,-1.3]
+    
     def updateObject(self, obj : wmwpy.classes.Object):
         photoImage = obj.PhotoImage
         pos = numpy.array(obj.pos)
+        offset = numpy.array(obj.offset)
         
-        pos = (pos * [1.25,-1.3]) * self.level.scale
+        pos = pos - (offset * [1,-1])
+        pos = (pos * self.OBJECT_OFFSET) * self.level.scale
         
         if obj.name in self.level_images['objects']:
             id = self.level_images['objects'][obj.name]
             self.level_canvas.itemconfig(
                 id,
                 image = photoImage,
+                anchor = 'c',
             )
             
             self.level_canvas.moveto(
@@ -103,12 +108,18 @@ class WME(tk.Tk):
                 pos[1],
             )
         else:
-            self.level_images['objects'][obj.name] = self.level_canvas.create_image(
+            id = self.level_images['objects'][obj.name] = self.level_canvas.create_image(
                 pos[0],
                 pos[1],
                 anchor = 'c',
                 image = photoImage,
             )
+        
+        self.level_canvas.tag_bind(
+            id,
+            '<Button1-Motion>',
+            lambda e: self.dragObject(obj, e)
+        )
     
     def updateLevel(self):
         self.level_canvas.itemconfig(
@@ -120,6 +131,15 @@ class WME(tk.Tk):
         
         for obj in self.level.objects:
             self.updateObject(obj)
+    
+    def dragObject(self, obj : wmwpy.classes.Object, event = None):
+        pos = numpy.array((self.level_canvas.canvasx(event.x), self.level_canvas.canvasy(event.y)))
+        pos = pos / self.level.scale
+        pos = pos / self.OBJECT_OFFSET
+        
+        obj.pos = tuple(pos)
+        
+        self.updateObject(obj)
         
     
     def createMenubar(self):
