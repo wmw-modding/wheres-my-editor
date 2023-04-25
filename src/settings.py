@@ -43,12 +43,24 @@ class Settings():
             try:
                 with open(this.filename, 'r') as file:
                     settings = json.load(file)
-
-                for setting in settings:
-                    this.settings[setting] = settings[setting]
+                
+                def addSettings(settings, default):
+                    for setting in settings:
+                        if isinstance(settings[setting], dict):
+                            try:
+                                if not isinstance(default[setting], dict):
+                                    default[setting] = {}
+                            except:
+                                default[setting] = {}
+                            
+                            addSettings(settings[setting], default[setting])
+                        else:
+                            default[setting] = settings[setting]
+                
+                addSettings(settings, this.settings)
             except:
-                this.save()
-
+                pass
+            this.save()
         return this.settings
     
     def save(this):
