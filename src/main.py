@@ -11,6 +11,7 @@ from settings import Settings
 from lxml import etree
 import numpy
 import typing
+from copy import copy
 
 import wmwpy
 
@@ -99,8 +100,8 @@ class WME(tk.Tk):
         pos = pos - (offset * [1,-1])
         pos = (pos * self.OBJECT_OFFSET) * self.level.scale
         
-        if obj.name in self.level_images['objects']:
-            id = self.level_images['objects'][obj.name]
+        if obj.id in self.level_images['objects']:
+            id = self.level_images['objects'][obj.id]
             self.level_canvas.coords(
                 id,
                 pos[0],
@@ -112,14 +113,14 @@ class WME(tk.Tk):
                 image = photoImage,
             )
         else:
-            id = self.level_images['objects'][obj.name] = self.level_canvas.create_image(
+            id = self.level_images['objects'][obj.id] = self.level_canvas.create_image(
                 pos[0],
                 pos[1],
                 anchor = 'c',
-                image = photoImage,
+                image = photoImage
             )
         
-        print(f"id: {self.level_images['objects'][obj.name]}")
+        print(f"id: {self.level_images['objects'][obj.id]}")
         print(f"pos: {pos}\n")
         
         self.level_canvas.tag_bind(
@@ -132,6 +133,15 @@ class WME(tk.Tk):
             '<ButtonRelease-1>',
             lambda e: self.selectObject(obj)
         )
+    
+    def deleteObject(self, obj : wmwpy.classes.Object):
+        if obj.id in self.level_images['objects']:
+            self.level_canvas.delete(self.level_images['objects'][obj.id])
+            del self.level_images['objects'][obj.id]
+        
+        if obj in self.level.objects:
+            index = self.level.objects.index(obj)
+            del self.level.objects[index]
     
     def updateProperties(self, obj : wmwpy.classes.Object = None):
         if obj == None:
@@ -397,6 +407,11 @@ class WME(tk.Tk):
             return
         xml = self.getFile(xml)
         image = self.getFile(image)
+        
+        if isinstance(self.level, wmwpy.classes.Level):
+            objects = copy(self.level.objects)
+            for obj in objects:
+                self.deleteObject(obj)
         
         try:
             self.level = self.game.Level(xml, image)
