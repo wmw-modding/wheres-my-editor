@@ -73,7 +73,7 @@ class WME(tk.Tk):
         self.side_pane.add(self.objects_frame)
         
         self.properties = {
-            'frame' : ttk.Frame(self.side_pane, width=200, height=300)
+            'frame' : ttk.LabelFrame(self.side_pane, width=200, height=300, text='Properties')
         }
         self.side_pane.add(self.properties['frame'])
 
@@ -101,15 +101,15 @@ class WME(tk.Tk):
         
         if obj.name in self.level_images['objects']:
             id = self.level_images['objects'][obj.name]
-            self.level_canvas.itemconfig(
-                id,
-                image = photoImage,
-            )
-            
-            self.level_canvas.moveto(
+            self.level_canvas.coords(
                 id,
                 pos[0],
                 pos[1],
+            )
+            
+            self.level_canvas.itemconfig(
+                id,
+                image = photoImage,
             )
         else:
             id = self.level_images['objects'][obj.name] = self.level_canvas.create_image(
@@ -118,6 +118,9 @@ class WME(tk.Tk):
                 anchor = 'c',
                 image = photoImage,
             )
+        
+        print(f"id: {self.level_images['objects'][obj.name]}")
+        print(f"pos: {pos}\n")
         
         self.level_canvas.tag_bind(
             id,
@@ -161,25 +164,45 @@ class WME(tk.Tk):
                 )
             name.grid(row=row, sticky='we')
             
-            type = type.lower()
             
-            if type == 'number':
-                input = ttk.Spinbox(
-                    self.properties['right'],
-                    **kwargs
-                )
+            def inputType(type, value):
+                
+                if type == 'number':
+                    input = ttk.Spinbox(
+                        self.properties['right'],
+                        **kwargs
+                    )
+                else:
+                    input = ttk.Entry(
+                        self.properties['right'],
+                        **kwargs
+                    )
+                
+                input.insert(0, value)
+                
+                return input
+            
+            if isinstance(type, (tuple, list)):
+                column = 0
+                for t in type:
+                    t = t.lower()
+                    input = inputType(t, value[column])
+                    input.grid(column = column, row=row, sticky='we')
+                    if entry_callback:
+                        input.bind('<Return>', lambda e, col = column: entry_callback(input.get(), col))
+                        input.bind('<FocusOut>', lambda e, col = column: entry_callback(input.get(), col))
+                    
+                    column += 1
+                    
             else:
-                input = ttk.Entry(
-                    self.properties['right'],
-                    **kwargs
-                )
-            
-            input.insert(0, value)
-            
-            input.grid(column = 0, row=row, sticky = 'we')
-            if entry_callback:
-                input.bind('<Return>', lambda e: entry_callback(input.get()))
-                input.bind('<FocusOut>', lambda e: entry_callback(input.get()))
+                type = type.lower()
+                
+                input = inputType(type, value)
+                input.grid(column = 0, row=row, sticky = 'we', columnspan=2)
+                
+                if entry_callback:
+                    input.bind('<Return>', lambda e: entry_callback(input.get()))
+                    input.bind('<FocusOut>', lambda e: entry_callback(input.get()))
             
             if removable:
                 removeButton = ttk.Button(
@@ -187,7 +210,7 @@ class WME(tk.Tk):
                     text='-',
                     width=2,
                 )
-                removeButton.grid(column=1, row=row)
+                removeButton.grid(column=2, row=row)
             
             self.properties['left'].rowconfigure(row, minsize=ROW_SIZE)
             self.properties['right'].rowconfigure(row, minsize=ROW_SIZE)
@@ -220,6 +243,8 @@ class WME(tk.Tk):
                 return True
         
         addProperty('Name', obj.name, 'text', removable = False, row=0)
+        addProperty('Pos', obj.pos, ['number', 'number'], removable=False, row=1)
+        
         angle = '0'
         if 'Angle' in obj.properties:
             angle = obj.properties['Angle']
@@ -228,13 +253,13 @@ class WME(tk.Tk):
             angle,
             'number',
             removable = False,
-            row=1,
+            row=2,
             from_=-360,
             to=360,
             entry_callback = lambda value: updateProperty('Angle', value),
         )
         
-        row = 1
+        row = 2
         
         for property in obj.properties:
             if property not in ['Angle']:
@@ -269,8 +294,9 @@ class WME(tk.Tk):
         else:
             self.properties['right'] = ttk.Frame(self.properties['panned'])
             self.properties['panned'].add(self.properties['right'], weight=2)
-            self.properties['right'].columnconfigure(0, weight = 4)
-            # self.properties['right'].columnconfigure(1, weight = 1)
+            self.properties['right'].columnconfigure(0, weight = 2)
+            self.properties['right'].columnconfigure(1, weight = 2)
+            # self.properties['right'].columnconfigure(2, weight = 1)
     
     def updateLevel(self):
         self.level_canvas.itemconfig(
