@@ -14,6 +14,7 @@ import typing
 from copy import copy
 
 import wmwpy
+from scrollframe import ScrollFrame
 
 class WME(tk.Tk):
     def __init__(self, parent):
@@ -74,54 +75,120 @@ class WME(tk.Tk):
         self.side_pane.add(self.objects_frame)
         
         self.properties = {
-            'frame' : ttk.LabelFrame(self.side_pane, width=200, height=300, text='Properties')
+            'labelFrame' : ttk.LabelFrame(self.side_pane, width=200, height=300, text='Properties')
         }
-        self.side_pane.add(self.properties['frame'])
+        self.side_pane.add(self.properties['labelFrame'])
+        
+        self.properties['scrollFrame'] = ScrollFrame(self.properties['labelFrame'], usettk=True, width=200,)
+        self.properties['scrollFrame'].pack()
+        self.properties['frame'] = self.properties['scrollFrame'].viewPort
 
         self.level_canvas = tk.Canvas(self.seperator, width=90*self.scale, height=120*self.scale)
-        self.seperator.add(self.level_canvas)
+        self.seperator.add(self.level_canvas, weight=1)
         
         self.level_images = {
             'background': self.level_canvas.create_image(
-            0,0, anchor = 'c', image = None
-        ),
+                0,0,
+                anchor = 'c',
+                image = None,
+                tag = 'level',
+            ),
             'objects': {}
         }
         
         self.resetProperties()
     
-    OBJECT_OFFSET = [1.25,-1.3]
+    OBJECT_MULTIPLIER = [1.25,-1.25]
+    
+    def updateLayers(self):
+        objects = self.level_canvas.find_withtag('object')
+        if len(objects) < 0:
+            return
+        
+        self.level_canvas.tag_raise('object', 'level')
+        
+        background = self.level_canvas.find_withtag('background')
+        foreground = self.level_canvas.find_withtag('foreground')
+        if len(background) > 0:
+            background = 'background'
+        else:
+            background = 'level'
+        
+        if len(foreground) > 0:
+            foreground = 'foreground'
+        else:
+            return
+        
+        self.level_canvas.tag_raise(foreground, background)
     
     def updateObject(self, obj : wmwpy.classes.Object):
-        photoImage = obj.PhotoImage
-        pos = numpy.array(obj.pos)
+        
         offset = numpy.array(obj.offset)
         
+        pos = numpy.array(obj.pos)
+        
         pos = pos - (offset * [1,-1])
-        pos = (pos * self.OBJECT_OFFSET) * self.level.scale
+        pos = (pos * self.OBJECT_MULTIPLIER) * self.level.scale
         
-        if obj.id in self.level_images['objects']:
-            id = self.level_images['objects'][obj.id]
-            self.level_canvas.coords(
-                id,
-                pos[0],
-                pos[1],
-            )
+        id = f'{obj.name}-{str(obj.id)}'
+        
+        items = self.level_canvas.find_withtag(id)
+        
+        background = None
+        foreground = None
+        
+        for item in items:
+            tags = self.level_canvas.gettags(item)
+            if 'background' in tags:
+                background = item
+            elif 'foreground' in tags:
+                foreground = item
+        
+        if len(items) > 0:
+            if background:
+                self.level_canvas.coords(
+                    background,
+                    pos[0],
+                    pos[1],
+                )
+                self.level_canvas.itemconfig(
+                    background,
+                    image = obj.background_PhotoImage,
+                )
             
-            self.level_canvas.itemconfig(
-                id,
-                image = photoImage,
-            )
+            if foreground:
+                self.level_canvas.coords(
+                    foreground,
+                    pos[0],
+                    pos[1],
+                )
+                self.level_canvas.itemconfig(
+                    foreground,
+                    image = obj.foreground_PhotoImage,
+                )
         else:
-            id = self.level_images['objects'][obj.id] = self.level_canvas.create_image(
-                pos[0],
-                pos[1],
-                anchor = 'c',
-                image = photoImage
-            )
+            if len(obj._background) > 0:
+                self.level_canvas.create_image(
+                    pos[0],
+                    pos[1],
+                    anchor = 'c',
+                    image = obj.background_PhotoImage,
+                    tags = ('object', 'background', id)
+                )
+                
+            if len(obj._foreground) > 0:
+                self.level_canvas.create_image(
+                    pos[0],
+                    pos[1],
+                    anchor = 'c',
+                    image = obj.foreground_PhotoImage,
+                    tags = ('object', 'foreground', id)
+                )
         
-        print(f"id: {self.level_images['objects'][obj.id]}")
+        print(f"id: {id}")
         print(f"pos: {pos}\n")
+        
+        self.updateLayers()
         
         self.level_canvas.tag_bind(
             id,
@@ -133,11 +200,10 @@ class WME(tk.Tk):
             '<ButtonRelease-1>',
             lambda e: self.selectObject(obj)
         )
+        
     
     def deleteObject(self, obj : wmwpy.classes.Object):
-        if obj.id in self.level_images['objects']:
-            self.level_canvas.delete(self.level_images['objects'][obj.id])
-            del self.level_images['objects'][obj.id]
+        self.level_canvas.delete(f'{obj.name}-{str(obj.id)}')
         
         if obj in self.level.objects:
             index = self.level.objects.index(obj)
@@ -282,6 +348,8 @@ class WME(tk.Tk):
                     label_callback = lambda name, prop = property: updatePropertyName(prop, name)
                 )
         
+        self.properties['panned'].configure(height = row * ROW_SIZE)
+        
     def resetProperties(self):
         
         if not 'panned' in self.properties:
@@ -322,7 +390,7 @@ class WME(tk.Tk):
     def dragObject(self, obj : wmwpy.classes.Object, event = None):
         pos = numpy.array((self.level_canvas.canvasx(event.x), self.level_canvas.canvasy(event.y)))
         pos = pos / self.level.scale
-        pos = pos / self.OBJECT_OFFSET
+        pos = pos / self.OBJECT_MULTIPLIER
         
         obj.pos = tuple(pos)
         
@@ -409,9 +477,7 @@ class WME(tk.Tk):
         image = self.getFile(image)
         
         if isinstance(self.level, wmwpy.classes.Level):
-            objects = copy(self.level.objects)
-            for obj in objects:
-                self.deleteObject(obj)
+            self.level_canvas.delete('object')
         
         try:
             self.level = self.game.Level(xml, image)
