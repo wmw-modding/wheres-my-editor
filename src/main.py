@@ -7,6 +7,7 @@ from PIL import Image, ImageTk
 import json
 import datetime
 import os
+import platform
 from settings import Settings
 from lxml import etree
 import numpy
@@ -96,7 +97,53 @@ class WME(tk.Tk):
             'objects': {}
         }
         
+        self.level_scrollbars = {
+            'horizontal' : ttk.Scrollbar(
+                self.level_canvas,
+                orient='horizontal',
+                command = self.level_canvas.xview
+            ),
+            'vertical' : ttk.Scrollbar(
+                self.level_canvas,
+                orient='vertical',
+                command = self.level_canvas.yview
+            ),
+        }
+        
+        self.level_scrollbars['horizontal'].pack(side='bottom', fill='x')
+        self.level_scrollbars['vertical'].pack(side='right', fill='y')
+        
+        self.level_canvas.configure(xscrollcommand=self.level_scrollbars['horizontal'].set)
+        self.level_canvas.configure(yscrollcommand=self.level_scrollbars['vertical'].set)
+        
+        if platform.system() == 'Linux':
+            self.level_canvas.bind("<Button-4>", self.onLevelMouseWheel)
+            self.level_canvas.bind("<Button-5>", self.onLevelMouseWheel)
+            
+            self.level_canvas.bind("<Shift-Button-4>", lambda *args: self.onLevelMouseWheel(*args, type = 1))
+            self.level_canvas.bind("<Shift-Button-5>", lambda *args: self.onLevelMouseWheel(*args, type = 1))
+        else:
+            self.level_canvas.bind("<MouseWheel>", self.onLevelMouseWheel)
+            self.level_canvas.bind("<Shift-MouseWheel>", lambda *args: self.onLevelMouseWheel(*args, type = 1))
+        
+        
         self.resetProperties()
+    
+    def onLevelMouseWheel(self, event : tk.Event, type = 0):
+        if type:
+            scroll = self.level_canvas.xview_scroll
+        else:
+            scroll = self.level_canvas.yview_scroll
+        
+        if platform.system() == 'Windows':
+            scroll(int(-1* (event.delta/120)), "units")
+        elif platform.system() == 'Darwin':
+            scroll(int(-1 * event.delta), "units")
+        else:
+            if event.num == 4:
+                scroll( -1, "units" )
+            elif event.num == 5:
+                scroll( 1, "units" )
     
     OBJECT_MULTIPLIER = [1.25,-1.25]
     
@@ -200,6 +247,8 @@ class WME(tk.Tk):
             '<ButtonRelease-1>',
             lambda e: self.selectObject(obj)
         )
+        
+        self.updateLevelScroll()
         
     
     def deleteObject(self, obj : wmwpy.classes.Object):
@@ -394,16 +443,55 @@ class WME(tk.Tk):
             self.properties['right'].columnconfigure(1, weight = 2)
             # self.properties['right'].columnconfigure(2, weight = 1)
     
+    def updateLevelScroll(self):
+        if self.level == None:
+            self.level_canvas.config(scrollregion=(0, 0, 0, 0))
+            return
+        
+        LEVEL_CANVAS_PADDING = [200,200]
+        
+        level_size = numpy.array(
+            (((self.level.image.size[0] / 2) * -1,
+            (self.level.image.size[1] / 2) * -1),
+            ((self.level.image.size[0] / 2),
+            (self.level.image.size[1] / 2)))
+        )
+        
+        objects = self.level_canvas.find_all()
+        coords = numpy.array([self.level_canvas.coords(id) for id in objects])
+        coords = coords.swapaxes(0,1)
+        
+        min = numpy.array([a.min() for a in coords]) - LEVEL_CANVAS_PADDING
+        max = numpy.array([a.max() for a in coords]) + LEVEL_CANVAS_PADDING
+        
+        
+        min = numpy.append(min, level_size[0]).reshape([2,2]).swapaxes(0,1)
+        max = numpy.append(max, level_size[1]).reshape([2,2]).swapaxes(0,1)
+        
+        print(f'{max = }')
+        print(f'{min = }')
+        
+        min = [a.min() for a in min]
+        max = [a.max() for a in max]
+        
+        scrollregion = tuple(numpy.append(min,max))
+        
+        print(f'scrollregion = {scrollregion}')
+        
+        self.level_canvas.config(scrollregion = scrollregion)
+        
+    
     def updateLevel(self):
         self.level_canvas.itemconfig(
             self.level_images['background'],
             image = self.level.PhotoImage
         )
         
-        self.level_canvas.config(scrollregion=((self.level.image.size[0] / 2) * -1,(self.level.image.size[1] / 2) * -1, (self.level.image.size[0] / 2), (self.level.image.size[1] / 2)))
-        
         for obj in self.level.objects:
             self.updateObject(obj)
+        
+        self.level_canvas.xview_moveto(0.15)
+        self.level_canvas.yview_moveto(0.2)
     
     def dragObject(self, obj : wmwpy.classes.Object, event = None):
         pos = numpy.array((self.level_canvas.canvasx(event.x), self.level_canvas.canvasy(event.y)))
