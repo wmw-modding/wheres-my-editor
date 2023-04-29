@@ -20,7 +20,7 @@ class ScrollFrame(ttk.Frame):
         if usettk:
             background = ttk.Style().lookup("TFrame", "background", default="white")
         
-        self.canvas = tk.Canvas(self, borderwidth = borderwidth, background=background)          #place canvas on self
+        self.canvas = tk.Canvas(self, borderwidth = borderwidth, background=background, **kwargs)          #place canvas on self
         if usettk:
             self.viewPort = tk.Frame(self.canvas, background=background)                    #place a frame on the canvas, this frame will hold the child widgets 
         else:
@@ -49,6 +49,10 @@ class ScrollFrame(ttk.Frame):
         '''Reset the canvas window to encompass inner frame when required'''
         canvas_width = event.width
         self.canvas.itemconfig(self.canvas_window, width = canvas_width)            #whenever the size of the canvas changes alter the window region respectively.
+    
+    def resetCanvasScroll(self):
+        self.canvas.yview_moveto(0)
+        self.canvas.xview_moveto(0.5)
 
     def onMouseWheel(self, event: tk.Event):  # cross platform scroll wheel event
         canvas_height = self.canvas.winfo_height()

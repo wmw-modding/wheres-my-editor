@@ -80,7 +80,7 @@ class WME(tk.Tk):
         self.side_pane.add(self.properties['labelFrame'])
         
         self.properties['scrollFrame'] = ScrollFrame(self.properties['labelFrame'], usettk=True, width=200,)
-        self.properties['scrollFrame'].pack()
+        self.properties['scrollFrame'].pack(fill='both', expand=True)
         self.properties['frame'] = self.properties['scrollFrame'].viewPort
 
         self.level_canvas = tk.Canvas(self.seperator, width=90*self.scale, height=120*self.scale)
@@ -349,6 +349,7 @@ class WME(tk.Tk):
                 )
         
         self.properties['panned'].configure(height = row * ROW_SIZE)
+        self.properties['scrollFrame'].resetCanvasScroll()
         
     def resetProperties(self):
         
