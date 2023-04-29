@@ -215,6 +215,9 @@ class WME(tk.Tk):
         
         self.resetProperties()
         
+        if obj == None:
+            return
+        
         ROW_SIZE = 25
         
         def addProperty(
@@ -265,8 +268,8 @@ class WME(tk.Tk):
                     input = inputType(t, value[column])
                     input.grid(column = column, row=row, sticky='we')
                     if entry_callback:
-                        input.bind('<Return>', lambda e, col = column: entry_callback(input.get(), col))
-                        input.bind('<FocusOut>', lambda e, col = column: entry_callback(input.get(), col))
+                        input.bind('<Return>', lambda e, value = input.get, col = column: entry_callback(value(), col))
+                        input.bind('<FocusOut>', lambda e, value = input.get, col = column: entry_callback(value(), col))
                     
                     column += 1
                     
@@ -318,8 +321,22 @@ class WME(tk.Tk):
                 
                 return True
         
+        def updatePosition(value, column):
+            newPos = float(value)
+            pos = list(obj.pos)
+            
+            pos[column] = newPos
+            
+            obj.pos = tuple(pos)
+            
+            print(newPos)
+            print(pos)
+            print(obj.pos)
+            
+            self.updateObject(obj)
+        
         addProperty('Name', obj.name, 'text', removable = False, row=0)
-        addProperty('Pos', obj.pos, ['number', 'number'], removable=False, row=1)
+        addProperty('Pos', obj.pos, ['number', 'number'], removable=False, row=1, entry_callback = lambda value, col : updatePosition(value, col), from_ = -99, to = 99)
         
         angle = '0'
         if 'Angle' in obj.properties:
