@@ -721,10 +721,46 @@ class WME(tk.Tk):
         self.loadLevel(xml, image)
     
     def saveLevel(self, *args, filename = None):
-        pass
+        xml = self.level.export()
+        
+        if filename == None:
+            filename = wmwpy.Utils.path.joinPath(
+                self.game.gamepath,
+                self.game.assets,
+                self.level.filename,
+            )
+        
+        try:
+            with open(filename, 'wb') as file:
+                file.write(xml)
+            
+            self.level._image.save(os.path.splitext(filename)[0] + '.png')
+            
+            messagebox.showinfo('Success', f'Successfully saved level to {filename}')
+        except:
+            messagebox.showerror('Error saving level', f'Unable to save level to {filename}')
+        
     
     def saveLevelAs(self, *args):
-        pass
+        filename = filedialog.asksaveasfilename(
+            initialfile = os.path.basename(self.level.filename),
+            defaultextension = '.xml',
+            filetypes = (
+                ('WMW Level', '.xml'),
+                ('Any', '*.*')
+            ),
+            initialdir = wmwpy.Utils.path.joinPath(
+                self.game.gamepath,
+                self.game.assets,
+                self.game.baseassets,
+                'Levels'
+            ),
+        )
+        
+        if filename in ['', None]:
+            return
+        
+        self.saveLevel(filename = filename)
     
     def getFile(self, path : str):
         if path.startswith(':game:'):
