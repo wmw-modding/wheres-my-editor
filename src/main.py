@@ -73,12 +73,38 @@ class WME(tk.Tk):
 
         self.side_pane = ttk.PanedWindow(self.seperator, orient='vertical')
         self.seperator.add(self.side_pane)
-
-        self.objects_frame = ttk.Frame(self.side_pane, width=200, height=300)
-        self.side_pane.add(self.objects_frame)
         
-        self.properties = {
-            'labelFrame' : ttk.LabelFrame(self.side_pane, width=200, height=300, text='Properties')
+        side_pane_width = 200
+        side_pane_height = 300
+        
+        self.object_selector : dict[str, tk.Widget | ttk.Treeview] = {
+            'labelFrame' : ttk.LabelFrame(self.side_pane, width=side_pane_width, height=side_pane_height, text='Objects'),
+            'treeview' : None,
+            'y_scroll' : None,
+            'x_scroll' : None,
+        }
+        self.side_pane.add(self.object_selector['labelFrame'])
+        
+        self.object_selector['treeview'] = ttk.Treeview(
+            self.object_selector['labelFrame'],
+            show = 'tree',
+            name = 'objects'
+        )
+        
+        self.object_selector['treeview'].pack(side='left', fill='both', expand = True)
+        
+        self.object_selector['y_scroll'] = ttk.Scrollbar(
+            self.object_selector['labelFrame'],
+            orient='vertical',
+            command = self.object_selector['treeview'].yview
+        )
+        
+        self.object_selector['treeview'].configure(yscrollcommand = self.object_selector['y_scroll'].set)
+        
+        self.object_selector['y_scroll'].pack(side='right', fill='y')
+        
+        self.properties : dict[str, tk.Widget] = {
+            'labelFrame' : ttk.LabelFrame(self.side_pane, width=side_pane_width, height=side_pane_height, text='Properties')
         }
         self.side_pane.add(self.properties['labelFrame'])
         
@@ -176,12 +202,13 @@ class WME(tk.Tk):
     
     SELECTION_BORDER_WIDTH = 2
     
-    def updateSelectionRectangle(self):
-        if self.selectedObject == None:
+    def updateSelectionRectangle(self, obj : wmwpy.classes.Object = None):
+        if obj == None:
+            obj = self.selectedObject
+        if obj == None:
             self.level_canvas.delete('selection')
+            print('deleted selection')
             return
-        
-        obj = self.selectedObject
         
         pos = numpy.array(obj.pos)
         size = numpy.array(obj.size)
@@ -313,9 +340,7 @@ class WME(tk.Tk):
                 if objects[0] != self.level_images['background']:
                     return
             
-            self.selectedObject = None
-            self.updateProperties()
-            self.updateSelectionRectangle()
+            self.selectObject(None)
     
     def bindDraggingObject(self, id, obj : wmwpy.classes.Object = None):
         if obj == None:
@@ -451,6 +476,7 @@ class WME(tk.Tk):
                 
                 self.updateObject(obj)
                 self.updateProperties(obj)
+                self.updateObjectSelector()
                 
                 return True
         
@@ -527,6 +553,48 @@ class WME(tk.Tk):
             self.properties['right'].columnconfigure(1, weight = 2)
             # self.properties['right'].columnconfigure(2, weight = 1)
     
+    def updateObjectSelector(self):
+        self.resetObjectSelector()
+        
+        root = self.object_selector['treeview'].insert(
+            '',
+            'end',
+            iid = 'root',
+            text = 'Objects',
+            open = True,
+            tags = 'root',
+            
+        )
+        
+        for obj in self.level.objects:
+            self.object_selector['treeview'].insert(
+                root,
+                'end',
+                text = obj.name,
+                open = True,
+                values = [obj.id],
+                tags = 'object'
+            )
+        
+        def selectObject(event):
+            item = self.object_selector['treeview'].focus()
+            item = self.object_selector['treeview'].item(item)
+            
+            print(item)
+            
+            if 'object' in item['tags']:
+                id = item['values'][0]
+                obj = self.level.getObjectById(id)
+                self.selectObject(obj)
+        
+        self.object_selector['treeview'].bind('<ButtonRelease-1>', selectObject)
+        self.object_selector['treeview'].bind('<Return>', selectObject)
+    
+    def resetObjectSelector(self):
+        for row in self.object_selector['treeview'].get_children():
+            self.object_selector['treeview'].delete(row)
+
+    
     def updateLevelScroll(self):
         if self.level == None:
             self.level_canvas.config(scrollregion=(0, 0, 0, 0))
@@ -574,6 +642,7 @@ class WME(tk.Tk):
         self.selectedObject = None
         self.updateProperties()
         self.updateSelectionRectangle()
+        self.updateObjectSelector()
         
         for obj in self.level.objects:
             self.updateObject(obj)
@@ -595,8 +664,32 @@ class WME(tk.Tk):
         # print(obj.name)
         print('object')
         
+        self.updateObject(obj)
         self.updateProperties()
         self.updateSelectionRectangle()
+        
+        if self.selectedObject == None:
+            if len(self.object_selector['treeview'].selection()) > 0:
+                self.object_selector['treeview'].selection_remove(self.object_selector['treeview'].selection()[0])
+        else:
+            children = self.object_selector['treeview'].get_children('root')
+            
+            selected = None
+            
+            for child in children:
+                item = self.object_selector['treeview'].item(child)
+                
+                if not 'object' in item['tags']:
+                    print('not object')
+                    continue
+                
+                if item['values'][0] == obj.id:
+                    selected = child
+                    break
+            
+            if selected != None:
+                self.object_selector['treeview'].selection_set(selected)
+    
     
     def createMenubar(self):
         self.menubar = tk.Menu(self)
@@ -698,7 +791,6 @@ class WME(tk.Tk):
             pass
 
 def main():
-    # app.display()
     app = WME(None)
     app.mainloop()
 
