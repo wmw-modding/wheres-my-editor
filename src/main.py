@@ -128,6 +128,7 @@ class WME(tk.Tk):
             self.level_canvas.bind("<MouseWheel>", self.onLevelMouseWheel)
             self.level_canvas.bind("<Shift-MouseWheel>", lambda *args: self.onLevelMouseWheel(*args, type = 1))
         
+        self.level_canvas.bind('<Button-1>', self.onLevelClick)
         
         self.resetProperties()
     
@@ -297,6 +298,24 @@ class WME(tk.Tk):
         
         self.updateSelectionRectangle()
         self.updateLevelScroll()
+    
+    def onLevelClick(self, event : tk.Event):
+        print('level')
+        
+        mouse = (self.level_canvas.canvasx(event.x), self.level_canvas.canvasy(event.y))
+        
+        objects = self.level_canvas.find_overlapping(*mouse, *mouse)
+        print(objects)
+        length = len(objects)
+        
+        if length <= 1:
+            if length == 1:
+                if objects[0] != self.level_images['background']:
+                    return
+            
+            self.selectedObject = None
+            self.updateProperties()
+            self.updateSelectionRectangle()
     
     def bindDraggingObject(self, id, obj : wmwpy.classes.Object = None):
         if obj == None:
@@ -552,6 +571,10 @@ class WME(tk.Tk):
             image = self.level.PhotoImage
         )
         
+        self.selectedObject = None
+        self.updateProperties()
+        self.updateSelectionRectangle()
+        
         for obj in self.level.objects:
             self.updateObject(obj)
         
@@ -569,7 +592,8 @@ class WME(tk.Tk):
     
     def selectObject(self, obj : wmwpy.classes.Object = None):
         self.selectedObject = obj
-        print(obj.name)
+        # print(obj.name)
+        print('object')
         
         self.updateProperties()
         self.updateSelectionRectangle()
