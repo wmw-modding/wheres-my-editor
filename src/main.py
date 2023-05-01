@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import ttk, simpledialog, messagebox
 import tkwidgets
 import popups
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageColor, ImageDraw
 import json
 import datetime
 import os
@@ -16,6 +16,8 @@ from copy import copy
 
 import wmwpy
 from scrollframe import ScrollFrame
+
+ImageColor.colormap['transparent'] = '#0000'
 
 class WME(tk.Tk):
     def __init__(self, parent):
@@ -167,6 +169,61 @@ class WME(tk.Tk):
             return
         
         self.level_canvas.tag_raise(foreground, background)
+        
+        if len(self.level_canvas.find_withtag('selection')) > 0:
+            self.level_canvas.tag_raise('selection', 'object')
+    
+    SELECTION_BORDER_WIDTH = 2
+    
+    def updateSelectionRectangle(self):
+        if self.selectedObject == None:
+            self.level_canvas.delete('selection')
+            return
+        
+        obj = self.selectedObject
+        
+        pos = numpy.array(obj.pos)
+        size = numpy.array(obj.size)
+        
+        selectionImage = Image.new('RGBA', tuple(size * obj.scale), 'black')
+        selectionImageDraw = ImageDraw.Draw(selectionImage)
+        selectionImageDraw.rectangle(
+            (0,0) + tuple(numpy.array(selectionImage.size) - (self.SELECTION_BORDER_WIDTH - 1)),
+            fill='transparent',
+            outline='black',
+            width=self.SELECTION_BORDER_WIDTH,
+        )
+        selectionImage = obj.rotateImage(selectionImage)
+        self.selectionPhotoImage = ImageTk.PhotoImage(selectionImage)
+        
+        pos = self.getObjectPosition(pos, obj.offset)
+        
+        id = self.level_canvas.find_withtag('selection')
+        if len(id) <= 0:
+            self.level_canvas.create_image(
+                *pos,
+                image = self.selectionPhotoImage,
+                tags = 'selection')
+        else:
+            self.level_canvas.itemconfig(
+                id,
+                image = self.selectionPhotoImage
+            )
+            self.level_canvas.coords(
+                id,
+                *pos
+            )
+        
+        self.bindDraggingObject(id, obj)
+    
+    def getObjectPosition(self, pos = (0,0), offset  = (0,0)):
+        pos = numpy.array(pos)
+        offset = numpy.array(offset)
+        
+        pos = pos - (offset * [1,-1])
+        pos = (pos * self.OBJECT_MULTIPLIER) * self.level.scale
+        
+        return pos
     
     def updateObject(self, obj : wmwpy.classes.Object):
         
@@ -174,8 +231,7 @@ class WME(tk.Tk):
         
         pos = numpy.array(obj.pos)
         
-        pos = pos - (offset * [1,-1])
-        pos = (pos * self.OBJECT_MULTIPLIER) * self.level.scale
+        pos = self.getObjectPosition(pos, offset)
         
         id = f'{obj.name}-{str(obj.id)}'
         
@@ -237,19 +293,28 @@ class WME(tk.Tk):
         
         self.updateLayers()
         
+        self.bindDraggingObject(id, obj)
+        
+        self.updateSelectionRectangle()
+        self.updateLevelScroll()
+    
+    def bindDraggingObject(self, id, obj : wmwpy.classes.Object = None):
+        if obj == None:
+            if self.selectedObject != None:
+                obj = self.selectedObject
+            else:
+                return
+        
         self.level_canvas.tag_bind(
             id,
             '<Button1-Motion>',
-            lambda e: self.dragObject(obj, e)
+            lambda e, object = obj: self.dragObject(object, e)
         )
         self.level_canvas.tag_bind(
             id,
-            '<ButtonRelease-1>',
-            lambda e: self.selectObject(obj)
+            '<Button-1>',
+            lambda e, object = obj: self.selectObject(object)
         )
-        
-        self.updateLevelScroll()
-        
     
     def deleteObject(self, obj : wmwpy.classes.Object):
         self.level_canvas.delete(f'{obj.name}-{str(obj.id)}')
@@ -457,7 +522,7 @@ class WME(tk.Tk):
             (self.level.image.size[1] / 2)))
         )
         
-        objects = self.level_canvas.find_all()
+        objects = self.level_canvas.find_withtag('object')
         coords = numpy.array([self.level_canvas.coords(id) for id in objects])
         coords = coords.swapaxes(0,1)
         
@@ -507,7 +572,7 @@ class WME(tk.Tk):
         print(obj.name)
         
         self.updateProperties()
-        
+        self.updateSelectionRectangle()
     
     def createMenubar(self):
         self.menubar = tk.Menu(self)
