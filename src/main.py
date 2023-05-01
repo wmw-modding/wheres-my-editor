@@ -254,6 +254,9 @@ class WME(tk.Tk):
         return pos
     
     def updateObject(self, obj : wmwpy.classes.Object):
+        if obj == None:
+            self.updateSelectionRectangle()
+            self.updateLevelScroll()
         
         offset = numpy.array(obj.offset)
         
