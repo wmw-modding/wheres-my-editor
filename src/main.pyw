@@ -22,8 +22,8 @@ ImageColor.colormap['transparent'] = '#0000'
 class WME(tk.Tk):
     def __init__(self, parent):
         tk.Tk.__init__(self,parent)
-        #tk.Tk.iconbitmap(self, default = 'assets/logo.xbm')
         self.parent = parent
+        self.iconphoto(True, ImageTk.PhotoImage(Image.open('assets/images/icon_256x256.ico')))
         
         self.title("Where's my Editor")
         self.geometry('%dx%d' % (760 , 610) )
@@ -257,6 +257,7 @@ class WME(tk.Tk):
         if obj == None:
             self.updateSelectionRectangle()
             self.updateLevelScroll()
+            return
         
         offset = numpy.array(obj.offset)
         
@@ -693,7 +694,6 @@ class WME(tk.Tk):
             if selected != None:
                 self.object_selector['treeview'].selection_set(selected)
     
-    
     def createMenubar(self):
         self.menubar = tk.Menu(self)
         self.config(menu = self.menubar)
@@ -730,6 +730,8 @@ class WME(tk.Tk):
             filename = wmwpy.Utils.path.joinPath(
                 self.game.gamepath,
                 self.game.assets,
+                self.game.baseassets,
+                '/Levels/',
                 self.level.filename,
             )
         
