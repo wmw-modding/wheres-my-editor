@@ -7,6 +7,7 @@ from PIL import Image, ImageTk, ImageColor, ImageDraw
 import json
 import datetime
 import os
+import sys
 import platform
 from settings import Settings
 from lxml import etree
@@ -23,7 +24,15 @@ class WME(tk.Tk):
     def __init__(self, parent):
         tk.Tk.__init__(self,parent)
         self.parent = parent
-        self.iconphoto(True, ImageTk.PhotoImage(Image.open('assets/images/icon_256x256.ico')))
+        
+        if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+            self.WME_assets = sys._MEIPASS
+        else:
+            self.WME_assets = '.'
+        
+        self.findIcons()
+        if len(self.windowIcons) > 0:
+            self.iconphoto(True, *self.windowIcons)
         
         self.title("Where's my Editor")
         self.geometry('%dx%d' % (760 , 610) )
@@ -66,6 +75,25 @@ class WME(tk.Tk):
             self.settings.get('game.default_level.xml'),
             self.settings.get('game.default_level.image')
         )
+    
+    def findIcons(self):
+        self.windowIcons = []
+        
+        icons = [
+            'icon_256x256.ico',
+        ]
+        
+        for icon in icons:
+            try:
+                self.windowIcons.append(
+                    ImageTk.PhotoImage(
+                        Image.open(os.path.join(self.WME_assets, 'assets/images/', icon))
+                    )
+                )
+            except:
+                pass
+        
+        return self.windowIcons
 
     def createWindow(self):
         self.seperator = ttk.PanedWindow(orient='horizontal')
