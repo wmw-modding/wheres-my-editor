@@ -1,3 +1,24 @@
+__version__ = '2.0.0'
+__author__ = 'ego-lay-atman-bay'
+__credits__ = [
+    {
+        'name' : 'wmwpy',
+        'url' : 'https://github.com/wmw-modding/wmwpy',
+        'description' : "Where's My Editor? uses wmwpy to read and modify Where's My Water? data, e.g. levels."
+    },
+    # Will add once the logo is finished.
+    # {
+    #     'name' : 'Rubice',
+    #     'url' : '',
+    #     'description' : 'Thanks to @rubice for creating the logo.'
+    # },
+    {
+        'name' : 'campbellsonic',
+        'url' : 'https://github.com/campbellsonic',
+        'description' : 'Thanks to @campbellsonic for helping to read waltex images.'
+    }
+]
+
 import tkinter.filedialog as filedialog
 import tkinter as tk
 from tkinter import ttk, simpledialog, messagebox
@@ -21,6 +42,10 @@ from scrollframe import ScrollFrame
 ImageColor.colormap['transparent'] = '#0000'
 
 class WME(tk.Tk):
+    APP_ICONS = [
+            'assets/images/icon_256x256.ico',
+        ]
+    
     def __init__(self, parent):
         tk.Tk.__init__(self,parent)
         self.parent = parent
@@ -79,15 +104,11 @@ class WME(tk.Tk):
     def findIcons(self):
         self.windowIcons = []
         
-        icons = [
-            'icon_256x256.ico',
-        ]
-        
-        for icon in icons:
+        for icon in self.APP_ICONS:
             try:
                 self.windowIcons.append(
                     ImageTk.PhotoImage(
-                        Image.open(os.path.join(self.WME_assets, 'assets/images/', icon))
+                        Image.open(os.path.join(self.WME_assets, icon))
                     )
                 )
             except:
