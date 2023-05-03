@@ -4,7 +4,7 @@ import sys
 import time
 
 options = [
-    'src/main.pyw',
+    'src/main.py',
     '--onefile',
     '--icon=src/assets/images/icon.png',
     f'--add-data=src/assets{os.pathsep}assets',
