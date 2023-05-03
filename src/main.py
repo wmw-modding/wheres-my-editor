@@ -78,6 +78,7 @@ from scrollframe import ScrollFrame
 
 if wmwpy.__version__ < "0.2.0-beta":
     logging.error('wmwpy version must be "0.2.0-beta" or higher.')
+    exit()
 
 ImageColor.colormap['transparent'] = '#0000'
 
