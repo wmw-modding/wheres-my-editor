@@ -6,12 +6,11 @@ __credits__ = [
         'url' : 'https://github.com/wmw-modding/wmwpy',
         'description' : "Where's My Editor? uses wmwpy to read and modify Where's My Water? data, e.g. levels."
     },
-    # Will add once the logo is finished.
-    # {
-    #     'name' : 'Rubice',
-    #     'url' : '',
-    #     'description' : 'Thanks to @rubice for creating the logo.'
-    # },
+    {
+        'name' : 'Rubice',
+        'url' : '',
+        'description' : 'Thanks to @rubice for creating the logo.'
+    },
     {
         'name' : 'campbellsonic',
         'url' : 'https://github.com/campbellsonic',
@@ -43,7 +42,7 @@ ImageColor.colormap['transparent'] = '#0000'
 
 class WME(tk.Tk):
     APP_ICONS = [
-            'assets/images/icon_256x256.ico',
+            'assets/images/icon.png',
         ]
     
     def __init__(self, parent):
