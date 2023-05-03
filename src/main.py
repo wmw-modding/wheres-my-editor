@@ -18,6 +18,9 @@ __credits__ = [
     }
 ]
 
+import traceback
+import logging
+
 import tkinter.filedialog as filedialog
 import tkinter as tk
 from tkinter import ttk, simpledialog, messagebox
@@ -25,9 +28,10 @@ import tkwidgets
 import popups
 from PIL import Image, ImageTk, ImageColor, ImageDraw
 import json
-import datetime
+from datetime import datetime
 import os
 import sys
+import io
 import platform
 from settings import Settings
 from lxml import etree
@@ -255,7 +259,7 @@ class WME(tk.Tk):
             obj = self.selectedObject
         if obj == None:
             self.level_canvas.delete('selection')
-            print('deleted selection')
+            logging.info('deleted selection')
             return
         
         pos = numpy.array(obj.pos)
@@ -368,8 +372,8 @@ class WME(tk.Tk):
                     tags = ('object', 'foreground', id)
                 )
         
-        print(f"id: {id}")
-        print(f"pos: {pos}\n")
+        logging.info(f"id: {id}")
+        logging.info(f"pos: {pos}\n")
         
         self.updateLayers()
         
@@ -379,12 +383,12 @@ class WME(tk.Tk):
         self.updateLevelScroll()
     
     def onLevelClick(self, event : tk.Event):
-        print('level')
+        logging.info('level')
         
         mouse = (self.level_canvas.canvasx(event.x), self.level_canvas.canvasy(event.y))
         
         objects = self.level_canvas.find_overlapping(*mouse, *mouse)
-        print(objects)
+        logging.info(objects)
         length = len(objects)
         
         if length <= 1:
@@ -511,8 +515,8 @@ class WME(tk.Tk):
         def updatePropertyName(property, newName):
             if newName == property:
                 return True
-            print(f'{newName = }')
-            print(f'{property = }')
+            logging.info(f'{newName = }')
+            logging.info(f'{property = }')
             
             if newName in obj.properties:
                 messagebox.showerror(
@@ -540,9 +544,9 @@ class WME(tk.Tk):
             
             obj.pos = tuple(pos)
             
-            print(newPos)
-            print(pos)
-            print(obj.pos)
+            logging.info(newPos)
+            logging.info(pos)
+            logging.info(obj.pos)
             
             self.updateObject(obj)
         
@@ -632,7 +636,7 @@ class WME(tk.Tk):
             item = self.object_selector['treeview'].focus()
             item = self.object_selector['treeview'].item(item)
             
-            print(item)
+            logging.info(item)
             
             if 'object' in item['tags']:
                 id = item['values'][0]
@@ -672,15 +676,15 @@ class WME(tk.Tk):
         min = numpy.append(min, level_size[0]).reshape([2,2]).swapaxes(0,1)
         max = numpy.append(max, level_size[1]).reshape([2,2]).swapaxes(0,1)
         
-        print(f'{max = }')
-        print(f'{min = }')
+        logging.debug(f'{max = }')
+        logging.debug(f'{min = }')
         
         min = [a.min() for a in min]
         max = [a.max() for a in max]
         
         scrollregion = tuple(numpy.append(min,max))
         
-        print(f'scrollregion = {scrollregion}')
+        logging.debug(f'scrollregion = {scrollregion}')
         
         self.level_canvas.config(scrollregion = scrollregion)
         
@@ -713,8 +717,8 @@ class WME(tk.Tk):
     
     def selectObject(self, obj : wmwpy.classes.Object = None):
         self.selectedObject = obj
-        # print(obj.name)
-        print('object')
+        # logging.debug(obj.name)
+        logging.debug('object')
         
         self.updateObject(obj)
         self.updateProperties()
@@ -732,7 +736,7 @@ class WME(tk.Tk):
                 item = self.object_selector['treeview'].item(child)
                 
                 if not 'object' in item['tags']:
-                    print('not object')
+                    logging.info('not object')
                     continue
                 
                 if item['values'][0] == obj.id:
@@ -859,7 +863,7 @@ class WME(tk.Tk):
         try:
             self.level = self.game.Level(xml, image)
         except:
-            print('Unable to load level')
+            logging.warning('Unable to load level')
         
         self.level.scale = 5
         self.updateLevel()
@@ -879,9 +883,83 @@ class WME(tk.Tk):
         except:
             pass
 
+
+
+class TkErrorCatcher:
+
+    '''
+    In some cases tkinter will only print the traceback.
+    Enables the program to catch tkinter errors and log them.
+
+    To use
+    import tkinter
+    tkinter.CallWrapper = TkErrorCatcher
+    '''
+
+    def __init__(self, func, subst, widget):
+        self.func = func
+        self.subst = subst
+        self.widget = widget
+
+    def __call__(self, *args):
+        try:
+            if self.subst:
+                args = self.subst(*args)
+            return self.func(*args)
+        except SystemExit as msg:
+            raise SystemExit(msg)
+        except Exception as e:
+            fileio = io.StringIO()
+            traceback.print_exc(file = fileio)
+            
+            logging.error(fileio.getvalue())
+
+tk.CallWrapper = TkErrorCatcher
+
 def main():
-    app = WME(None)
-    app.mainloop()
+    
+    def createLogger(type = 'file', filename = 'logs/log.log'):
+        for handler in logging.root.handlers[:]:
+            logging.root.removeHandler(handler)
+        format = '[%(levelname)s] %(message)s'
+        datefmt = '%I:%M:%S %p'
+        level = logging.DEBUG
+
+        # filename = 'log.log'
+        
+        handlers = []
+
+        if type == 'file':
+            try:
+                os.mkdir('logs')
+            except:
+                pass
+            
+            handlers.append(logging.FileHandler(filename))
+            format = '[%(asctime)s] [%(levelname)s] %(message)s'
+
+            # logging.basicConfig(filename=filename, filemode='w', format=format, datefmt=datefmt, level=level)
+            # logger.info('logging file')
+        
+        handlers.append(logging.StreamHandler())
+        logging.basicConfig(format=format, datefmt=datefmt, level=level, handlers=handlers)
+        
+        logger = logging.getLogger(__name__)
+        logger.info(filename)
+    
+    
+    filename = f'logs/{datetime.now().strftime("%m-%d-%y_%H-%M-%S")}.log'
+    
+    createLogger('file', filename = filename)
+    
+    try:
+        app = WME(None)
+        app.mainloop()
+    except Exception as e:
+        fileio = io.StringIO()
+        traceback.print_exc(file = fileio)
+        
+        logging.error(fileio.getvalue())
 
 if(__name__ == '__main__'):
     main()
