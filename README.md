@@ -61,4 +61,4 @@ Start by extracting your where's my water apk file into a directory. When you ru
 
 # Credits
 - Thanks to [campbellsonic](https://github.com/campbellsonic) for the script to load `waltex` images. I could not have done it without them.
-- Thanks to rubice! for creating the logo. I am not skilled enough to make something that looks that good.
+- Thanks to [rubice!](https://youtube.com/@rubice2022) for creating the logo. I am not skilled enough to make something that looks that good.
