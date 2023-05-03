@@ -1,5 +1,8 @@
 # Where's My Editor
- A level editor for Where's My Water (android)
+ <img src="src/assets/images/WME_logo.png" >
+ Logo created by rubice!
+ 
+ Where's My Editor? is a level editor for the mobile game, Where's My Water? and all it's spinoffs.
  
  NOTE: If you came here to read a .waltex image, then go to [wmwpy](https://github.com/wmw-modding/wmwpy/blob/main/src/wmwpy/Utils/Waltex.py), because I will be removing Waltex.py from wme.
 
@@ -14,7 +17,7 @@ or
 py -m pip install -r requirements.txt
 ```
 
-Now, since this is being developed at the same time as [wmwpy](https://github.com/wmw-modding/wmwpy), so will be features I use that are not in a full release yet. If you want to test it out, get wmwpy from github, or update it.
+Now, since this is being developed at the same time as [wmwpy](https://github.com/wmw-modding/wmwpy),  will be features I use that are not in a full release yet. If you want to test it out, get wmwpy from github, or update it.
 
 ```
 git clone https://github.com/wmw-modding/wmwpy
@@ -46,13 +49,14 @@ Start by extracting your where's my water apk file into a directory. When you ru
 # Todo
 
 - [x] Export `xml` file
-- [ ] Export `png` file
-- [x] Add and remove objects
+- [x] Export `png` file
+- [ ] Add and remove objects
 - [ ] Room object
 - [ ] Image editor
 - [ ] Complete settings menu
 - [ ] Level explorer
-- [ ] Fix some objects not loading
+- [x] Fix some objects not loading
 
 # Credits
 - Thanks to [campbellsonic](https://github.com/campbellsonic) for the script to load `waltex` images. I could not have done it without them.
+- Thanks to rubice! for creating the logo. I am not skilled enough to make something that looks that good.
