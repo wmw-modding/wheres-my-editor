@@ -1,7 +1,9 @@
-# Where's My Editor
- <img src="src/assets/images/WME_logo.png" >
+# Where's My Editor?
+<p align="center">
+ <img alt="Where's My Editor? logo" src="src/assets/images/WME_logo.png" width="50%" >
+ <br>
  Logo created by rubice!
- 
+</p>
  Where's My Editor? is a level editor for the mobile game, Where's My Water? and all it's spinoffs.
  
  NOTE: If you came here to read a .waltex image, then go to [wmwpy](https://github.com/wmw-modding/wmwpy/blob/main/src/wmwpy/Utils/Waltex.py), because I will be removing Waltex.py from wme.
