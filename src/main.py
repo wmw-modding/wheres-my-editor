@@ -20,6 +20,45 @@ __credits__ = [
 
 import traceback
 import logging
+import os
+import sys
+import io
+import platform
+from datetime import datetime
+
+def createLogger(type = 'file', filename = 'logs/log.log'):
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
+    format = '[%(levelname)s] %(message)s'
+    datefmt = '%I:%M:%S %p'
+    level = logging.DEBUG
+
+    # filename = 'log.log'
+    
+    handlers = []
+
+    if type == 'file':
+        try:
+            os.mkdir('logs')
+        except:
+            pass
+        
+        handlers.append(logging.FileHandler(filename))
+        format = '[%(asctime)s] [%(levelname)s] %(message)s'
+
+        # logging.basicConfig(filename=filename, filemode='w', format=format, datefmt=datefmt, level=level)
+        # logger.info('logging file')
+    
+    handlers.append(logging.StreamHandler())
+    logging.basicConfig(format=format, datefmt=datefmt, level=level, handlers=handlers)
+    
+    logger = logging.getLogger(__name__)
+    logger.info(filename)
+
+
+_log_filename = f'logs/{datetime.now().strftime("%m-%d-%y_%H-%M-%S")}.log'
+
+createLogger('file', filename = _log_filename)
 
 import tkinter.filedialog as filedialog
 import tkinter as tk
@@ -28,11 +67,6 @@ import tkwidgets
 import popups
 from PIL import Image, ImageTk, ImageColor, ImageDraw
 import json
-from datetime import datetime
-import os
-import sys
-import io
-import platform
 from settings import Settings
 from lxml import etree
 import numpy
@@ -99,10 +133,11 @@ class WME(tk.Tk):
         
         self.loadGame()
         
-        self.loadLevel(
-            self.settings.get('game.default_level.xml'),
-            self.settings.get('game.default_level.image')
-        )
+        if self.game != None:
+            self.loadLevel(
+                self.settings.get('game.default_level.xml'),
+                self.settings.get('game.default_level.image')
+            )
     
     def findIcons(self):
         self.windowIcons = []
@@ -849,7 +884,7 @@ class WME(tk.Tk):
                 game = self.settings.get('game.game'),
             )
         except:
-            pass
+            logging.warning(f'unable to load game: {self.settings.get("game.gamepath")}')
     
     def loadLevel(self, xml : str, image : str):
         if self.game in ['', None]:
@@ -864,6 +899,7 @@ class WME(tk.Tk):
             self.level = self.game.Level(xml, image)
         except:
             logging.warning('Unable to load level')
+            return
         
         self.level.scale = 5
         self.updateLevel()
@@ -917,41 +953,6 @@ class TkErrorCatcher:
 tk.CallWrapper = TkErrorCatcher
 
 def main():
-    
-    def createLogger(type = 'file', filename = 'logs/log.log'):
-        for handler in logging.root.handlers[:]:
-            logging.root.removeHandler(handler)
-        format = '[%(levelname)s] %(message)s'
-        datefmt = '%I:%M:%S %p'
-        level = logging.DEBUG
-
-        # filename = 'log.log'
-        
-        handlers = []
-
-        if type == 'file':
-            try:
-                os.mkdir('logs')
-            except:
-                pass
-            
-            handlers.append(logging.FileHandler(filename))
-            format = '[%(asctime)s] [%(levelname)s] %(message)s'
-
-            # logging.basicConfig(filename=filename, filemode='w', format=format, datefmt=datefmt, level=level)
-            # logger.info('logging file')
-        
-        handlers.append(logging.StreamHandler())
-        logging.basicConfig(format=format, datefmt=datefmt, level=level, handlers=handlers)
-        
-        logger = logging.getLogger(__name__)
-        logger.info(filename)
-    
-    
-    filename = f'logs/{datetime.now().strftime("%m-%d-%y_%H-%M-%S")}.log'
-    
-    createLogger('file', filename = filename)
-    
     try:
         app = WME(None)
         app.mainloop()
