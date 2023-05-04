@@ -19,28 +19,11 @@ or
 py -m pip install -r requirements.txt
 ```
 
-Now, since this is being developed at the same time as [wmwpy](https://github.com/wmw-modding/wmwpy),  will be features I use that are not in a full release yet. If you want to test it out, get wmwpy from github, or update it.
+Now, since this is being developed at the same time as [wmwpy](https://github.com/wmw-modding/wmwpy), there will be features I use that are not in a full release yet. If you want to test it out, get wmwpy from github, or update it.
 
+```sh
+pip install wmwpy@git+https://github.com/wmw-modding/wmwpy
 ```
-git clone https://github.com/wmw-modding/wmwpy
-```
-
-Then create a virtual environment (venv)
-```
-py -3.10 -m venv .venv
-```
-or
-```
-python -m venv .venv
-```
-
-Then create a symlink from the `src/wmwpy` folder in the wmwpy repository to `.venv/Lib/site-packages`
-
-```batch
-mklink /D wheres-my-editor/.venv/Lib/site-packages wmwpy/src/wmwpy
-```
-
-This is to make your python environment use the latest wmwpy dev version, and you'll be able to update both repositories at will.
 
 Once I make a full release, I will also make a wmwpy release, so this is only needed if you want to test the dev version.
 
