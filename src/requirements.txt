@@ -1,7 +1,5 @@
-lxml==4.9.1
+wmwpy@git+https://github.com/wmw-modding/wmwpy
+lxml==4.9.2
 Pillow==9.3.0
 tk==0.1.0
-filetype==1.2.0
 numpy==1.24.2
-natsort==8.2.0
-wmwpy
