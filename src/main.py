@@ -64,7 +64,6 @@ import tkinter.filedialog as filedialog
 import tkinter as tk
 from tkinter import ttk, simpledialog, messagebox
 import tkwidgets
-import popups
 from PIL import Image, ImageTk, ImageColor, ImageDraw
 import json
 from settings import Settings
@@ -72,9 +71,11 @@ from lxml import etree
 import numpy
 import typing
 from copy import copy
+import pathlib
 
 import wmwpy
 from scrollframe import ScrollFrame
+import popups
 
 if wmwpy.__version__ < "0.2.0-beta":
     logging.error('wmwpy version must be "0.2.0-beta" or higher.')
@@ -246,6 +247,8 @@ class WME(tk.Tk):
             self.level_canvas.bind("<Shift-MouseWheel>", lambda *args: self.onLevelMouseWheel(*args, type = 1))
         
         self.level_canvas.bind('<Button-1>', self.onLevelClick)
+        self.createLevelContextMenu()
+        self.level_canvas.bind('<Button-3>', self.onLevelRightClick)
         
         self.resetProperties()
     
@@ -333,7 +336,7 @@ class WME(tk.Tk):
                 *pos
             )
         
-        self.bindDraggingObject(id, obj)
+        self.bindObject(id, obj)
     
     def getObjectPosition(self, pos = (0,0), offset  = (0,0)):
         pos = numpy.array(pos)
@@ -416,7 +419,7 @@ class WME(tk.Tk):
         
         self.updateLayers()
         
-        self.bindDraggingObject(id, obj)
+        self.bindObject(id, obj)
         
         self.updateSelectionRectangle()
         self.updateLevelScroll()
@@ -437,7 +440,34 @@ class WME(tk.Tk):
             
             self.selectObject(None)
     
-    def bindDraggingObject(self, id, obj : wmwpy.classes.Object = None):
+    def createLevelContextMenu(self):
+        self.levelContextMenu = tk.Menu(self.level_canvas, tearoff = 0)
+        self.levelContextMenu.add_command(label = 'add object', command = lambda *args: self.addObjectSelector(self.getRelativeMousePos(self.level_canvas.winfo_pointerxy(), self.level_canvas)))
+        self.levelContextMenu.add_command(label = 'paste', state = 'disabled')
+    
+    def onLevelRightClick(self, event):
+        logging.info('level context menu')
+        logging.info(f'canvas mouse pos = {(numpy.array(self.level_canvas.winfo_pointerxy()) - (self.winfo_rootx(), self.winfo_rooty())) - (self.level_canvas.winfo_x(), self.level_canvas.winfo_y())}')
+        logging.info(f'canvas mouse x = {self.winfo_pointerx() - self.winfo_rootx()}')
+        logging.info(f'canvas mouse y = {self.winfo_pointery() - self.winfo_rooty()}')
+        logging.info(f'event pos = {(event.x, event.y)}')
+        logging.info(f'canvas pos = {(self.level_canvas.winfo_x(), self.level_canvas.winfo_y())}')
+        
+        mouse = (self.level_canvas.canvasx(event.x), self.level_canvas.canvasy(event.y))
+        
+        objects = self.level_canvas.find_overlapping(*mouse, *mouse)
+        logging.info(objects)
+        length = len(objects)
+        
+        if length <= 1:
+            if length == 1:
+                if objects[0] != self.level_images['background']:
+                    return
+            
+            self.selectObject(None)
+            self.showPopup(self.levelContextMenu, event)
+    
+    def bindObject(self, id, obj : wmwpy.classes.Object = None):
         if obj == None:
             if self.selectedObject != None:
                 obj = self.selectedObject
@@ -454,6 +484,27 @@ class WME(tk.Tk):
             '<Button-1>',
             lambda e, object = obj: self.selectObject(object)
         )
+        self.level_canvas.tag_bind(
+            id,
+            '<Button-3>',
+            lambda e, object = obj, menu = self.createObjectContextMenu(obj): self.showPopup(menu, e, callback = lambda : self.selectObject(object))
+        )
+        
+    def createObjectContextMenu(self, obj : wmwpy.classes.Object):
+        menu = tk.Menu(self.level_canvas, tearoff = 0)
+        menu.add_command(label = 'delete', command = lambda *args : self.deleteObject(obj))
+        menu.add_command(label = 'copy', state = 'disabled')
+        menu.add_command(label = 'cut', state = 'disabled')
+        
+        return menu
+    
+    def showPopup(self, menu : tk.Menu, event : tk.Event = None, callback : typing.Callable = None):
+        try:
+            if callback != None:
+                callback()
+            menu.tk_popup(event.x_root, event.y_root, 0)
+        finally:
+            menu.grab_release()
     
     def deleteObject(self, obj : wmwpy.classes.Object):
         self.level_canvas.delete(f'{obj.name}-{str(obj.id)}')
@@ -461,6 +512,53 @@ class WME(tk.Tk):
         if obj in self.level.objects:
             index = self.level.objects.index(obj)
             del self.level.objects[index]
+        
+        if obj == self.selectedObject:
+            self.selectObject(None)
+        
+        self.updateObjectSelector()
+    
+    def addObject(
+        self, obj : wmwpy.classes.Object | str,
+        properties: dict = {},
+        pos: tuple[float, float] = (0, 0),
+        name: str = 'Obj',
+    ):
+        if not isinstance(obj, (wmwpy.classes.Object, wmwpy.filesystem.File)):
+            obj = self.getFile(obj)
+        
+        obj = self.level.addObject(
+            filename = obj,
+            properties = properties,
+            pos = pos,
+            name = name,
+        )
+        
+        self.updateObject(obj)
+        self.updateObjectSelector()
+        
+        return obj
+    
+    def addObjectSelector(self, pos : tuple = (0,0)):
+        filename = filedialog.askopenfilename(
+            defaultextension = '.hs',
+            filetypes = (
+                ('WMW Object', '*.hs'),
+                ('Any', '*.*'),
+            ),
+            initialdir = wmwpy.Utils.path.joinPath(
+                self.game.gamepath,
+                self.game.assets,
+                self.game.baseassets,
+                'Objects'
+            ),
+        )
+        
+        logging.info(f'{pos = }')
+        self.addObject(
+            filename,
+            pos = self.windowPosToWMWPos(pos)
+        )
     
     def updateProperties(self, obj : wmwpy.classes.Object = None):
         if obj == None:
@@ -482,7 +580,7 @@ class WME(tk.Tk):
             entry_callback : typing.Callable[[str], typing.Any] = None,
             label_callback : typing.Callable[[str], bool] = None,
             **kwargs,
-        ):
+        ) -> dict[typing.Literal['label', 'inputs', 'remove'], ttk.Label | list[ttk.Entry] | ttk.Button]:
             if removable:
                 name = tkwidgets.EditableLabel(
                     self.properties['left'],
@@ -496,6 +594,7 @@ class WME(tk.Tk):
                 )
             name.grid(row=row, sticky='we')
             
+            inputs = []
             
             def inputType(type, value):
                 
@@ -526,6 +625,8 @@ class WME(tk.Tk):
                     
                     column += 1
                     
+                    inputs.append(input)
+                    
             else:
                 type = type.lower()
                 
@@ -535,6 +636,8 @@ class WME(tk.Tk):
                 if entry_callback:
                     input.bind('<Return>', lambda e: entry_callback(input.get()))
                     input.bind('<FocusOut>', lambda e: entry_callback(input.get()))
+                
+                inputs.append(input)
             
             if removable:
                 removeButton = ttk.Button(
@@ -546,6 +649,12 @@ class WME(tk.Tk):
             
             self.properties['left'].rowconfigure(row, minsize=ROW_SIZE)
             self.properties['right'].rowconfigure(row, minsize=ROW_SIZE)
+            
+            return {
+                'label' : name,
+                'inputs' : inputs,
+                'remove' : removeButton,
+            }
     
         def updateProperty(property, value):
             obj.properties[property] = value
@@ -606,11 +715,12 @@ class WME(tk.Tk):
             entry_callback = lambda value: updateProperty('Angle', value),
         )
         
-        row = 2
+        row = 3
         
         for property in obj.properties:
             if property not in ['Angle']:
                 row += 1
+                logging.debug(f'{property = }')
                 addProperty(
                     property,
                     obj.properties[property],
@@ -621,6 +731,8 @@ class WME(tk.Tk):
         
         self.properties['panned'].configure(height = row * ROW_SIZE)
         self.properties['scrollFrame'].resetCanvasScroll()
+        
+        
         
     def resetProperties(self):
         
@@ -746,13 +858,23 @@ class WME(tk.Tk):
         self.level_canvas.yview_moveto(0.2)
     
     def dragObject(self, obj : wmwpy.classes.Object, event = None):
-        pos = numpy.array((self.level_canvas.canvasx(event.x), self.level_canvas.canvasy(event.y)))
+        logging.info(f'mouse pos = {(event.x, event.y)}')
+        obj.pos = self.windowPosToWMWPos((event.x, event.y))
+        
+        self.updateObject(obj)
+    
+    def windowPosToWMWPos(self, pos : tuple = (0,0)):
+        pos = numpy.array((self.level_canvas.canvasx(pos[0]),
+                           self.level_canvas.canvasy(pos[1])))
         pos = pos / self.level.scale
         pos = pos / self.OBJECT_MULTIPLIER
         
-        obj.pos = tuple(pos)
-        
-        self.updateObject(obj)
+        return tuple(pos)
+    
+    def getRelativeMousePos(self, pos : tuple, widget : tk.Widget):
+        return numpy.array((numpy.array(pos) - (self.winfo_rootx(),
+                             self.winfo_rooty())) - (widget.winfo_x(),
+                                                     widget.winfo_y()))
     
     def selectObject(self, obj : wmwpy.classes.Object = None):
         self.selectedObject = obj
@@ -859,12 +981,27 @@ class WME(tk.Tk):
         self.saveLevel(filename = filename)
     
     def getFile(self, path : str):
+        if not isinstance(path, str):
+            raise TypeError('path must be str')
+        
         if path.startswith(':game:'):
             path = path.partition(':game:')[-1]
             
             file = self.game.filesystem.get(path)
+            return file
         
-        elif path in ['', None]:
+        path = pathlib.PurePath(path)
+        assets = wmwpy.Utils.path.joinPath(
+            self.game.gamepath,
+            self.game.assets,
+        )
+        
+        print(f'In filesystem? {path.is_relative_to(assets)}')
+        if path.is_relative_to(assets):
+            file = self.game.filesystem.get(os.path.relpath(path, assets))
+            return file
+        
+        if path in ['', None]:
             return None
         else:
             file = wmwpy.filesystem.File(None, os.path.basename(path), path)
@@ -899,11 +1036,11 @@ class WME(tk.Tk):
         if isinstance(self.level, wmwpy.classes.Level):
             self.level_canvas.delete('object')
         
-        try:
-            self.level = self.game.Level(xml, image)
-        except:
-            logging.warning('Unable to load level')
-            return
+        # try:
+        self.level = self.game.Level(xml, image)
+        # except:
+        #     logging.warning('Unable to load level')
+        #     return
         
         self.level.scale = 5
         self.updateLevel()
