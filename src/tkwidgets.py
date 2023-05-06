@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 import typing
+import logging
 
 class EditableLabel(ttk.Label):
     def __init__(self, parent, *args, callback : typing.Callable[[str], bool] = None, **kwargs):
@@ -29,6 +30,7 @@ class EditableLabel(ttk.Label):
         text = self.entry.get()
         result = True
         if self.callback:
+            logging.debug('callback')
             result = self.callback(text)
         
         if result:
@@ -38,7 +40,7 @@ class EditableLabel(ttk.Label):
             except:
                 pass
         else:
-            self.edit_cancel()
+            self.edit_start()
         
 
     def edit_cancel(self, event=None):

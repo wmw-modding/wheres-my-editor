@@ -195,7 +195,14 @@ class WME(tk.Tk):
         
         self.object_selector['y_scroll'].pack(side='right', fill='y')
         
-        self.properties : dict[str, tk.Widget] = {
+        self.properties : dict[typing.Literal[
+            'labelFrame',
+            'scrollFrame',
+            'frame',
+            'panned',
+            'left',
+            'right',
+        ], tk.Widget] = {
             'labelFrame' : ttk.LabelFrame(self.side_pane, width=side_pane_width, height=side_pane_height, text='Properties')
         }
         self.side_pane.add(self.properties['labelFrame'])
@@ -579,8 +586,9 @@ class WME(tk.Tk):
             row = 0,
             entry_callback : typing.Callable[[str], typing.Any] = None,
             label_callback : typing.Callable[[str], bool] = None,
+            remove_callback : typing.Callable = None,
             **kwargs,
-        ) -> dict[typing.Literal['label', 'inputs', 'remove'], ttk.Label | list[ttk.Entry] | ttk.Button]:
+        ) -> dict[typing.Literal['label', 'inputs', 'remove'], tkwidgets.EditableLabel | list[ttk.Entry] | ttk.Button]:
             if removable:
                 name = tkwidgets.EditableLabel(
                     self.properties['left'],
@@ -639,11 +647,14 @@ class WME(tk.Tk):
                 
                 inputs.append(input)
             
+            removeButton = None
+            
             if removable:
                 removeButton = ttk.Button(
                     self.properties['right'],
                     text='-',
                     width=2,
+                    command = remove_callback
                 )
                 removeButton.grid(column=2, row=row)
             
@@ -655,13 +666,19 @@ class WME(tk.Tk):
                 'inputs' : inputs,
                 'remove' : removeButton,
             }
+        
+        def removePropety(property):
+            if property in obj.properties:
+                del obj.properties[property]
+                self.updateObject(obj)
+                self.updateProperties(obj)
     
         def updateProperty(property, value):
             obj.properties[property] = value
             self.updateObject(obj)
         
-        def updatePropertyName(property, newName):
-            if newName == property:
+        def updatePropertyName(property, newName, skip_unedited = False):
+            if newName == property and not skip_unedited:
                 return True
             logging.info(f'{newName = }')
             logging.info(f'{property = }')
@@ -674,8 +691,10 @@ class WME(tk.Tk):
                 
                 return False
             else:
-                value = obj.properties[property]
-                del obj.properties[property]
+                value = 0
+                if property in obj.properties:
+                    value = obj.properties[property]
+                    del obj.properties[property]
                 obj.properties[newName] = value
                 
                 self.updateObject(obj)
@@ -726,15 +745,58 @@ class WME(tk.Tk):
                     obj.properties[property],
                     row=row,
                     entry_callback = lambda value, prop = property: updateProperty(prop, value),
-                    label_callback = lambda name, prop = property: updatePropertyName(prop, name)
+                    label_callback = lambda name, prop = property: updatePropertyName(prop, name),
+                    remove_callback = lambda *args, prop = property : removePropety(prop),
                 )
         
         self.properties['panned'].configure(height = row * ROW_SIZE)
         self.properties['scrollFrame'].resetCanvasScroll()
         
+        def addNewProperty(property, value, row):
+            def setProperty(name, value):
+                if name in obj.properties:
+                    messagebox.showerror(
+                        'Property name already exists',
+                        f'Property "{name}" already exists.'
+                    )
+                    
+                    return False
+                else:
+                    obj.properties[name] = value
+                    
+                    self.updateObject(obj)
+                    self.updateProperties(obj)
+                    self.updateObjectSelector()
+                    
+                    return True
+            
+            logging.debug(f'adding property {property}')
+            logging.debug(f'{row = }')
+            logging.debug(f'{value = }')
+            
+            prop = addProperty(
+                property,
+                value,
+                row=row,
+                entry_callback = lambda val, prop = property: updateProperty(prop, val),
+                label_callback = lambda name, prop = property: setProperty(name, value)
+            )
+            
+            prop['label'].edit_start()
+            
+            self.properties['panned'].configure(height = row * ROW_SIZE)
+        
+        logging.debug(f'{row = }')
+        
+        add = ttk.Button(self.properties['frame'], text = 'Add', command = lambda *args, r = row + 1 : addNewProperty('Property', 0, r))
+        add.pack(side = 'bottom', expand = True, fill = 'x')
         
         
     def resetProperties(self):
+        
+        for child in self.properties['frame'].winfo_children():
+            if child != self.properties.get('panned', None):
+                child.destroy()
         
         if not 'panned' in self.properties:
             self.properties['panned'] = ttk.PanedWindow(
