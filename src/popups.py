@@ -1,8 +1,137 @@
 import copy
 import json
 import tkinter as tk
-from tkinter import StringVar, ttk, filedialog
+from tkinter import ttk, filedialog
+import tkinter.font as tkFont
 import os
+from PIL import Image, ImageTk
+import webbrowser
+import numpy
+import typing
+
+from scrollframe import ScrollFrame
+
+class About(tk.Toplevel):
+    def __init__(
+        self,
+        parent,
+        title = 'About',
+        author = 'ego-lay-atman-bay',
+        program = "Where's My Editor?",
+        version = 'v2.0.0',
+        description = '',
+        credits : list[dict[typing.Literal['name','url','description'], str]] = [],
+        logo : Image.Image = None
+    ) -> None:
+        super().__init__(parent)
+        
+        self.style = ttk.Style()
+        
+        self.style.configure('Hyperlink.TLabel', foreground = "blue")
+        
+        
+        self.heading_font = tkFont.nametofont('TkHeadingFont')
+        self.heading_font.configure(size = 20)
+        
+        self.style.configure('Heading.TLabel', font = self.heading_font)
+        
+        
+        self.title = title
+        self.author = author
+        self.program = program
+        self.version = version
+        self.description = description
+        self.credits = credits
+        self.logo = logo
+        
+        self.geometry('500x400')
+        
+        self.addLogo()
+        
+        self.scrollframe = ScrollFrame(self, usettk=True)
+        self.frame = self.scrollframe.viewPort
+        self.scrollframe.pack(expand=True, fill='both', pady=4)
+        
+        self.addProgramText()
+        self.addDescription()
+        self.addCredits()
+        
+        self.transient(self.master)
+        self.wait_window()
+    
+    def addLogo(self):
+        if self.logo == None:
+            return
+        elif isinstance(self.logo, str):
+            self.logo = Image.open(self.logo)
+        elif not isinstance(self.logo, Image.Image):
+            return
+        
+        self.logo = self.resizeImage(self.logo, height = 150)
+        
+        self.logo_PhotoImage = ImageTk.PhotoImage(self.logo)
+        
+        self.logo_image = ttk.Label(self, image = self.logo_PhotoImage)
+        self.logo_image.pack(side = 'top', anchor = 'n')
+    
+    def resizeImage(self, image : Image.Image, scale : float = None, width : int = None, height : int = None):
+        size = numpy.array(image.size)
+        if scale != None:
+            size = size / scale
+        elif width != None:
+            if height == None:
+                size[1] *= (width / size[0])
+                
+            size[0] = width
+        elif height != None:
+            if width == None:
+                size[0] *= (height / size[1])
+                
+            size[1] = height
+        
+        return image.resize(tuple(size), resample = Image.Resampling.BILINEAR)
+    
+    def addProgramText(self):
+        self.program_label = ttk.Label(self.frame, text = self.program)
+        self.program_label.pack(anchor = 'n')
+        
+        self.version_label = ttk.Label(self.frame, text = self.version)
+        self.version_label.pack(anchor = 'n')
+        
+        self.author_label = ttk.Label(self.frame, text = f'Created by: {self.author}')
+        self.author_label.pack(anchor = 'n')
+        
+    def addDescription(self):
+        self.description_label = tk.Message(self.frame, text = self.description, width=200)
+        self.description_label.pack(anchor='n', pady=10)
+    
+    def addCredits(self):
+        self.credits_heading = ttk.Label(self.frame, text='Credits:', style='Heading.TLabel', )
+        self.credits_heading.pack()
+        
+        self.credits_frame = ttk.Frame(self.frame)
+        self.credits_frame.pack(anchor = 'n', pady=4)
+        
+        def addCredit(credit : dict[typing.Literal['name','url','description'], str], row = 0):
+            # credit_frame = ttk.Frame(self.credits_frame)
+            # credit_frame.pack(anchor='w', expand=True)
+            
+            if credit['url'] in ['', None]:
+                url = ttk.Label(self.credits_frame, text = credit['name'])
+            else:
+                url = ttk.Label(self.credits_frame, text = credit['name'], style = 'Hyperlink.TLabel', cursor = 'hand2')
+                url.bind('<Button-1>', lambda e, link = credit['url']: webbrowser.open(link))
+            
+            url.grid(column=0, row = row, sticky = 'nw')
+            
+            description = tk.Message(self.credits_frame, text = credit['description'], width=200)
+            description.grid(column=1, row = row, sticky = 'nw',)
+        
+        row = 0
+        
+        for credit in self.credits:
+            row += 1
+            addCredit(credit, row=row)
 
 class load_dialog():
     def __init__(self, root=None, max=280) -> None:
@@ -199,8 +328,38 @@ class settings_dialog():
         self.settings['default_level']['xml'] = self.paths['contents']['level']['xml']['var'].get()
 
 if __name__ == '__main__':
-    with open('settings.json') as file:
-        settings = json.load(file)
+
+    __version__ = '2.0.0'
+    __author__ = 'ego-lay-atman-bay'
+    __credits__ = [
+        {
+            'name' : 'wmwpy',
+            'url' : 'https://github.com/wmw-modding/wmwpy',
+            'description' : "Where's My Editor? uses wmwpy to read and modify Where's My Water? data, e.g. levels."
+        },
+        {
+            'name' : 'Rubice',
+            'url' : '',
+            'description' : 'Thanks to @rubice for creating the logo.'
+        },
+        {
+            'name' : 'campbellsonic',
+            'url' : 'https://github.com/campbellsonic',
+            'description' : 'Thanks to @campbellsonic for helping to read waltex images.'
+        }
+    ]
+
 
     app = tk.Tk()
-    settings_dialog(app, settings)
+    about = About(
+        app,
+        title = "About",
+        author = __author__,
+        program = "Where's My Editor?",
+        version = __version__,
+        description = """Where's My Editor? is a level editor for the Where's My Water? game series.""",
+        credits = __credits__,
+        logo = Image.open('assets/images/WME_logo.png'),
+    )
+    
+    app.mainloop()
