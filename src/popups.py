@@ -35,6 +35,7 @@ class About(tk.Toplevel):
         
         self.style.configure('Heading.TLabel', font = self.heading_font)
         
+        self.minsize(350,300)
         
         self.title = title
         self.author = author
@@ -48,13 +49,16 @@ class About(tk.Toplevel):
         
         self.addLogo()
         
-        self.scrollframe = ScrollFrame(self, usettk=True)
+        self.scrollframe = ScrollFrame(self, usettk=True, height = 100)
         self.frame = self.scrollframe.viewPort
         self.scrollframe.pack(expand=True, fill='both', pady=4)
         
         self.addProgramText()
         self.addDescription()
         self.addCredits()
+        
+        self.close = ttk.Button(self, text = 'Close', command = self.destroy)
+        self.close.pack(anchor = 'n', pady = 2)
         
         self.transient(self.master)
         self.wait_window()
@@ -338,8 +342,8 @@ if __name__ == '__main__':
             'description' : "Where's My Editor? uses wmwpy to read and modify Where's My Water? data, e.g. levels."
         },
         {
-            'name' : 'Rubice',
-            'url' : '',
+            'name' : 'rubice!',
+            'url' : 'https://www.youtube.com/channel/UCsY-c5mJYWnK6PhrkHqPwig',
             'description' : 'Thanks to @rubice for creating the logo.'
         },
         {
