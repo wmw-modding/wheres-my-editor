@@ -7,8 +7,8 @@ __credits__ = [
         'description' : "Where's My Editor? uses wmwpy to read and modify Where's My Water? data, e.g. levels."
     },
     {
-        'name' : 'Rubice',
-        'url' : '',
+        'name' : 'rubice!',
+        'url' : 'https://www.youtube.com/channel/UCsY-c5mJYWnK6PhrkHqPwig',
         'description' : 'Thanks to @rubice for creating the logo.'
     },
     {
@@ -17,6 +17,9 @@ __credits__ = [
         'description' : 'Thanks to @campbellsonic for helping to read waltex images.'
     }
 ]
+__links__ = {
+    'discord' : 'https://discord.gg/eRVfbgwNku',
+}
 
 import traceback
 import logging
@@ -60,9 +63,8 @@ _log_filename = f'logs/{datetime.now().strftime("%m-%d-%y_%H-%M-%S")}.log'
 
 createLogger('file', filename = _log_filename)
 
-import tkinter.filedialog as filedialog
 import tkinter as tk
-from tkinter import ttk, simpledialog, messagebox
+from tkinter import ttk, simpledialog, messagebox, filedialog
 import tkwidgets
 from PIL import Image, ImageTk, ImageColor, ImageDraw
 import json
@@ -72,6 +74,7 @@ import numpy
 import typing
 from copy import copy
 import pathlib
+import webbrowser
 
 import wmwpy
 from scrollframe import ScrollFrame
@@ -85,8 +88,9 @@ ImageColor.colormap['transparent'] = '#0000'
 
 class WME(tk.Tk):
     APP_ICONS = [
-            'assets/images/icon.png',
+            'assets/images/new-icon_256x256.ico',
         ]
+    LOGO = 'assets/images/WME_logo.png'
     
     def __init__(self, parent):
         tk.Tk.__init__(self,parent)
@@ -98,8 +102,10 @@ class WME(tk.Tk):
             self.WME_assets = '.'
         
         self.findIcons()
-        if len(self.windowIcons) > 0:
-            self.iconphoto(True, *self.windowIcons)
+        # if len(self.windowIcons) > 0:
+        #     self.iconphoto(True, *self.windowIcons)
+        
+        self.iconbitmap(default = self.windowIcons[0])
         
         self.title("Where's my Editor")
         self.geometry('%dx%d' % (760 , 610) )
@@ -144,16 +150,20 @@ class WME(tk.Tk):
                 self.settings.get('game.default_level.image')
             )
     
+    def getAsset(self, path : str):
+        return os.path.join(self.WME_assets, path)
+    
     def findIcons(self):
         self.windowIcons = []
         
         for icon in self.APP_ICONS:
             try:
-                self.windowIcons.append(
-                    ImageTk.PhotoImage(
-                        Image.open(os.path.join(self.WME_assets, icon))
-                    )
-                )
+                self.windowIcons.append(self.getAsset(icon))
+                # self.windowIcons.append(
+                #     ImageTk.PhotoImage(
+                #         Image.open(os.path.join(self.WME_assets, icon))
+                #     )
+                # )
             except:
                 pass
         
@@ -972,12 +982,31 @@ class WME(tk.Tk):
     def createMenubar(self):
         self.menubar = tk.Menu(self)
         self.config(menu = self.menubar)
+        
         self.file_menu = tk.Menu(self.menubar, tearoff=0)
         
         self.file_menu.add_command(label = 'Open', command = self.openLevel)
         self.file_menu.add_command(label = 'Save', command = self.saveLevel)
         self.file_menu.add_command(label = 'Save as...', command = self.saveLevelAs)
         self.menubar.add_cascade(label = 'File', menu = self.file_menu)
+        
+        self.help_menu = tk.Menu(self.menubar, tearoff=0)
+        
+        self.help_menu.add_command(label = 'Discord', command = lambda *args : webbrowser.open(__links__['discord']))
+        self.help_menu.add_command(label = 'About', command = self.showAbout)
+        self.menubar.add_cascade(label = 'Help', menu = self.help_menu)
+    
+    def showAbout(self):
+        about = popups.About(
+            self,
+            title = "About",
+            author = __author__,
+            program = "Where's My Editor?",
+            version = __version__,
+            description = """Where's My Editor? is a program to create and modify levels in the Where's My Water? game series.""",
+            credits = __credits__,
+            logo = Image.open(self.getAsset(self.LOGO)),
+        )
     
     def openLevel(self, *args):
         xml = filedialog.askopenfilename(
@@ -1045,6 +1074,9 @@ class WME(tk.Tk):
     def getFile(self, path : str):
         if not isinstance(path, str):
             raise TypeError('path must be str')
+        
+        if path in ['', None]:
+            return
         
         if path.startswith(':game:'):
             path = path.partition(':game:')[-1]
