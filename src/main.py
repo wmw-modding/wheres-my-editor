@@ -88,7 +88,7 @@ ImageColor.colormap['transparent'] = '#0000'
 
 class WME(tk.Tk):
     APP_ICONS = [
-            'assets/images/new-icon_256x256.ico',
+            'assets/images/icon_256x256.ico',
         ]
     LOGO = 'assets/images/WME_logo.png'
     

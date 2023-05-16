@@ -6,7 +6,7 @@ import time
 options = [
     'src/main.py',
     '--onefile',
-    '--icon=src/assets/images/new-icon_256x256.ico',
+    '--icon=src/assets/images/icon_256x256.ico',
     f'--add-data=src/assets{os.pathsep}assets',
     '--name=wme',
 ]
