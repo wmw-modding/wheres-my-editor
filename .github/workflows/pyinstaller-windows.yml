@@ -14,19 +14,8 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     
-    - name: Git checkout
-      uses: actions/checkout@v2
-      with:
-        fetch-depth: '0'
-    - name: git
-      run: |
-        # setup the username and email. I tend to use 'GitHub Actions Bot' with no email by default
-        git --version
-        git config user.name "GitHub Actions Bot"
-        git config user.email "<>"
-    
     - name: Package Application
-      uses: JackMcKew/pyinstaller-action-windows@main
+      uses: ego-lay-atman-bay/pyinstaller-action-windows@main
       with:
         spec: build.py
         requirements: requirements.txt
