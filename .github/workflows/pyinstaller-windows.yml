@@ -1,8 +1,6 @@
 name: Package Application with Pyinstaller
 
-on:
-  release:
-    types: [published]
+on: workflow_dispatch
 #  push:
 #    branches: [ main ]
 #  pull_request:
