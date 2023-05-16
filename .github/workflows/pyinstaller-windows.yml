@@ -19,7 +19,7 @@ jobs:
       with:
         spec: build.py
         requirements: requirements.txt
-        path: src
+        path: /
 
     - uses: actions/upload-artifact@v2
       with:
