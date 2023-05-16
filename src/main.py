@@ -988,12 +988,18 @@ class WME(tk.Tk):
         self.file_menu.add_command(label = 'Open', command = self.openLevel)
         self.file_menu.add_command(label = 'Save', command = self.saveLevel)
         self.file_menu.add_command(label = 'Save as...', command = self.saveLevelAs)
+        self.file_menu.add_separator()
+        self.file_menu.add_command(label = 'Settings', command = self.showSettings)
+
         self.menubar.add_cascade(label = 'File', menu = self.file_menu)
+        
+        
         
         self.help_menu = tk.Menu(self.menubar, tearoff=0)
         
         self.help_menu.add_command(label = 'Discord', command = lambda *args : webbrowser.open(__links__['discord']))
         self.help_menu.add_command(label = 'About', command = self.showAbout)
+
         self.menubar.add_cascade(label = 'Help', menu = self.help_menu)
     
     def showAbout(self):
@@ -1006,6 +1012,12 @@ class WME(tk.Tk):
             description = """Where's My Editor? is a program to create and modify levels in the Where's My Water? game series.""",
             credits = __credits__,
             logo = Image.open(self.getAsset(self.LOGO)),
+        )
+    
+    def showSettings(self):
+        settings = popups.SettingsDialog(
+            self,
+            self.settings,
         )
     
     def openLevel(self, *args):

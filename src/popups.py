@@ -10,6 +10,7 @@ import numpy
 import typing
 
 from scrollframe import ScrollFrame
+from settings import Settings
 
 class About(tk.Toplevel):
     def __init__(
@@ -174,22 +175,23 @@ class load_dialog():
     def close(self):
         self.window.destroy()
     
-class settings_dialog():
-    def __init__(self, root, settings: dict, page=0) -> None:
-        self.window = tk.Toplevel()
-        self._settings = copy.deepcopy(settings)
-        self.settings = copy.deepcopy(settings)
+class SettingsDialog(tk.Toplevel):
+    def __init__(self, root, settings: Settings, page=0) -> None:
+        super().__init__(root)
+        
+        self._settings = copy.deepcopy(settings.settings)
+        self.settings = settings
         self.page = page
 
-        self.window.geometry('500x400')
+        self.geometry('500x400')
 
-        self.notebook = ttk.Notebook(self.window)
+        self.notebook = ttk.Notebook(self)
         self.tabs = {}
         self.load_tabs()
         self.notebook.pack(fill='both', expand=True)
             
         self.confirm = {
-            'frame': ttk.Frame(self.window)
+            'frame': ttk.Frame(self)
         }
         
         self.confirm['ok'] = ttk.Button(self.confirm['frame'], text='Ok', command=lambda : self.close(True))
@@ -199,17 +201,20 @@ class settings_dialog():
         self.confirm['cancel'].pack(side='right', padx=2, pady=2)
         
         self.confirm['frame'].pack(anchor='s', fill='x')
+        
+        self.protocol("WM_DELETE_WINDOW", lambda *args : self.close(False))
 
-        self.window.transient(root)
-        self.window.wait_window()
+        self.transient(root)
+        self.wait_window()
         
     def close(self, saveSettings = True):
-        print(self.settings)
-        print(self._settings)
+        # print(self.settings)
+        # print(self._settings)
         if not saveSettings:
-            self.settings = self._settings
+            self.settings.settings = self._settings
+            self.settings.save()
         
-        self.window.destroy()
+        self.destroy()
 
     def load_tabs(self):
         # self.paths()
@@ -234,16 +239,14 @@ class settings_dialog():
             'frame': ttk.Frame(self.notebook),
             'contents': {
                 'gamepaths': {
-                    'wmw': {
-                        'var': tk.StringVar(value=self.settings['gamedir'])
-                    }
+                    'var': tk.StringVar(value=self.settings.get('game.gamepath'))
                 },
                 'level': {
                     'image': {
-                        'var': tk.StringVar(value=self.settings['default_level']['image'])
+                        'var': tk.StringVar(value=self.settings.get('game.default_level.image'))
                     },
                     'xml': {
-                        'var': tk.StringVar(value=self.settings['default_level']['xml'])
+                        'var': tk.StringVar(value=self.settings.get('game.default_level.xml'))
                     }
                 }
             }
@@ -251,13 +254,13 @@ class settings_dialog():
         
         self.paths['contents']['gamepaths']['frame'] = ttk.LabelFrame(self.paths['frame'], text='Game paths')
         # self.paths['contents']['gamepaths']['wmw']['frame'] = ttk.Frame(self.paths['contents']['gamepaths']['frame'])
-        self.paths['contents']['gamepaths']['wmw']['label'] = ttk.Label(self.paths['contents']['gamepaths']['frame'], text="Where's My Water?")
-        self.paths['contents']['gamepaths']['wmw']['entry'] = ttk.Entry(self.paths['contents']['gamepaths']['frame'], textvariable=self.paths['contents']['gamepaths']['wmw']['var'])
-        self.paths['contents']['gamepaths']['wmw']['button'] = ttk.Button(self.paths['contents']['gamepaths']['frame'], text='Browse', command=lambda : browse(
-            self.paths['contents']['gamepaths']['wmw']['entry'],
+        self.paths['contents']['gamepaths']['label'] = ttk.Label(self.paths['contents']['gamepaths']['frame'], text="Where's My Water?")
+        self.paths['contents']['gamepaths']['entry'] = ttk.Entry(self.paths['contents']['gamepaths']['frame'], textvariable=self.paths['contents']['gamepaths']['var'])
+        self.paths['contents']['gamepaths']['button'] = ttk.Button(self.paths['contents']['gamepaths']['frame'], text='Browse', command=lambda : browse(
+            self.paths['contents']['gamepaths']['entry'],
             'dir',
             title='Choose game directory',
-            initialdir = self.paths['contents']['gamepaths']['wmw']['var'].get()
+            initialdir = self.paths['contents']['gamepaths']['var'].get()
             )
         )
         
@@ -298,11 +301,11 @@ class settings_dialog():
             )
         )
         
-        self.paths['contents']['gamepaths']['wmw']['label'].grid(row=0, column=0, sticky='e', padx=2, pady=2)
-        self.paths['contents']['gamepaths']['wmw']['entry'].grid(row=0, column=1, sticky='ew', padx=2, pady=2)
-        self.paths['contents']['gamepaths']['wmw']['button'].grid(row=0, column=2, padx=2, pady=2)
+        self.paths['contents']['gamepaths']['label'].grid(row=0, column=0, sticky='e', padx=2, pady=2)
+        self.paths['contents']['gamepaths']['entry'].grid(row=0, column=1, sticky='ew', padx=2, pady=2)
+        self.paths['contents']['gamepaths']['button'].grid(row=0, column=2, padx=2, pady=2)
         
-        self.paths['contents']['gamepaths']['wmw']['var'].trace('w', lambda name, index, mode: self.updateSettings())
+        self.paths['contents']['gamepaths']['var'].trace('w', lambda name, index, mode: self.updateSettings())
 
         self.paths['contents']['level']['image']['label'].grid(row=0, column=0, sticky='e', padx=2, pady=2)
         self.paths['contents']['level']['image']['entry'].grid(row=0, column=1, sticky='ew', padx=2, pady=2)
@@ -327,43 +330,54 @@ class settings_dialog():
         self.notebook.add(self.paths['frame'], text='Paths', sticky='nsew')
         
     def updateSettings(self):
-        self.settings['gamedir'] = self.paths['contents']['gamepaths']['wmw']['var'].get()
-        self.settings['default_level']['image'] = self.paths['contents']['level']['image']['var'].get()
-        self.settings['default_level']['xml'] = self.paths['contents']['level']['xml']['var'].get()
+        self.settings.set('game.gamepath', self.paths['contents']['gamepaths']['var'].get())
+        self.settings.set('game.default_level.image', self.paths['contents']['level']['image']['var'].get())
+        self.settings.set('game.default_level.xml', self.paths['contents']['level']['xml']['var'].get())
 
 if __name__ == '__main__':
+    test = 'settings'
 
-    __version__ = '2.0.0'
-    __author__ = 'ego-lay-atman-bay'
-    __credits__ = [
-        {
-            'name' : 'wmwpy',
-            'url' : 'https://github.com/wmw-modding/wmwpy',
-            'description' : "Where's My Editor? uses wmwpy to read and modify Where's My Water? data, e.g. levels."
-        },
-        {
-            'name' : 'rubice!',
-            'url' : 'https://www.youtube.com/channel/UCsY-c5mJYWnK6PhrkHqPwig',
-            'description' : 'Thanks to @rubice for creating the logo.'
-        },
-        {
-            'name' : 'campbellsonic',
-            'url' : 'https://github.com/campbellsonic',
-            'description' : 'Thanks to @campbellsonic for helping to read waltex images.'
-        }
-    ]
+    if test == 'about':
+        __version__ = '2.0.0'
+        __author__ = 'ego-lay-atman-bay'
+        __credits__ = [
+            {
+                'name' : 'wmwpy',
+                'url' : 'https://github.com/wmw-modding/wmwpy',
+                'description' : "Where's My Editor? uses wmwpy to read and modify Where's My Water? data, e.g. levels."
+            },
+            {
+                'name' : 'rubice!',
+                'url' : 'https://www.youtube.com/channel/UCsY-c5mJYWnK6PhrkHqPwig',
+                'description' : 'Thanks to @rubice for creating the logo.'
+            },
+            {
+                'name' : 'campbellsonic',
+                'url' : 'https://github.com/campbellsonic',
+                'description' : 'Thanks to @campbellsonic for helping to read waltex images.'
+            }
+        ]
 
 
-    app = tk.Tk()
-    about = About(
-        app,
-        title = "About",
-        author = __author__,
-        program = "Where's My Editor?",
-        version = __version__,
-        description = """Where's My Editor? is a level editor for the Where's My Water? game series.""",
-        credits = __credits__,
-        logo = Image.open('assets/images/WME_logo.png'),
-    )
-    
-    app.mainloop()
+        app = tk.Tk()
+        about = About(
+            app,
+            title = "About",
+            author = __author__,
+            program = "Where's My Editor?",
+            version = __version__,
+            description = """Where's My Editor? is a level editor for the Where's My Water? game series.""",
+            credits = __credits__,
+            logo = Image.open('assets/images/WME_logo.png'),
+        )
+
+        app.mainloop()
+
+    elif test == 'settings':
+        settings = Settings('settings.json')
+        
+        app = tk.Tk()
+        dialog = SettingsDialog(
+            app,
+            settings = settings
+        )
