@@ -596,21 +596,22 @@ class WME(tk.Tk):
             property : str,
             value : str,
             type : typing.Literal['number', 'text'] = 'text',
-            removable = True,
+            show_button = True,
             row = 0,
             entry_callback : typing.Callable[[str], typing.Any] = None,
             label_callback : typing.Callable[[str], bool] = None,
-            remove_callback : typing.Callable = None,
+            button_callback : typing.Callable = None,
+            button_text : str = '-',
             **kwargs,
         ) -> dict[typing.Literal[
             'label',
             'inputs',
-            'remove',
+            'button',
             'size',
             ], tkwidgets.EditableLabel | list[ttk.Entry] | ttk.Button]:
             row_size = 25
             
-            if removable:
+            if show_button:
                 name = tkwidgets.EditableLabel(
                     self.properties['left'],
                     text = property,
@@ -677,19 +678,19 @@ class WME(tk.Tk):
                 
                 inputs.append(input)
             
-            removeButton = None
+            button = None
             
-            if removable:
-                removeButton = ttk.Button(
+            if show_button:
+                button = ttk.Button(
                     self.properties['right'],
-                    text='-',
+                    text=button_text,
                     width=2,
-                    command = remove_callback
+                    command = button_callback
                 )
-                removeButton.grid(column=2, row=row)
+                button.grid(column=2, row=row)
                 
-                if removeButton.winfo_reqheight() > row_size:
-                    row_size = removeButton.winfo_reqheight()
+                if button.winfo_reqheight() > row_size:
+                    row_size = button.winfo_reqheight()
             
             # row_size += 5
             
@@ -701,7 +702,7 @@ class WME(tk.Tk):
             return {
                 'label' : name,
                 'inputs' : inputs,
-                'remove' : removeButton,
+                'button' : button,
                 'size' : row_size
             }
         
@@ -761,7 +762,7 @@ class WME(tk.Tk):
             'Name',
             obj.name,
             'text',
-            removable = False,
+            show_button = False,
             row=0,
         )['size'])
         
@@ -769,10 +770,9 @@ class WME(tk.Tk):
             'Pos',
             obj.pos,
             ['number', 'number'],
-            removable=False,
+            show_button=False,
             row=1,
-            entry_callback = lambda value,
-            col : updatePosition(value, col),
+            entry_callback = lambda value, col : updatePosition(value, col),
             from_ = -99,
             to = 99,
         )['size'])
@@ -784,7 +784,7 @@ class WME(tk.Tk):
             'Angle',
             angle,
             'number',
-            removable = False,
+            show_button = False,
             row=2,
             from_=-360,
             to=360,
@@ -803,7 +803,7 @@ class WME(tk.Tk):
                     row=row,
                     entry_callback = lambda value, prop = property: updateProperty(prop, value),
                     label_callback = lambda name, prop = property: updatePropertyName(prop, name),
-                    remove_callback = lambda *args, prop = property : removePropety(prop),
+                    button_callback = lambda *args, prop = property : removePropety(prop),
                 )['size'])
         
         self.properties['panned'].configure(height = sum(sizes))
@@ -839,9 +839,11 @@ class WME(tk.Tk):
                 label_callback = lambda name, prop = property: setProperty(name, value)
             )
             
+            sizes.append(prop['size'])
+            
             prop['label'].edit_start()
             
-            self.properties['panned'].configure(height = row * ROW_SIZE)
+            self.properties['panned'].configure(height = sum(sizes))
         
         logging.debug(f'{row = }')
         
