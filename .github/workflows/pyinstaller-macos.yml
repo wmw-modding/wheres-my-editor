@@ -1,4 +1,4 @@
-name: Package Application with Pyinstaller
+name: Package Application - MacOS
 
 on: workflow_dispatch
 #  push:
