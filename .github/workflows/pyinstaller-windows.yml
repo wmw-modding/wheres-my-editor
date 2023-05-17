@@ -36,9 +36,9 @@ jobs:
         pip install pyinstaller
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     
-    - name: build pyinstaller
+    - name: pyinstaller build
       run: |
-        pyinstaller build.py
+        python build.py
     
     #- name: Package Application
     #  uses: ego-lay-atman-bay/pyinstaller-action-windows@main
