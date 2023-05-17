@@ -1,4 +1,4 @@
-name: Package Application - Windows
+name: Package Application - MacOS
 
 on: workflow_dispatch
 #  push:
@@ -9,7 +9,7 @@ on: workflow_dispatch
 jobs:
   build:
 
-    runs-on: windows-latest
+    runs-on: macos-latest
 
     steps:
     - uses: actions/checkout@v2
