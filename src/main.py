@@ -598,6 +598,7 @@ class WME(tk.Tk):
             type : typing.Literal['number', 'text'] = 'text',
             show_button = True,
             row = 0,
+            label_prefix : str = '',
             entry_callback : typing.Callable[[str], typing.Any] = None,
             label_callback : typing.Callable[[str], bool] = None,
             button_callback : typing.Callable = None,
@@ -611,18 +612,29 @@ class WME(tk.Tk):
             ], tkwidgets.EditableLabel | list[ttk.Entry] | ttk.Button]:
             row_size = 25
             
+            label_frame = ttk.Frame(self.properties['left'])
+            
             if show_button:
                 name = tkwidgets.EditableLabel(
-                    self.properties['left'],
+                    label_frame,
                     text = property,
                     callback = label_callback,
                 )
             else:
                 name = ttk.Label(
-                    self.properties['left'],
-                    text=property,
+                    label_frame,
+                    text = property,
                 )
-            name.grid(row=row, sticky='we')
+                
+            if label_prefix not in ['', None]:
+                prefix = ttk.Label(
+                    label_frame,
+                    text = label_prefix,
+                )
+                prefix.pack(side = 'left')
+            
+            label_frame.grid(row=row, sticky='we')
+            name.pack(side = 'left')
             
             if name.winfo_reqheight() > row_size:
                 row_size = name.winfo_reqheight()
@@ -716,6 +728,13 @@ class WME(tk.Tk):
             obj.properties[property] = value
             self.updateObject(obj)
         
+        def resetProperty(property):
+            if property in obj.defaultProperties:
+                obj.properties[property] = obj.defaultProperties[property]
+                
+                self.updateObject(obj)
+                self.updateProperties(obj)
+        
         def updatePropertyName(property, newName, skip_unedited = False):
             if newName == property and not skip_unedited:
                 return True
@@ -797,13 +816,26 @@ class WME(tk.Tk):
             if property not in ['Angle']:
                 row += 1
                 logging.debug(f'{property = }')
+                prefix = ''
+                button_text = '-'
+                button_callback = lambda *args, prop = property : removePropety(prop)
+                
+                if property in obj.defaultProperties:
+                    prefix = '*'
+                    button_text = '↺'
+                    
+                    button_callback = lambda *args, prop = property : resetProperty(prop)
+                
+                
                 sizes.append(addProperty(
                     property,
                     obj.properties[property],
-                    row=row,
+                    row = row,
+                    button_text = button_text,
                     entry_callback = lambda value, prop = property: updateProperty(prop, value),
                     label_callback = lambda name, prop = property: updatePropertyName(prop, name),
-                    button_callback = lambda *args, prop = property : removePropety(prop),
+                    button_callback = button_callback,
+                    label_prefix = prefix,
                 )['size'])
         
         self.properties['panned'].configure(height = sum(sizes))
