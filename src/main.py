@@ -1142,6 +1142,7 @@ class WME(tk.Tk):
             )
         except:
             logging.warning(f'unable to load game: {self.settings.get("game.gamepath")}')
+            wmwpy.Utils.logging_utils.log_exception()
     
     def loadLevel(self, xml : str, image : str):
         if self.game in ['', None]:
