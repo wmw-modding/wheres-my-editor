@@ -592,8 +592,6 @@ class WME(tk.Tk):
         if obj == None:
             return
         
-        ROW_SIZE = 25
-        
         def addProperty(
             property : str,
             value : str,
@@ -604,7 +602,14 @@ class WME(tk.Tk):
             label_callback : typing.Callable[[str], bool] = None,
             remove_callback : typing.Callable = None,
             **kwargs,
-        ) -> dict[typing.Literal['label', 'inputs', 'remove'], tkwidgets.EditableLabel | list[ttk.Entry] | ttk.Button]:
+        ) -> dict[typing.Literal[
+            'label',
+            'inputs',
+            'remove',
+            'size',
+            ], tkwidgets.EditableLabel | list[ttk.Entry] | ttk.Button]:
+            row_size = 25
+            
             if removable:
                 name = tkwidgets.EditableLabel(
                     self.properties['left'],
@@ -617,6 +622,9 @@ class WME(tk.Tk):
                     text=property,
                 )
             name.grid(row=row, sticky='we')
+            
+            if name.winfo_reqheight() > row_size:
+                row_size = name.winfo_reqheight()
             
             inputs = []
             
@@ -642,7 +650,7 @@ class WME(tk.Tk):
                 for t in type:
                     t = t.lower()
                     input = inputType(t, value[column])
-                    input.grid(column = column, row=row, sticky='we')
+                    input.grid(column = column, row=row, sticky='ew')
                     if entry_callback:
                         input.bind('<Return>', lambda e, value = input.get, col = column: entry_callback(value(), col))
                         input.bind('<FocusOut>', lambda e, value = input.get, col = column: entry_callback(value(), col))
@@ -651,15 +659,21 @@ class WME(tk.Tk):
                     
                     inputs.append(input)
                     
+                    if input.winfo_reqheight() > row_size:
+                        row_size = input.winfo_reqheight()
+                    
             else:
                 type = type.lower()
                 
                 input = inputType(type, value)
-                input.grid(column = 0, row=row, sticky = 'we', columnspan=2)
+                input.grid(column = 0, row=row, sticky = 'ew', columnspan=2)
                 
                 if entry_callback:
                     input.bind('<Return>', lambda e: entry_callback(input.get()))
                     input.bind('<FocusOut>', lambda e: entry_callback(input.get()))
+                
+                if input.winfo_reqheight() > row_size:
+                        row_size = input.winfo_reqheight()
                 
                 inputs.append(input)
             
@@ -673,14 +687,22 @@ class WME(tk.Tk):
                     command = remove_callback
                 )
                 removeButton.grid(column=2, row=row)
+                
+                if removeButton.winfo_reqheight() > row_size:
+                    row_size = removeButton.winfo_reqheight()
             
-            self.properties['left'].rowconfigure(row, minsize=ROW_SIZE)
-            self.properties['right'].rowconfigure(row, minsize=ROW_SIZE)
+            # row_size += 5
+            
+            logging.debug(f'{row_size = }')
+            
+            self.properties['left'].rowconfigure(row, minsize=row_size)
+            self.properties['right'].rowconfigure(row, minsize=row_size)
             
             return {
                 'label' : name,
                 'inputs' : inputs,
                 'remove' : removeButton,
+                'size' : row_size
             }
         
         def removePropety(property):
@@ -733,13 +755,32 @@ class WME(tk.Tk):
             
             self.updateObject(obj)
         
-        addProperty('Name', obj.name, 'text', removable = False, row=0)
-        addProperty('Pos', obj.pos, ['number', 'number'], removable=False, row=1, entry_callback = lambda value, col : updatePosition(value, col), from_ = -99, to = 99)
+        sizes : list[int] = []
+        
+        sizes.append(addProperty(
+            'Name',
+            obj.name,
+            'text',
+            removable = False,
+            row=0,
+        )['size'])
+        
+        sizes.append(addProperty(
+            'Pos',
+            obj.pos,
+            ['number', 'number'],
+            removable=False,
+            row=1,
+            entry_callback = lambda value,
+            col : updatePosition(value, col),
+            from_ = -99,
+            to = 99,
+        )['size'])
         
         angle = '0'
         if 'Angle' in obj.properties:
             angle = obj.properties['Angle']
-        addProperty(
+        sizes.append(addProperty(
             'Angle',
             angle,
             'number',
@@ -748,7 +789,7 @@ class WME(tk.Tk):
             from_=-360,
             to=360,
             entry_callback = lambda value: updateProperty('Angle', value),
-        )
+        )['size'])
         
         row = 3
         
@@ -756,16 +797,16 @@ class WME(tk.Tk):
             if property not in ['Angle']:
                 row += 1
                 logging.debug(f'{property = }')
-                addProperty(
+                sizes.append(addProperty(
                     property,
                     obj.properties[property],
                     row=row,
                     entry_callback = lambda value, prop = property: updateProperty(prop, value),
                     label_callback = lambda name, prop = property: updatePropertyName(prop, name),
                     remove_callback = lambda *args, prop = property : removePropety(prop),
-                )
+                )['size'])
         
-        self.properties['panned'].configure(height = row * ROW_SIZE)
+        self.properties['panned'].configure(height = sum(sizes))
         self.properties['scrollFrame'].resetCanvasScroll()
         
         def addNewProperty(property, value, row):
