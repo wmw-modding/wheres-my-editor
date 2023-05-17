@@ -1,4 +1,4 @@
-__version__ = '2.0.0'
+__version__ = '2.1.0'
 __author__ = 'ego-lay-atman-bay'
 __credits__ = [
     {
@@ -20,6 +20,8 @@ __credits__ = [
 __links__ = {
     'discord' : 'https://discord.gg/eRVfbgwNku',
 }
+
+__wmwpy_version__ = "0.3.0-beta"
 
 import traceback
 import logging
@@ -80,9 +82,9 @@ import wmwpy
 from scrollframe import ScrollFrame
 import popups
 
-if wmwpy.__version__ < "0.2.0-beta":
-    logging.error('wmwpy version must be "0.2.0-beta" or higher.')
-    exit()
+if wmwpy.__version__ < __wmwpy_version__:
+    logging.error(f'wmwpy version must be "{__wmwpy_version__}" or higher.')
+    raise ImportWarning(f'wmwpy version must be "{__wmwpy_version__}" or higher.')
 
 ImageColor.colormap['transparent'] = '#0000'
 
@@ -105,7 +107,13 @@ class WME(tk.Tk):
         # if len(self.windowIcons) > 0:
         #     self.iconphoto(True, *self.windowIcons)
         
-        self.iconbitmap(default = self.windowIcons[0])
+        try:
+            self.iconbitmap(default = list(self.windowIcons.keys())[0])
+        except:
+            try:
+                self.iconphoto(True, *list(self.windowIcons.values()))
+            except:
+                pass
         
         self.title("Where's my Editor")
         self.geometry('%dx%d' % (760 , 610) )
@@ -154,16 +162,14 @@ class WME(tk.Tk):
         return os.path.join(self.WME_assets, path)
     
     def findIcons(self):
-        self.windowIcons = []
+        self.windowIcons : dict[str, ImageTk.PhotoImage] = {}
         
         for icon in self.APP_ICONS:
             try:
-                self.windowIcons.append(self.getAsset(icon))
-                # self.windowIcons.append(
-                #     ImageTk.PhotoImage(
-                #         Image.open(os.path.join(self.WME_assets, icon))
-                #     )
-                # )
+                self.windowIcons[self.getAsset(icon)] = ImageTk.PhotoImage(
+                        Image.open(self.getAsset(icon))
+                    )
+                
             except:
                 pass
         
@@ -890,14 +896,17 @@ class WME(tk.Tk):
         
         objects = self.level_canvas.find_withtag('object')
         coords = numpy.array([self.level_canvas.coords(id) for id in objects])
-        coords = coords.swapaxes(0,1)
+        if len(coords) > 0:
+            coords = coords.swapaxes(0,1)
+        else:
+            coords = numpy.array([[0],[0]])
         
-        min = numpy.array([a.min() for a in coords]) - LEVEL_CANVAS_PADDING
-        max = numpy.array([a.max() for a in coords]) + LEVEL_CANVAS_PADDING
+        min = numpy.array([a.min() for a in coords])
+        max = numpy.array([a.max() for a in coords])
         
         
-        min = numpy.append(min, level_size[0]).reshape([2,2]).swapaxes(0,1)
-        max = numpy.append(max, level_size[1]).reshape([2,2]).swapaxes(0,1)
+        min = numpy.append(min, level_size[0]).reshape([2,2]).swapaxes(0,1)  - LEVEL_CANVAS_PADDING
+        max = numpy.append(max, level_size[1]).reshape([2,2]).swapaxes(0,1)  + LEVEL_CANVAS_PADDING
         
         logging.debug(f'{max = }')
         logging.debug(f'{min = }')
@@ -926,6 +935,7 @@ class WME(tk.Tk):
         for obj in self.level.objects:
             self.updateObject(obj)
         
+        self.updateLevelScroll()
         self.level_canvas.xview_moveto(0.15)
         self.level_canvas.yview_moveto(0.2)
     
