@@ -598,6 +598,8 @@ class WME(tk.Tk):
         self.resetProperties()
         
         if obj == None:
+            self.properties['panned'].configure(height = 1)
+            self.properties['scrollFrame'].resetCanvasScroll()
             return
         
         def addProperty(
@@ -1046,7 +1048,7 @@ class WME(tk.Tk):
             if len(self.object_selector['treeview'].selection()) > 0:
                 self.object_selector['treeview'].selection_remove(self.object_selector['treeview'].selection()[0])
         else:
-            children = self.object_selector['treeview'].get_children('root')
+            children = self.object_selector['treeview'].get_children('')
             
             selected = None
             
