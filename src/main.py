@@ -182,8 +182,11 @@ class WME(tk.Tk):
         self.side_pane = ttk.PanedWindow(self.seperator, orient='vertical')
         self.seperator.add(self.side_pane)
         
-        side_pane_width = 200
+        side_pane_width = 250
         side_pane_height = 300
+        
+        
+        # create object selector
         
         self.object_selector : dict[str, tk.Widget | ttk.Treeview] = {
             'labelFrame' : ttk.LabelFrame(self.side_pane, width=side_pane_width, height=side_pane_height, text='Objects'),
@@ -195,9 +198,14 @@ class WME(tk.Tk):
         
         self.object_selector['treeview'] = ttk.Treeview(
             self.object_selector['labelFrame'],
-            show = 'tree',
-            name = 'objects'
+            show = 'headings',
+            name = 'objects',
+            columns = ['name', 'type'],
         )
+        self.object_selector['treeview'].heading('type', text='Type', anchor='w')
+        self.object_selector['treeview'].heading('name', text='Name', anchor='w')
+        self.object_selector['treeview'].column('type', width=1)
+        self.object_selector['treeview'].column('name', width=1)
         
         self.object_selector['treeview'].pack(side='left', fill='both', expand = True)
         
@@ -223,7 +231,7 @@ class WME(tk.Tk):
         }
         self.side_pane.add(self.properties['labelFrame'])
         
-        self.properties['scrollFrame'] = ScrollFrame(self.properties['labelFrame'], usettk=True, width=200,)
+        self.properties['scrollFrame'] = ScrollFrame(self.properties['labelFrame'], usettk=True, width=side_pane_width,)
         self.properties['scrollFrame'].pack(fill='both', expand=True)
         self.properties['frame'] = self.properties['scrollFrame'].viewPort
 
@@ -916,25 +924,17 @@ class WME(tk.Tk):
     def updateObjectSelector(self):
         self.resetObjectSelector()
         
-        root = self.object_selector['treeview'].insert(
-            '',
-            'end',
-            iid = 'root',
-            text = 'Objects',
-            open = True,
-            tags = 'root',
-            
-        )
-        
         for obj in self.level.objects:
             self.object_selector['treeview'].insert(
-                root,
+                '',
                 'end',
                 text = obj.name,
                 open = True,
-                values = [obj.id],
+                values = [obj.name, obj.type if obj.type != None else '', obj.id],
                 tags = 'object'
             )
+            
+            # self.object_selector['treeview'].item(item_id, '')
         
         def selectObject(event):
             item = self.object_selector['treeview'].focus()
@@ -943,7 +943,7 @@ class WME(tk.Tk):
             logging.info(item)
             
             if 'object' in item['tags']:
-                id = item['values'][0]
+                id = item['values'][2]
                 obj = self.level.getObjectById(id)
                 self.selectObject(obj)
         
@@ -1011,7 +1011,7 @@ class WME(tk.Tk):
             self.updateObject(obj)
         
         self.updateLevelScroll()
-        self.level_canvas.xview_moveto(0.15)
+        self.level_canvas.xview_moveto(0.23)
         self.level_canvas.yview_moveto(0.2)
     
     def dragObject(self, obj : wmwpy.classes.Object, event = None):
