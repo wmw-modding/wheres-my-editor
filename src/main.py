@@ -221,6 +221,7 @@ class WME(tk.Tk):
         
         self.properties : dict[typing.Literal[
             'labelFrame',
+            'notebook',
             'scrollFrame',
             'frame',
             'panned',
@@ -231,7 +232,12 @@ class WME(tk.Tk):
         }
         self.side_pane.add(self.properties['labelFrame'])
         
+        # self.properties['notebook'] = ttk.Notebook(self.properties['labelFrame'])
+        
         self.properties['scrollFrame'] = ScrollFrame(self.properties['labelFrame'], usettk=True, width=side_pane_width,)
+        # self.properties['notebook'].pack(fill='both', expand=True)
+        # self.properties['notebook'].add(self.properties['scrollFrame'], text='Object Properties')
+        # self.properties['notebook'].add(ttk.Frame(self.properties['notebook']), text='Level Properties')
         self.properties['scrollFrame'].pack(fill='both', expand=True)
         self.properties['frame'] = self.properties['scrollFrame'].viewPort
 
@@ -609,6 +615,7 @@ class WME(tk.Tk):
             show_button = True,
             row = 0,
             label_prefix : str = '',
+            label_editable : bool = True,
             entry_callback : typing.Callable[[str], typing.Any] = None,
             label_callback : typing.Callable[[str], bool] = None,
             button_callback : typing.Callable = None,
@@ -624,7 +631,7 @@ class WME(tk.Tk):
             
             label_frame = ttk.Frame(self.properties['left'])
             
-            if show_button:
+            if label_editable:
                 name = tkwidgets.EditableLabel(
                     label_frame,
                     text = property,
@@ -791,6 +798,7 @@ class WME(tk.Tk):
             'Name',
             obj.name,
             'text',
+            label_editable = False,
             show_button = False,
             row=0,
         )['size'])
@@ -799,6 +807,7 @@ class WME(tk.Tk):
             'Pos',
             obj.pos,
             ['number', 'number'],
+            label_editable = False,
             show_button=False,
             row=1,
             entry_callback = lambda value, col : updatePosition(value, col),
@@ -813,6 +822,7 @@ class WME(tk.Tk):
             'Angle',
             angle,
             'number',
+            label_editable = False,
             show_button = False,
             row=2,
             from_=-360,
@@ -842,6 +852,7 @@ class WME(tk.Tk):
                     obj.properties[property],
                     row = row,
                     button_text = button_text,
+                    label_editable = property not in obj.defaultProperties,
                     entry_callback = lambda value, prop = property: updateProperty(prop, value),
                     label_callback = lambda name, prop = property: updatePropertyName(prop, name),
                     button_callback = button_callback,
@@ -1134,7 +1145,6 @@ class WME(tk.Tk):
                 self.game.gamepath,
                 self.game.assets,
                 self.game.baseassets,
-                '/Levels/',
                 self.level.filename,
             )
         
