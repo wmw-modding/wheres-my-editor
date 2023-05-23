@@ -65,6 +65,12 @@ _log_filename = f'logs/{datetime.now().strftime("%m-%d-%y_%H-%M-%S")}.log'
 
 createLogger('file', filename = _log_filename)
 
+def log_exception():
+    fileio = io.StringIO()
+    traceback.print_exc(file = fileio)
+    
+    logging.error(fileio.getvalue())
+
 import tkinter as tk
 from tkinter import ttk, simpledialog, messagebox, filedialog
 import tkwidgets
@@ -1133,6 +1139,10 @@ class WME(tk.Tk):
             )
         )
         
+        if xml in ['', None]:
+            logging.info('Open level canceled')
+            return
+        
         image = os.path.splitext(xml)[0] + '.png'
         
         self.loadLevel(xml, image)
@@ -1233,18 +1243,25 @@ class WME(tk.Tk):
     
     def loadLevel(self, xml : str, image : str):
         if self.game in ['', None]:
+            logging.warning('no game is loaded')
             return
+        
+        if (xml in ['', None]) and (image in ['', None]):
+            logging.warning('No level to load')
+            return
+        
         xml = self.getFile(xml)
         image = self.getFile(image)
         
         if isinstance(self.level, wmwpy.classes.Level):
             self.level_canvas.delete('object')
         
-        # try:
-        self.level = self.game.Level(xml, image)
-        # except:
-        #     logging.warning('Unable to load level')
-        #     return
+        try:
+            self.level = self.game.Level(xml, image)
+        except:
+            logging.warning('Unable to load level')
+            log_exception()
+            return
         
         self.level.scale = 5
         self.updateLevel()
@@ -1302,10 +1319,7 @@ def main():
         app = WME(None)
         app.mainloop()
     except Exception as e:
-        fileio = io.StringIO()
-        traceback.print_exc(file = fileio)
-        
-        logging.error(fileio.getvalue())
+        log_exception()
 
 if(__name__ == '__main__'):
     main()
