@@ -2,7 +2,7 @@ name: Package Application
 
 on: 
   release:
-    types: [created]
+    types: [published]
 
 jobs:
   mac-build:
