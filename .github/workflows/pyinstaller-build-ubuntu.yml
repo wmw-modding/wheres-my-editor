@@ -1,0 +1,49 @@
+name: Package Application - Ubuntu
+
+on: workflow_dispatch
+
+jobs:
+  linux-build:
+    name: build Linux
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.11
+      
+    - name: Git checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: '0'
+    - name: git
+      run: |
+        # setup the username and email. I tend to use 'GitHub Actions Bot' with no email by default
+        git --version
+        git config user.name "GitHub Actions Bot"
+        git config user.email "<>"
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+        pip install -r requirements.txt
+    
+    - name: pyinstaller build
+      run: |
+        python build.py
+
+    - name: Create zip
+      run: |
+        mv ./dist ./wme-Ubuntu |
+        zip -r ./wme-Ubuntu.zip ./wme-Ubuntu/
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: wme
+        path: wme-Ubuntu.zip
