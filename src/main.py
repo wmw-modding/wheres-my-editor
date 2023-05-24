@@ -1250,6 +1250,9 @@ class WME(tk.Tk):
             logging.warning('No level to load')
             return
         
+        logging.debug(f'{xml = }')
+        logging.debug(f'{image = }')
+        
         xml = self.getFile(xml)
         image = self.getFile(image)
         
