@@ -1260,7 +1260,7 @@ class WME(tk.Tk):
             self.level_canvas.delete('object')
         
         try:
-            self.level = self.game.Level(xml, image)
+            self.level = self.game.Level(xml, image, HD = True, TabHD = True)
         except:
             logging.warning('Unable to load level')
             log_exception()
