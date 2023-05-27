@@ -385,7 +385,7 @@ class WME(tk.Tk):
         pos = numpy.array(pos)
         offset = numpy.array(offset)
         
-        pos = pos - (offset * [1,-1])
+        pos = pos - offset
         pos = (pos * self.OBJECT_MULTIPLIER) * self.level.scale
         
         return pos
