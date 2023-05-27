@@ -1222,12 +1222,18 @@ class WME(tk.Tk):
             self.game.assets,
         )
         
-        print(f'In filesystem? {path.is_relative_to(assets)}')
+        print(f'getFile: In filesystem? {path.is_relative_to(assets)}')
         if path.is_relative_to(assets):
             logging.debug(f'getFile: relative path')
             relPath = os.path.relpath(path, assets)
             logging.debug(f'getFile: rel path: {relPath}')
             file = self.game.filesystem.get(relPath)
+            
+            logging.debug(f'getFile: game.filesystem: {self.game.filesystem}')
+            logging.debug(f'getFile: game.filesystem.root: {self.game.filesystem.root.path}')
+            
+            logging.debug(f'getFile: file: {file}')
+            logging.debug(f'getFile: file.path: {file.path}')
             return file
         
         if path in ['', None]:
@@ -1274,10 +1280,16 @@ class WME(tk.Tk):
         xml = self.getFile(xml)
         image = self.getFile(image)
         
+        logging.debug(f'loadLevel: xml: {xml}')
+        logging.debug(f'loadLevel: image: {image}')
+        
         if isinstance(self.level, wmwpy.classes.Level):
             self.level_canvas.delete('object')
         
         try:
+            logging.debug(f'loading level:')
+            logging.debug(f'xml: {xml}')
+            logging.debug(f'image: {image}')
             self.level = self.game.Level(xml, image, HD = True, TabHD = True)
         except:
             logging.warning('Unable to load level')
