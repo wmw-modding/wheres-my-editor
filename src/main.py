@@ -396,6 +396,8 @@ class WME(tk.Tk):
             self.updateLevelScroll()
             return
         
+        logging.info(f'updating object: {obj.name}, {obj.type}')
+        
         offset = numpy.array(obj.offset)
         
         pos = numpy.array(obj.pos)
@@ -1002,15 +1004,15 @@ class WME(tk.Tk):
         min = numpy.append(min, level_size[0]).reshape([2,2]).swapaxes(0,1)  - LEVEL_CANVAS_PADDING
         max = numpy.append(max, level_size[1]).reshape([2,2]).swapaxes(0,1)  + LEVEL_CANVAS_PADDING
         
-        logging.debug(f'{max = }')
-        logging.debug(f'{min = }')
+        # logging.debug(f'{max = }')
+        # logging.debug(f'{min = }')
         
         min = [a.min() for a in min]
         max = [a.max() for a in max]
         
         scrollregion = tuple(numpy.append(min,max))
         
-        logging.debug(f'scrollregion = {scrollregion}')
+        # logging.debug(f'scrollregion = {scrollregion}')
         
         self.level_canvas.config(scrollregion = scrollregion)
         
@@ -1020,6 +1022,8 @@ class WME(tk.Tk):
             self.level_images['background'],
             image = self.level.PhotoImage
         )
+        
+        logging.info('updating level')
         
         self.selectedObject = None
         self.updateProperties()
@@ -1266,8 +1270,12 @@ class WME(tk.Tk):
             log_exception()
             return
         
+        logging.info(f'level = {self.level}')
+        logging.info(f'objects = {self.level.objects}')
+        
         self.level.scale = 5
         self.updateLevel()
+        logging.info('finished loading level')
         return self.level
     
     def updateSettings(this):
