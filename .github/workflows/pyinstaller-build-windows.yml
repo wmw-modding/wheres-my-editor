@@ -49,5 +49,5 @@ jobs:
 
     - uses: actions/upload-artifact@v3
       with:
-        name: "wme-windows-2.1.0 - ${{github.run_number}}"
+        name: "wme-windows-2.2.0 - ${{github.run_number}}"
         path: ./wme-Windows.zip

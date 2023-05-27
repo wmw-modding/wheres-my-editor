@@ -49,5 +49,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-           name: "wme-mac-2.1.0 - ${{github.run_number}}"
+           name: "wme-mac-2.2.0 - ${{github.run_number}}"
            path: wme-MacOS.zip
