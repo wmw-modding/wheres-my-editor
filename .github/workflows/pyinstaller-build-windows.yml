@@ -13,15 +13,15 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     
     - name: Set up Python 3.11
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: 3.11
       
     - name: Git checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: '0'
     - name: git
@@ -47,7 +47,7 @@ jobs:
         mv ./dist ./wme-Windows ;
         Compress-Archive ./wme-Windows/ ./wme-Windows.zip ;
 
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       with:
         name: wme
         path: ./wme-Windows.zip
