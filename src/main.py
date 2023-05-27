@@ -1,4 +1,4 @@
-__version__ = '2.1.0'
+__version__ = '2.2.0'
 __author__ = 'ego-lay-atman-bay'
 __credits__ = [
     {
@@ -294,6 +294,9 @@ class WME(tk.Tk):
         self.level_canvas.bind('<Button-3>', self.onLevelRightClick)
         
         self.resetProperties()
+    
+    # def createProgressBar(self):
+    #     self.progress_bars = {}
     
     def onLevelMouseWheel(self, event : tk.Event, type = 0):
         if type:
@@ -1196,14 +1199,19 @@ class WME(tk.Tk):
         self.saveLevel(filename = filename)
     
     def getFile(self, path : str):
+        logging.debug(f'getFile: path: {path}')
         if not isinstance(path, str):
             raise TypeError('path must be str')
         
         if path in ['', None]:
+            logging.debug('getFile: no path')
             return
         
         if path.startswith(':game:'):
+            logging.debug(f'getFile: path starts with :game:')
             path = path.partition(':game:')[-1]
+            
+            logging.debug(f'getFile: path after :game: {path}')
             
             file = self.game.filesystem.get(path)
             return file
@@ -1216,12 +1224,17 @@ class WME(tk.Tk):
         
         print(f'In filesystem? {path.is_relative_to(assets)}')
         if path.is_relative_to(assets):
-            file = self.game.filesystem.get(os.path.relpath(path, assets))
+            logging.debug(f'getFile: relative path')
+            relPath = os.path.relpath(path, assets)
+            logging.debug(f'getFile: rel path: {relPath}')
+            file = self.game.filesystem.get(relPath)
             return file
         
         if path in ['', None]:
+            logging.debug('getFile: no path')
             return None
         else:
+            logging.debug(f'getFile: absolute path: {path}')
             file = wmwpy.filesystem.File(None, os.path.basename(path), path)
         
         return file
