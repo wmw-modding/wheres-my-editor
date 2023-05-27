@@ -41,13 +41,12 @@ jobs:
       run: |
         python build.py
 
-    - name: Create zip
+    - name: Move files
       shell: pwsh
       run: ;
-        mv ./dist ./wme-Windows ;
-        Compress-Archive ./wme-Windows/ ./wme-Windows.zip ;
+        mv ./dist ./wme-Windows
 
     - uses: actions/upload-artifact@v3
       with:
         name: "wme-windows-2.2.0 - ${{github.run_number}}"
-        path: ./wme-Windows.zip
+        path: ./wme-Windows

@@ -41,13 +41,12 @@ jobs:
         run: |
           python build.py
   
-      - name: Create zip
+      - name: Move files
         run: |
-         mv ./dist ./wme-MacOS |
-         zip -r ./wme-MacOS.zip ./wme-MacOS/
+         mv ./dist ./wme-MacOS
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
            name: "wme-mac-2.2.0 - ${{github.run_number}}"
-           path: wme-MacOS.zip
+           path: wme-MacOS

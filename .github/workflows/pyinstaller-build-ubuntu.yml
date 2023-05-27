@@ -42,13 +42,12 @@ jobs:
       run: |
         python build.py
 
-    - name: Create zip
+    - name: Move files
       run: |
-        mv ./dist ./wme-Ubuntu |
-        zip -r ./wme-Ubuntu.zip ./wme-Ubuntu/
+        mv ./dist ./wme-Ubuntu
     
     - name: Upload artifact
       uses: actions/upload-artifact@v3
       with:
         name: "wme-ubuntu-2.2.0 - ${{github.run_number}}"
-        path: wme-Ubuntu.zip
+        path: wme-Ubuntu
