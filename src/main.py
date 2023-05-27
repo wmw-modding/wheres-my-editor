@@ -1290,7 +1290,13 @@ class WME(tk.Tk):
             logging.debug(f'loading level:')
             logging.debug(f'xml: {xml}')
             logging.debug(f'image: {image}')
-            self.level = self.game.Level(xml, image, HD = True, TabHD = True)
+            self.level = self.game.Level(
+                xml,
+                image,
+                HD = True,
+                TabHD = True,
+                ignore_errors = True,
+            )
         except:
             logging.warning('Unable to load level')
             log_exception()
