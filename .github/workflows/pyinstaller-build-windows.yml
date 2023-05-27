@@ -1,10 +1,10 @@
 name: Package Application - Windows
 
-on: workflow_dispatch
-#  push:
-#    branches: [ main ]
-#  pull_request:
-#    branches: [ main ]
+on: 
+  workflow_dispatch:
+  push:
+    branches:
+      - 'main'
 
 jobs:
   win-build:
@@ -49,5 +49,5 @@ jobs:
 
     - uses: actions/upload-artifact@v3
       with:
-        name: wme
+        name: "wme-windows-2.1.0 - ${{github.run_number}}"
         path: ./wme-Windows.zip

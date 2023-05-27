@@ -1,6 +1,10 @@
 name: Package Application - Mac OS
 
-on: workflow_dispatch
+on: 
+  workflow_dispatch:
+  push:
+    branches:
+      - 'main'
 
 jobs:
     mac-build:
@@ -45,5 +49,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-           name: wme
+           name: "wme-mac-2.1.0 - ${{github.run_number}}"
            path: wme-MacOS.zip

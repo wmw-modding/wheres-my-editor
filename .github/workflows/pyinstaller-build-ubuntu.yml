@@ -1,6 +1,11 @@
 name: Package Application - Ubuntu
 
-on: workflow_dispatch
+
+on: 
+  workflow_dispatch:
+  push:
+    branches:
+      - 'main'
 
 jobs:
   linux-build:
@@ -45,5 +50,5 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@v3
       with:
-        name: wme
+        name: "wme-ubuntu-2.1.0 - ${{github.run_number}}"
         path: wme-Ubuntu.zip
