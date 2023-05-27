@@ -194,7 +194,12 @@ class WME(tk.Tk):
         
         # create object selector
         
-        self.object_selector : dict[str, tk.Widget | ttk.Treeview] = {
+        self.object_selector : dict[typing.Literal[
+            'labelFrame',
+            'treeviewe',
+            'y_scroll',
+            'x_scroll',
+        ], tk.Widget | ttk.Treeview] = {
             'labelFrame' : ttk.LabelFrame(self.side_pane, width=side_pane_width, height=side_pane_height, text='Objects'),
             'treeview' : None,
             'y_scroll' : None,
@@ -279,6 +284,14 @@ class WME(tk.Tk):
         self.level_canvas.configure(xscrollcommand=self.level_scrollbars['horizontal'].set)
         self.level_canvas.configure(yscrollcommand=self.level_scrollbars['vertical'].set)
         
+        
+        self.createLevelContextMenu()
+        
+        self.resetProperties()
+        self.createProgressBar()
+    
+    def bindWindowWidgets(self):
+        
         if platform.system() == 'Linux':
             self.level_canvas.bind("<Button-4>", self.onLevelMouseWheel)
             self.level_canvas.bind("<Button-5>", self.onLevelMouseWheel)
@@ -290,13 +303,110 @@ class WME(tk.Tk):
             self.level_canvas.bind("<Shift-MouseWheel>", lambda *args: self.onLevelMouseWheel(*args, type = 1))
         
         self.level_canvas.bind('<Button-1>', self.onLevelClick)
-        self.createLevelContextMenu()
         self.level_canvas.bind('<Button-3>', self.onLevelRightClick)
         
-        self.resetProperties()
+        self.object_selector['treeview'].configure(selectmode = 'browse')
+        self.object_selector['treeview'].state(("!disabled",))
+        # re-enable item opening on click
+        self.object_selector['treeview'].unbind('<Button-1>')
+        
+        self.updateLevel()
     
-    # def createProgressBar(self):
-    #     self.progress_bars = {}
+    def unbindWindowWidgets(self):
+        if platform.system() == 'Linux':
+            self.level_canvas.unbind("<Button-4>")
+            self.level_canvas.unbind("<Button-5>")
+            
+            self.level_canvas.unbind("<Shift-Button-4>")
+            self.level_canvas.unbind("<Shift-Button-5>")
+        else:
+            self.level_canvas.unbind("<MouseWheel>")
+            self.level_canvas.unbind("<Shift-MouseWheel>")
+            
+        self.level_canvas.unbind('<Button-1>')
+        self.level_canvas.unbind('<Button-3>')
+        
+        objects = self.level_canvas.find_withtag('object')
+        objects = list(objects) + list(self.level_canvas.find_withtag('selection'))
+        
+        for id in objects:
+            self.unbindObject(id)
+        
+        self.object_selector['treeview'].configure(selectmode = 'none')
+        
+        self.object_selector['treeview'].state(("disabled",))
+        # disable item opening on click
+        self.object_selector['treeview'].bind('<Button-1>', lambda e: 'break')
+    
+    def createProgressBar(self):
+        self.progress_bar : dict[typing.Literal[
+            'frame',
+            'progress_bar',
+            'label',
+            'var',
+        ],
+           ttk.Frame |
+           ttk.Progressbar |
+           ttk.Label |
+           tk.StringVar
+        ] = {}
+        
+        self.progress_bar['frame'] = ttk.Frame()
+        self.progress_bar['frame'].pack(side = 'bottom', fill = 'x')
+        
+        self.progress_bar['var'] = tk.StringVar()
+        
+        self.progress_bar['progress_bar'] = ttk.Progressbar(
+            self.progress_bar['frame'],
+        )
+        self.progress_bar['label'] = ttk.Label(
+            self.progress_bar['frame'],
+            textvariable = self.progress_bar['var'],
+        )
+        
+        self.progress_bar['progress_bar'].grid(column = 0, row = 0, sticky = 'we')
+        self.progress_bar['label'].grid(column = 1, row = 0, sticky = 'we')
+        
+        self.progress_bar['frame'].columnconfigure(0, weight = 1, uniform = 'progress_bar')
+        self.progress_bar['frame'].columnconfigure(1, weight = 2, uniform = 'progress_bar')
+    
+    def updateProgressBar(
+        self,
+        progress : int = 0,
+        text : str = '',
+        max : int = None,
+    ):
+        self.progress_bar['var'].set(text)
+        if max != None:
+            self.progress_bar['progress_bar']['max'] = max
+        self.progress_bar['progress_bar']['value'] = progress
+
+        self.update()
+    
+    
+
+    @property
+    def state(self) -> typing.Literal['enabled', 'normal', 'disabled']:
+        try:
+            return self._state
+        except:
+            return 'enabled'
+    @state.setter
+    def state(self, state : typing.Literal['enabled', 'normal', 'disabled']):
+        if state == 'enabled':
+            state = 'normal'
+        elif state not in ['enabled', 'normal', 'disabled']:
+            raise ValueError(f'uknown state {state}')
+        
+        self._state = state
+
+        if self._state == 'normal':
+            self.bindWindowWidgets()
+        elif self._state == 'disabled':
+            self.unbindWindowWidgets()
+    
+    def setState(self, state : typing.Literal['normal', 'disabled']):
+        self.level_canvas.configure(state = state)
     
     def onLevelMouseWheel(self, event : tk.Event, type = 0):
         if type:
@@ -536,6 +646,20 @@ class WME(tk.Tk):
             id,
             '<Button-3>',
             lambda e, object = obj, menu = self.createObjectContextMenu(obj): self.showPopup(menu, e, callback = lambda : self.selectObject(object))
+        )
+    
+    def unbindObject(self, id):
+        self.level_canvas.tag_unbind(
+            id,
+            '<Button1-Motion>',
+        )
+        self.level_canvas.tag_unbind(
+            id,
+            '<Button-1>',
+        )
+        self.level_canvas.tag_unbind(
+            id,
+            '<Button-3>',
         )
         
     def createObjectContextMenu(self, obj : wmwpy.classes.Object):
@@ -975,6 +1099,7 @@ class WME(tk.Tk):
         self.object_selector['treeview'].bind('<Return>', selectObject)
     
     def resetObjectSelector(self):
+        
         for row in self.object_selector['treeview'].get_children():
             self.object_selector['treeview'].delete(row)
 
@@ -1274,6 +1399,8 @@ class WME(tk.Tk):
             logging.warning('No level to load')
             return
         
+        self.state = 'disabled'
+        
         logging.debug(f'{xml = }')
         logging.debug(f'{image = }')
         
@@ -1285,6 +1412,10 @@ class WME(tk.Tk):
         
         if isinstance(self.level, wmwpy.classes.Level):
             self.level_canvas.delete('object')
+            self.level_canvas.delete('selection')
+        
+        self.resetProperties()
+        self.resetObjectSelector()
         
         try:
             logging.debug(f'loading level:')
@@ -1296,10 +1427,12 @@ class WME(tk.Tk):
                 HD = True,
                 TabHD = True,
                 ignore_errors = True,
+                load_callback = self.updateProgressBar,
             )
         except:
             logging.warning('Unable to load level')
             log_exception()
+            self.state = 'enabled'
             return
         
         logging.info(f'level = {self.level}')
@@ -1308,6 +1441,7 @@ class WME(tk.Tk):
         self.level.scale = 5
         self.updateLevel()
         logging.info('finished loading level')
+        self.state = 'enabled'
         return self.level
     
     def updateSettings(this):
