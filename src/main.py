@@ -344,7 +344,7 @@ class WME(tk.Tk):
             obj = self.selectedObject
         if obj == None:
             self.level_canvas.delete('selection')
-            logging.info('deleted selection')
+            # logging.info('deleted selection')
             return
         
         pos = numpy.array(obj.pos)
@@ -460,7 +460,7 @@ class WME(tk.Tk):
                 )
         
         logging.info(f"id: {id}")
-        logging.info(f"pos: {pos}\n")
+        # logging.info(f"pos: {pos}\n")
         
         self.updateLayers()
         
@@ -1032,6 +1032,7 @@ class WME(tk.Tk):
         
         for obj in self.level.objects:
             self.updateObject(obj)
+            logging.info('')
         
         self.updateLevelScroll()
         self.level_canvas.xview_moveto(0.23)
