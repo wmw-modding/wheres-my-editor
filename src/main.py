@@ -1291,6 +1291,13 @@ class WME(tk.Tk):
                 self.level.filename,
             )
         
+        imagePath = os.path.splitext(filename)[0] + '.png'
+        
+        try:
+            self.level.image.save(imagePath)
+        except:
+            log_exception()
+        
         try:
             with open(filename, 'wb') as file:
                 file.write(xml)
