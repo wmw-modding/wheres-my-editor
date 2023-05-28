@@ -1361,7 +1361,8 @@ class WME(tk.Tk):
             logging.debug(f'getFile: game.filesystem.root: {self.game.filesystem.root.path}')
             
             logging.debug(f'getFile: file: {file}')
-            logging.debug(f'getFile: file.path: {file.path}')
+            if isinstance(file, wmwpy.filesystem.File):
+                logging.debug(f'getFile: file.path: {file.path}')
             return file
         
         if path in ['', None]:
