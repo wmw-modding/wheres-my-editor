@@ -1336,6 +1336,8 @@ class WME(tk.Tk):
             logging.debug(f'getFile: path starts with :game:')
             path = path.partition(':game:')[-1]
             
+            path = pathlib.Path('/', path).as_posix()
+            
             logging.debug(f'getFile: path after :game: {path}')
             
             file = self.game.filesystem.get(path)
@@ -1351,6 +1353,7 @@ class WME(tk.Tk):
         if path.is_relative_to(assets):
             logging.debug(f'getFile: relative path')
             relPath = os.path.relpath(path, assets)
+            relPath = pathlib.Path('/', relPath).as_posix()
             logging.debug(f'getFile: rel path: {relPath}')
             file = self.game.filesystem.get(relPath)
             
