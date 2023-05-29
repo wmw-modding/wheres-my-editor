@@ -290,7 +290,7 @@ class WME(tk.Tk):
         self.resetProperties()
         self.createProgressBar()
     
-    def bindWindowWidgets(self):
+    def enableWindow(self):
         
         if platform.system() == 'Linux':
             self.level_canvas.bind("<Button-4>", self.onLevelMouseWheel)
@@ -310,9 +310,14 @@ class WME(tk.Tk):
         # re-enable item opening on click
         self.object_selector['treeview'].unbind('<Button-1>')
         
+        items = self.menubar.index('end')
+        
+        for item in range(items):
+            self.menubar.entryconfig(item + 1, state = 'normal')
+        
         self.updateLevel()
     
-    def unbindWindowWidgets(self):
+    def disableWindow(self):
         if platform.system() == 'Linux':
             self.level_canvas.unbind("<Button-4>")
             self.level_canvas.unbind("<Button-5>")
@@ -337,6 +342,11 @@ class WME(tk.Tk):
         self.object_selector['treeview'].state(("disabled",))
         # disable item opening on click
         self.object_selector['treeview'].bind('<Button-1>', lambda e: 'break')
+        
+        items = self.menubar.index('end')
+        
+        for item in range(items):
+            self.menubar.entryconfig(item + 1, state = 'disabled')
     
     def createProgressBar(self):
         self.progress_bar : dict[typing.Literal[
@@ -401,9 +411,9 @@ class WME(tk.Tk):
         self._state = state
 
         if self._state == 'normal':
-            self.bindWindowWidgets()
+            self.enableWindow()
         elif self._state == 'disabled':
-            self.unbindWindowWidgets()
+            self.disableWindow()
     
     def setState(self, state : typing.Literal['normal', 'disabled']):
         self.level_canvas.configure(state = state)
