@@ -1281,7 +1281,10 @@ class WME(tk.Tk):
         self.loadLevel(xml, image)
     
     def saveLevel(self, *args, filename = None):
-        xml = self.level.export()
+        xml = self.level.export(
+            filename = filename,
+            saveImage = True,
+        )
         
         if filename == None:
             filename = wmwpy.Utils.path.joinPath(
