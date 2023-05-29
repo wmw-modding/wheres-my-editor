@@ -49,7 +49,7 @@ class EditableLabel(ttk.Label):
         self.entry.delete(0, "end")
         self.entry.place_forget()
 
-def Button(*args, system : typing.Literal['mac', 'window', 'linux'] = None, **kwargs):
+def Button(*args, system : typing.Literal['mac', 'window', 'linux'] = None, **kwargs) -> ttk.Button:
     if isinstance(system, str):
         system = system.lower()
     else:
