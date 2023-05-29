@@ -855,11 +855,11 @@ class WME(tk.Tk):
             button = None
             
             if show_button:
-                button = ttk.Button(
+                button = tkwidgets.Button(
                     self.properties['right'],
                     text=button_text,
                     width=2,
-                    command = button_callback
+                    command = button_callback,
                 )
                 button.grid(column=2, row=row)
                 
@@ -1045,7 +1045,12 @@ class WME(tk.Tk):
         
         logging.debug(f'{row = }')
         
-        add = ttk.Button(self.properties['frame'], text = 'Add', command = lambda *args, r = row + 1 : addNewProperty('Property', 0, r))
+        add = tkwidgets.Button(
+            self.properties['frame'],
+            text = 'Add',
+            command = lambda *args,
+            r = row + 1 : addNewProperty('Property', 0, r),
+        )
         add.pack(side = 'bottom', expand = True, fill = 'x')
         
         
