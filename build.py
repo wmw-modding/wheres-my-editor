@@ -11,10 +11,8 @@ options = [
     '--icon=src/assets/images/icon_256x256.ico',
     f'--add-data=src/assets{os.pathsep}assets',
     '--name=wme',
+    '--onefile',
 ]
-
-# if platform.system() == 'Darwin':
-options.append('--onefile')
 
 debug = False
 
