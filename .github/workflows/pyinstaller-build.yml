@@ -24,7 +24,6 @@ jobs:
         fetch-depth: '0'
     - name: git
       run: |
-        # setup the username and email. I tend to use 'GitHub Actions Bot' with no email by default
         git --version
         git config user.name "GitHub Actions Bot"
         git config user.email "<>"
@@ -72,7 +71,6 @@ jobs:
         fetch-depth: '0'
     - name: git
       run: |
-        # setup the username and email. I tend to use 'GitHub Actions Bot' with no email by default
         git --version
         git config user.name "GitHub Actions Bot"
         git config user.email "<>"
@@ -121,7 +119,6 @@ jobs:
         fetch-depth: '0'
     - name: git
       run: |
-        # setup the username and email. I tend to use 'GitHub Actions Bot' with no email by default
         git --version
         git config user.name "GitHub Actions Bot"
         git config user.email "<>"
