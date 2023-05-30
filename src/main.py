@@ -21,7 +21,7 @@ __links__ = {
     'discord' : 'https://discord.gg/eRVfbgwNku',
 }
 
-__wmwpy_version__ = "0.3.0-beta"
+__wmwpy_version__ = "0.4.0-beta"
 
 import traceback
 import logging
