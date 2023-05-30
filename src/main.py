@@ -394,8 +394,6 @@ class WME(tk.Tk):
         self.progress_bar['progress_bar']['value'] = progress
 
         self.update()
-    
-    
 
     @property
     def state(self) -> typing.Literal['enabled', 'normal', 'disabled']:
@@ -1163,6 +1161,9 @@ class WME(tk.Tk):
         
     
     def updateLevel(self):
+        if self.level == None:
+            return
+        
         self.level_canvas.itemconfig(
             self.level_images['background'],
             image = self.level.PhotoImage
@@ -1411,15 +1412,20 @@ class WME(tk.Tk):
             )
             self.settings.set('game.gamepath', gamepath)
         
+        self.state = 'disabled'
+        
         try:
             self.game = wmwpy.load(
                 self.settings.get('game.gamepath'),
                 assets = self.settings.get('game.assets'),
                 game = self.settings.get('game.game'),
+                hook = self.updateProgressBar,
             )
         except:
             logging.warning(f'unable to load game: {self.settings.get("game.gamepath")}')
             wmwpy.Utils.logging_utils.log_exception()
+        
+        self.state = 'enabled'
     
     def loadLevel(self, xml : str, image : str):
         if self.game in ['', None]:
