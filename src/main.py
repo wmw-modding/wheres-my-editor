@@ -1419,7 +1419,7 @@ class WME(tk.Tk):
                 self.settings.get('game.gamepath'),
                 assets = self.settings.get('game.assets'),
                 game = self.settings.get('game.game'),
-                hook = self.updateProgressBar,
+                load_callback = self.updateProgressBar,
             )
         except:
             logging.warning(f'unable to load game: {self.settings.get("game.gamepath")}')
