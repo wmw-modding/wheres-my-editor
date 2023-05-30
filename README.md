@@ -80,3 +80,6 @@ The output is in `dis/wme.exe` (if you're not on windows, it probably won't be a
 # Credits
 - Thanks to [rubice!](https://youtube.com/@rubice2022) for creating the logo. I am not skilled enough to make something that looks that good.
 - Thanks to [campbellsonic](https://github.com/campbellsonic) for the script to load `waltex` images. I could not have done it without them.
+
+# Special thanks
+- Thanks to AwesomeDragon970#8068 for helping debug the program on MacOS. They are very awesome!
