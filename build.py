@@ -14,7 +14,7 @@ options = [
 ]
 
 # if platform.system() == 'Darwin':
-options.append('--onedir')
+options.append('--onefile')
 
 debug = False
 
