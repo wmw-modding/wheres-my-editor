@@ -305,7 +305,11 @@ class WME(tk.Tk):
             self.level_canvas.bind("<Shift-MouseWheel>", lambda *args: self.onLevelMouseWheel(*args, type = 1))
         
         self.level_canvas.bind('<Button-1>', self.onLevelClick)
-        self.level_canvas.bind('<Button-3>', self.onLevelRightClick)
+        
+        if platform.system() == 'Darwin':
+            self.level_canvas.bind('<Button-2>', self.onLevelRightClick)
+        else:
+            self.level_canvas.bind('<Button-3>', self.onLevelRightClick)
         
         self.object_selector['treeview'].configure(selectmode = 'browse')
         self.object_selector['treeview'].state(("!disabled",))
@@ -331,7 +335,11 @@ class WME(tk.Tk):
             self.level_canvas.unbind("<Shift-MouseWheel>")
             
         self.level_canvas.unbind('<Button-1>')
-        self.level_canvas.unbind('<Button-3>')
+        
+        if platform.system() == 'Darwin':
+            self.level_canvas.unbind('<Button-2>')
+        else:
+            self.level_canvas.unbind('<Button-3>')
         
         objects = self.level_canvas.find_withtag('object')
         objects = list(objects) + list(self.level_canvas.find_withtag('selection'))
@@ -652,11 +660,19 @@ class WME(tk.Tk):
             '<Button-1>',
             lambda e, object = obj: self.selectObject(object)
         )
-        self.level_canvas.tag_bind(
-            id,
-            '<Button-3>',
-            lambda e, object = obj, menu = self.createObjectContextMenu(obj): self.showPopup(menu, e, callback = lambda : self.selectObject(object))
-        )
+        
+        if platform.system() == 'Darwin':
+            self.level_canvas.tag_bind(
+                id,
+                '<Button-2>',
+                lambda e, object = obj, menu = self.createObjectContextMenu(obj): self.showPopup(menu, e, callback = lambda : self.selectObject(object))
+            )
+        else:
+            self.level_canvas.tag_bind(
+                id,
+                '<Button-3>',
+                lambda e, object = obj, menu = self.createObjectContextMenu(obj): self.showPopup(menu, e, callback = lambda : self.selectObject(object))
+            )
     
     def unbindObject(self, id):
         self.level_canvas.tag_unbind(
@@ -667,10 +683,17 @@ class WME(tk.Tk):
             id,
             '<Button-1>',
         )
-        self.level_canvas.tag_unbind(
-            id,
-            '<Button-3>',
-        )
+        
+        if platform.system() == 'Darwin':
+            self.level_canvas.tag_unbind(
+                id,
+                '<Button-2>',
+            )
+        else:
+            self.level_canvas.tag_unbind(
+                id,
+                '<Button-3>',
+            )
         
     def createObjectContextMenu(self, obj : wmwpy.classes.Object):
         menu = tk.Menu(self.level_canvas, tearoff = 0)
