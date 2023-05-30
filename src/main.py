@@ -163,6 +163,8 @@ class WME(tk.Tk):
                 self.settings.get('game.default_level.xml'),
                 self.settings.get('game.default_level.image')
             )
+        
+        self.protocol("WM_DELETE_WINDOW", self.close)
     
     def getAsset(self, path : str):
         return os.path.join(self.WME_assets, path)
@@ -1472,6 +1474,22 @@ class WME(tk.Tk):
         logging.info('finished loading level')
         self.state = 'enabled'
         return self.level
+    
+    def close(self):
+        result = False
+        if self.level != None:
+            result = messagebox.askyesnocancel(
+                'Unsaved changes',
+                message = 'Do you want to save changes?',
+            )
+        
+        logging.info(f'close option: {result}')
+        
+        if result:
+            self.saveLevelAs()
+        
+        if result != None:
+            self.destroy()
     
     def updateSettings(this):
         try:
