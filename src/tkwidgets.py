@@ -1,9 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
-import tkmacosx
 import typing
 import logging
-import platform
 
 class EditableLabel(ttk.Label):
     def __init__(self, parent, *args, callback : typing.Callable[[str], bool] = None, **kwargs):
@@ -48,17 +46,3 @@ class EditableLabel(ttk.Label):
     def edit_cancel(self, event=None):
         self.entry.delete(0, "end")
         self.entry.place_forget()
-
-def Button(*args, system : typing.Literal['mac', 'window', 'linux'] = None, **kwargs) -> ttk.Button:
-    if isinstance(system, str):
-        system = system.lower()
-    else:
-        system = None
-    
-    if platform.system() == 'Darwin' or system in ['mac', 'macos', 'darwin']:
-        if 'width' in kwargs:
-            kwargs['width'] *= 10
-        
-        return tkmacosx.Button(*args, **kwargs)
-    else:
-        return ttk.Button(*args, **kwargs)
