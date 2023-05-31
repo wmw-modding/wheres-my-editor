@@ -1,4 +1,4 @@
-__version__ = '2.2.0'
+__version__ = '2.3.0'
 __author__ = 'ego-lay-atman-bay'
 __credits__ = [
     {
@@ -1502,6 +1502,9 @@ class WME(tk.Tk):
         self.updateLevel()
         logging.info('finished loading level')
         self.state = 'enabled'
+        
+        self.title(f"Where's My Editor - {os.path.splitext(os.path.basename(self.level.filename))[0]}")
+        
         return self.level
     
     def close(self):
