@@ -21,7 +21,7 @@ __links__ = {
     'discord' : 'https://discord.gg/eRVfbgwNku',
 }
 
-__wmwpy_version__ = "0.4.0-beta"
+__wmwpy_version__ = "0.5.0-beta"
 
 import traceback
 import logging
@@ -30,6 +30,8 @@ import sys
 import io
 import platform
 from datetime import datetime
+import crossplatform
+
 
 def createLogger(type = 'file', filename = 'logs/log.log'):
     for handler in logging.root.handlers[:]:
@@ -80,7 +82,7 @@ from settings import Settings
 from lxml import etree
 import numpy
 import typing
-from copy import copy
+from copy import copy, deepcopy
 import pathlib
 import webbrowser
 
@@ -124,6 +126,8 @@ class WME(tk.Tk):
         self.title("Where's my Editor")
         self.geometry('%dx%d' % (760 , 610) )
         self.minsize(500,300)
+        
+        self.clipboard = None
         
         self.scale = 5
         self.settings = Settings(
@@ -306,6 +310,9 @@ class WME(tk.Tk):
         
         self.level_canvas.bind('<Button-1>', self.onLevelClick)
         
+        self.level_canvas.bind('<Enter>', self.bindKeyboardShortcuts)
+        self.level_canvas.bind('<Leave>', self.unbindKeyboardShortcuts)
+        
         if platform.system() == 'Darwin':
             self.level_canvas.bind('<Button-2>', self.onLevelRightClick)
         else:
@@ -322,6 +329,8 @@ class WME(tk.Tk):
             self.menubar.entryconfig(item + 1, state = 'normal')
         
         self.updateLevel()
+        
+        # self.bindKeyboardShortcuts()
     
     def disableWindow(self):
         if platform.system() == 'Linux':
@@ -341,6 +350,10 @@ class WME(tk.Tk):
         else:
             self.level_canvas.unbind('<Button-3>')
         
+        self.level_canvas.unbind('<Enter>')
+        self.level_canvas.unbind('<Leave>')
+        self.unbindKeyboardShortcuts()
+        
         objects = self.level_canvas.find_withtag('object')
         objects = list(objects) + list(self.level_canvas.find_withtag('selection'))
         
@@ -357,6 +370,22 @@ class WME(tk.Tk):
         
         for item in range(items):
             self.menubar.entryconfig(item + 1, state = 'disabled')
+    
+    def bindKeyboardShortcuts(self, *args):
+        logging.debug('Binding keyboard shotcuts')
+        
+        self.bind(f'<{crossplatform.modifier()}-v>', self.pasteObject)
+        self.bind(f'<{crossplatform.modifier()}-c>', self.copyObject)
+        self.bind(f'<{crossplatform.modifier()}-x>', self.cutObject)
+        self.bind('<KeyPress-Delete>', self.deleteObject)
+    
+    def unbindKeyboardShortcuts(self, *args):
+        logging.debug('unbinding keyboard shotcuts')
+        
+        self.unbind(f'<{crossplatform.modifier()}-v>')
+        self.unbind(f'<{crossplatform.modifier()}-c>')
+        self.unbind(f'<{crossplatform.modifier()}-x>')
+        self.unbind('<KeyPress-Delete>')
     
     def createProgressBar(self):
         self.progress_bar : dict[typing.Literal[
@@ -619,7 +648,7 @@ class WME(tk.Tk):
     def createLevelContextMenu(self):
         self.levelContextMenu = tk.Menu(self.level_canvas, tearoff = 0)
         self.levelContextMenu.add_command(label = 'add object', command = lambda *args: self.addObjectSelector(self.getRelativeMousePos(self.level_canvas.winfo_pointerxy(), self.level_canvas)))
-        self.levelContextMenu.add_command(label = 'paste', state = 'disabled')
+        self.levelContextMenu.add_command(label = 'paste', command = self.pasteObject, accelerator = f'{crossplatform.shortModifier()}+V')
     
     def onLevelRightClick(self, event):
         logging.info('level context menu')
@@ -697,9 +726,9 @@ class WME(tk.Tk):
         
     def createObjectContextMenu(self, obj : wmwpy.classes.Object):
         menu = tk.Menu(self.level_canvas, tearoff = 0)
-        menu.add_command(label = 'delete', command = lambda *args : self.deleteObject(obj))
-        menu.add_command(label = 'copy', state = 'disabled')
-        menu.add_command(label = 'cut', state = 'disabled')
+        menu.add_command(label = 'delete', command = lambda *args : self.deleteObject(obj), accelerator = 'Del')
+        menu.add_command(label = 'copy', command = lambda *args : self.copyObject(obj), accelerator = f'{crossplatform.shortModifier()}+C')
+        menu.add_command(label = 'cut', command = lambda *args : self.cutObject(obj), accelerator = f'{crossplatform.shortModifier()}+X')
         
         return menu
     
@@ -712,6 +741,16 @@ class WME(tk.Tk):
             menu.grab_release()
     
     def deleteObject(self, obj : wmwpy.classes.Object):
+        if (obj == None) or isinstance(obj, tk.Event):
+            if isinstance(obj, tk.Event):
+                if not self.checkLevelFocus():
+                    return
+
+            obj = self.selectedObject
+        
+        if obj == None:
+            return
+        
         self.level_canvas.delete(f'{obj.name}-{str(obj.id)}')
         
         if obj in self.level.objects:
@@ -722,6 +761,63 @@ class WME(tk.Tk):
             self.selectObject(None)
         
         self.updateObjectSelector()
+    
+    def checkLevelFocus(
+        self,
+    ):
+        focus = self.focus_get()
+        return not isinstance(focus, tk.Entry)
+        
+    
+    def copyObject(
+        self,
+        obj : wmwpy.classes.Object = None,
+    ):
+        if not self.checkLevelFocus():
+            return
+        
+        if (obj == None) or isinstance(obj, tk.Event):
+            obj = self.selectedObject
+        
+        if obj == None:
+            return
+
+        self.clipboard : wmwpy.classes.Object = obj.copy()
+    
+    def cutObject(
+        self,
+        obj : wmwpy.classes.Object = None,
+    ):
+        if not self.checkLevelFocus():
+            return
+        
+        if (obj == None) or isinstance(obj, tk.Event):
+            obj = self.selectedObject
+        
+        if obj == None:
+            return
+        
+        self.copyObject(obj)
+        self.deleteObject(obj)
+    
+    def pasteObject(
+        self,
+        pos : tuple[int,int] = None,
+    ):
+        if not self.checkLevelFocus():
+            return
+        
+        if pos == None or isinstance(pos, tk.Event):
+            pos = self.getRelativeMousePos(self.level_canvas.winfo_pointerxy(), self.level_canvas)
+        
+        if isinstance(self.clipboard, wmwpy.classes.Object):
+            self.selectObject(
+                self.addObject(
+                    self.clipboard.copy(),
+                    pos = self.windowPosToWMWPos(pos),
+                    name = self.clipboard.name,
+                )
+            )
     
     def addObject(
         self, obj : wmwpy.classes.Object | str,
@@ -868,6 +964,7 @@ class WME(tk.Tk):
                 
                 if entry_callback:
                     input.bind('<Return>', lambda e: entry_callback(input.get()))
+                    input.bind('<Return>', lambda e: self.focus())
                     input.bind('<FocusOut>', lambda e: entry_callback(input.get()))
                 
                 if input.winfo_reqheight() > row_size:
@@ -878,7 +975,7 @@ class WME(tk.Tk):
             button = None
             
             if show_button:
-                button = tkwidgets.Button(
+                button = crossplatform.Button(
                     self.properties['right'],
                     text=button_text,
                     width=2,
@@ -1068,7 +1165,7 @@ class WME(tk.Tk):
         
         logging.debug(f'{row = }')
         
-        add = tkwidgets.Button(
+        add = crossplatform.Button(
             self.properties['frame'],
             text = 'Add',
             command = lambda *args,
