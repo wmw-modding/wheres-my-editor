@@ -330,7 +330,7 @@ class WME(tk.Tk):
         
         self.updateLevel()
         
-        # self.bindKeyboardShortcuts()
+        self.bindKeyboardShortcuts()
     
     def disableWindow(self):
         if platform.system() == 'Linux':
