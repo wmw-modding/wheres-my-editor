@@ -378,6 +378,26 @@ class WME(tk.Tk):
         self.bind(f'<{crossplatform.modifier()}-c>', self.copyObject)
         self.bind(f'<{crossplatform.modifier()}-x>', self.cutObject)
         self.bind('<KeyPress-Delete>', self.deleteObject)
+        
+        self.bind('<Up>', lambda *args : self.moveObject(amount = (0,1)))
+        self.bind('<Down>', lambda *args : self.moveObject(amount = (0,-1)))
+        self.bind('<Left>', lambda *args : self.moveObject(amount = (-1,0)))
+        self.bind('<Right>', lambda *args : self.moveObject(amount = (1,0)))
+        
+        self.bind(f'<{crossplatform.modifier()}-Up>', lambda *args : self.moveObject(amount = (0,0.5)))
+        self.bind(f'<{crossplatform.modifier()}-Down>', lambda *args : self.moveObject(amount = (0,-0.5)))
+        self.bind(f'<{crossplatform.modifier()}-Left>', lambda *args : self.moveObject(amount = (-0.5,0)))
+        self.bind(f'<{crossplatform.modifier()}-Right>', lambda *args : self.moveObject(amount = (0.5,0)))
+        
+        self.bind(f'<Alt-Up>', lambda *args : self.moveObject(amount = (0,0.1)))
+        self.bind(f'<Alt-Down>', lambda *args : self.moveObject(amount = (0,-0.1)))
+        self.bind(f'<Alt-Left>', lambda *args : self.moveObject(amount = (-0.1,0)))
+        self.bind(f'<Alt-Right>', lambda *args : self.moveObject(amount = (0.1,0)))
+        
+        self.bind(f'<Shift-Up>', lambda *args : self.moveObject(amount = (0,4)))
+        self.bind(f'<Shift-Down>', lambda *args : self.moveObject(amount = (0,-4)))
+        self.bind(f'<Shift-Left>', lambda *args : self.moveObject(amount = (-4,0)))
+        self.bind(f'<Shift-Right>', lambda *args : self.moveObject(amount = (4,0)))
     
     def unbindKeyboardShortcuts(self, *args):
         logging.debug('unbinding keyboard shotcuts')
@@ -386,6 +406,26 @@ class WME(tk.Tk):
         self.unbind(f'<{crossplatform.modifier()}-c>')
         self.unbind(f'<{crossplatform.modifier()}-x>')
         self.unbind('<KeyPress-Delete>')
+        
+        self.unbind('<Up>')
+        self.unbind('<Down>')
+        self.unbind('<Left>')
+        self.unbind('<Right>')
+        
+        self.unbind(f'<{crossplatform.modifier()}-Up>')
+        self.unbind(f'<{crossplatform.modifier()}-Down>')
+        self.unbind(f'<{crossplatform.modifier()}-Left>')
+        self.unbind(f'<{crossplatform.modifier()}-Right>')
+        
+        self.unbind(f'<Alt-Up>')
+        self.unbind(f'<Alt-Down>')
+        self.unbind(f'<Alt-Left>')
+        self.unbind(f'<Alt-Right>')
+        
+        self.unbind(f'<Shift-Up>')
+        self.unbind(f'<Shift-Down>')
+        self.unbind(f'<Shift-Left>')
+        self.unbind(f'<Shift-Right>')
     
     def createProgressBar(self):
         self.progress_bar : dict[typing.Literal[
@@ -740,7 +780,32 @@ class WME(tk.Tk):
         finally:
             menu.grab_release()
     
-    def deleteObject(self, obj : wmwpy.classes.Object):
+    def moveObject(self, obj : wmwpy.classes.Object = None, amount : tuple[float,float] = (0,0)) -> tuple[float,float]:
+        if not self.checkLevelFocus():
+            return
+        
+        if (obj == None) or isinstance(obj, tk.Event):
+            obj = self.selectedObject
+        
+        if obj == None:
+            return
+        
+        amount = numpy.array(amount)
+        
+        pos = tuple(obj.pos + amount)
+        
+        obj.pos = pos
+        
+        self.updateObject(obj)
+        
+        if self.selectedObject == obj:
+            if 'pos' in self.objectProperties:
+                self.objectProperties['pos']['var'][0].set(pos[0])
+                self.objectProperties['pos']['var'][1].set(pos[1])
+        
+        return pos
+    
+    def deleteObject(self, obj : wmwpy.classes.Object = None):
         if (obj == None) or isinstance(obj, tk.Event):
             if isinstance(obj, tk.Event):
                 if not self.checkLevelFocus():
@@ -890,7 +955,8 @@ class WME(tk.Tk):
             'inputs',
             'button',
             'size',
-            ], tkwidgets.EditableLabel | list[ttk.Entry] | ttk.Button]:
+            'var',
+        ], tkwidgets.EditableLabel | list[ttk.Entry | tk.StringVar] | ttk.Button]:
             row_size = 25
             
             label_frame = ttk.Frame(self.properties['left'])
@@ -921,37 +987,46 @@ class WME(tk.Tk):
                 row_size = name.winfo_reqheight()
             
             inputs = []
+            vars = []
             
             def inputType(type, value):
-                
                 if type == 'number':
+                    var = tk.DoubleVar(value = value)
                     input = ttk.Spinbox(
                         self.properties['right'],
+                        textvariable = var,
                         **kwargs
                     )
                 else:
+                    var = tk.StringVar(value = value)
                     input = ttk.Entry(
                         self.properties['right'],
+                        textvariable = var,
                         **kwargs
                     )
                 
-                input.insert(0, value)
+                # input.insert(0, value)
                 
-                return input
+                return input, var
             
             if isinstance(type, (tuple, list)):
                 column = 0
                 for t in type:
                     t = t.lower()
-                    input = inputType(t, value[column])
+                    input, var = inputType(t, value[column])
                     input.grid(column = column, row=row, sticky='ew')
-                    if entry_callback:
-                        input.bind('<Return>', lambda e, value = input.get, col = column: entry_callback(value(), col))
-                        input.bind('<FocusOut>', lambda e, value = input.get, col = column: entry_callback(value(), col))
+                    if callable(entry_callback):
+                        var.trace('w', lambda *args, value = var.get, col = column: entry_callback(value(), col))
+                    
+                    input.bind('<Return>', lambda e: self.focus())
+                        
+                        # input.bind('<Return>', lambda e, value = input.get, col = column: entry_callback(value(), col))
+                        # input.bind('<FocusOut>', lambda e, value = input.get, col = column: entry_callback(value(), col))
                     
                     column += 1
                     
                     inputs.append(input)
+                    vars.append(var)
                     
                     if input.winfo_reqheight() > row_size:
                         row_size = input.winfo_reqheight()
@@ -959,18 +1034,21 @@ class WME(tk.Tk):
             else:
                 type = type.lower()
                 
-                input = inputType(type, value)
+                input, var = inputType(type, value)
                 input.grid(column = 0, row=row, sticky = 'ew', columnspan=2)
                 
                 if entry_callback:
-                    input.bind('<Return>', lambda e: entry_callback(input.get()))
-                    input.bind('<Return>', lambda e: self.focus())
-                    input.bind('<FocusOut>', lambda e: entry_callback(input.get()))
+                    var.trace('w', lambda *args: entry_callback(var.get()))
+                    # input.bind('<Return>', lambda e: entry_callback(input.get()))
+                    # input.bind('<FocusOut>', lambda e: entry_callback(input.get()))
+                
+                input.bind('<Return>', lambda e: self.focus())
                 
                 if input.winfo_reqheight() > row_size:
-                        row_size = input.winfo_reqheight()
+                    row_size = input.winfo_reqheight()
                 
                 inputs.append(input)
+                vars.append(var)
             
             button = None
             
@@ -997,7 +1075,8 @@ class WME(tk.Tk):
                 'label' : name,
                 'inputs' : inputs,
                 'button' : button,
-                'size' : row_size
+                'size' : row_size,
+                'var' : vars,
             }
         
         def removePropety(property):
@@ -1059,16 +1138,17 @@ class WME(tk.Tk):
         
         sizes : list[int] = []
         
-        sizes.append(addProperty(
+        self.objectProperties['name'] = addProperty(
             'Name',
             obj.name,
             'text',
             label_editable = False,
             show_button = False,
             row=0,
-        )['size'])
+        )
+        sizes.append(self.objectProperties['name']['size'])
         
-        sizes.append(addProperty(
+        self.objectProperties['pos'] = addProperty(
             'Pos',
             obj.pos,
             ['number', 'number'],
@@ -1078,12 +1158,13 @@ class WME(tk.Tk):
             entry_callback = lambda value, col : updatePosition(value, col),
             from_ = -99,
             to = 99,
-        )['size'])
+        )
+        sizes.append(self.objectProperties['pos']['size'])
         
         angle = '0'
         if 'Angle' in obj.properties:
             angle = obj.properties['Angle']
-        sizes.append(addProperty(
+        self.objectProperties['angle'] = addProperty(
             'Angle',
             angle,
             'number',
@@ -1093,7 +1174,8 @@ class WME(tk.Tk):
             from_=-360,
             to=360,
             entry_callback = lambda value: updateProperty('Angle', value),
-        )['size'])
+        )
+        sizes.append(self.objectProperties['angle']['size'])
         
         row = 3
         
@@ -1111,8 +1193,7 @@ class WME(tk.Tk):
                     
                     button_callback = lambda *args, prop = property : resetProperty(prop)
                 
-                
-                sizes.append(addProperty(
+                self.objectProperties[property] = addProperty(
                     property,
                     obj.properties[property],
                     row = row,
@@ -1122,7 +1203,9 @@ class WME(tk.Tk):
                     label_callback = lambda name, prop = property: updatePropertyName(prop, name),
                     button_callback = button_callback,
                     label_prefix = prefix,
-                )['size'])
+                )
+                
+                sizes.append(self.objectProperties[property]['size'])
         
         self.properties['panned'].configure(height = sum(sizes))
         self.properties['scrollFrame'].resetCanvasScroll()
@@ -1175,6 +1258,21 @@ class WME(tk.Tk):
         
         
     def resetProperties(self):
+        self.objectProperties : dict[
+            str, dict[
+                typing.Literal[
+                    'var',
+                    'label',
+                    'inputs',
+                    'button',
+                    'size',
+                ],
+                tkwidgets.EditableLabel |
+                ttk.Button |
+                list[tk.StringVar | ttk.Entry] |
+                int
+            ]
+        ] = {}
         
         for child in self.properties['frame'].winfo_children():
             if child != self.properties.get('panned', None):
