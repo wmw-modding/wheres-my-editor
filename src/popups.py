@@ -1,13 +1,16 @@
+import logging
 import copy
 import json
 import tkinter as tk
 from tkinter import ttk, filedialog
 import tkinter.font as tkFont
 import os
+import pathlib
 from PIL import Image, ImageTk
 import webbrowser
 import numpy
 import typing
+import wmwpy
 
 from scrollframe import ScrollFrame
 from settings import Settings
@@ -221,113 +224,254 @@ class SettingsDialog(tk.Toplevel):
         self.createPaths()
         
     def createPaths(self):
-        def browse(entry, type='file', **kwargs):
-            path = ''
-            print(kwargs)
-
-            if type in ['dir', 'directory']:
-                path = filedialog.askdirectory(**kwargs)
-            else:
-                path = filedialog.askopenfilename(**kwargs)
-
-            if path in ['', None]:
-                return
-            entry.delete(0, 'end')
-            entry.insert(0, path)
+        def create_row(
+            parent : tk.Widget = self,
+            label_text : str = '',
+            entry_type : typing.Literal['text', 'options'] = 'text',
+            entry_callback : typing.Callable[[str], str] = None,
+            default_value : str = '',
+            use_button : bool = True,
+            button_text : str = 'Browse',
+            button_callback : typing.Callable[[str], typing.Any] = None,
+            row = 0,
+            options : list[str] = []
+        ) -> dict[typing.Literal[
+            'label',
+            'var',
+            'entry',
+            'button',
+        ]]:
             
-        self.paths = {
+            label = ttk.Label(
+                parent,
+                text = label_text,
+            )
+            label.grid(row = row, column = 0, sticky='ew', padx=4, pady=2)
+            
+            var = tk.StringVar(
+                value = default_value,
+            )
+            var.trace(
+                'w',
+                lambda *args : entry_callback(var.get()),
+            )
+            
+            def get_entry(
+                type : typing.Literal['text', 'options'],
+                var,
+                options : list = [],
+            ):
+                if type == 'options':
+                    return ttk.Combobox(
+                        parent,
+                        textvariable = var,
+                        values = options,
+                    )
+                else:
+                    return ttk.Entry(
+                        parent,
+                        textvariable = var,
+                    )
+            
+            entry = get_entry(
+                entry_type,
+                var = var,
+                options = options,
+            )
+            # entry.insert(0, var.get())
+            entry.grid(row = row, column = 1, sticky = 'ew', padx=4, pady=2)
+            
+            button = None
+            
+            if use_button:
+                button = ttk.Button(
+                    parent,
+                    text = button_text,
+                    command = lambda *args : var.set(button_callback(var.get())),
+                )
+                button.grid(row = row, column = 2, sticky = 'ew', padx=4, pady=2)
+            
+            return {
+                'label' : label,
+                'var' : var,
+                'entry' : entry,
+                'button' : button,
+            }
+        
+        def validate(
+            default = '',
+            result = None,
+        ):
+            if result in ['', None]:
+                return default
+            else:
+                return result
+            
+        self.paths : dict[typing.Literal['frame', 'contents'], ttk.Frame | dict[typing.Literal['frame', 'contents'], dict[str, tk.Widget]]] = {
             'frame': ttk.Frame(self.notebook),
             'contents': {
-                'gamepaths': {
-                    'var': tk.StringVar(value=self.settings.get('game.gamepath'))
+                'game': {
+                    'contents': {}
                 },
                 'level': {
-                    'image': {
-                        'var': tk.StringVar(value=self.settings.get('game.default_level.image'))
-                    },
-                    'xml': {
-                        'var': tk.StringVar(value=self.settings.get('game.default_level.xml'))
-                    }
+                    'contents': {}
                 }
             }
         }
         
-        self.paths['contents']['gamepaths']['frame'] = ttk.LabelFrame(self.paths['frame'], text='Game paths')
-        # self.paths['contents']['gamepaths']['wmw']['frame'] = ttk.Frame(self.paths['contents']['gamepaths']['frame'])
-        self.paths['contents']['gamepaths']['label'] = ttk.Label(self.paths['contents']['gamepaths']['frame'], text="Where's My Water?")
-        self.paths['contents']['gamepaths']['entry'] = ttk.Entry(self.paths['contents']['gamepaths']['frame'], textvariable=self.paths['contents']['gamepaths']['var'])
-        self.paths['contents']['gamepaths']['button'] = ttk.Button(self.paths['contents']['gamepaths']['frame'], text='Browse', command=lambda : browse(
-            self.paths['contents']['gamepaths']['entry'],
-            'dir',
-            title='Choose game directory',
-            initialdir = self.paths['contents']['gamepaths']['var'].get()
-            )
+        self.notebook.add(self.paths['frame'], text='Paths', sticky='nsew')
+        
+        # game
+        self.paths['contents']['game']['frame'] = ttk.LabelFrame(self.paths['frame'], text='Game')
+        self.paths['contents']['game']['frame'].pack(fill='x', anchor='n', side='top')
+        self.paths['contents']['game']['frame'].columnconfigure(1, weight=1)
+        
+        self.paths['contents']['game']['contents']['gamepath'] = create_row(
+            self.paths['contents']['game']['frame'],
+            label_text = 'Game path',
+            entry_type = 'text',
+            entry_callback = lambda value : self.settings.set('game.gamepath', value),
+            default_value = self.settings.get('game.gamepath'),
+            button_callback = lambda path : validate(
+                path,
+                filedialog.askdirectory(
+                    initialdir = os.path.dirname(path),
+                    title = 'Game directory',
+                )
+            ),
+            row = 0,
         )
+        self.paths['contents']['game']['contents']['assets'] = create_row(
+            self.paths['contents']['game']['frame'],
+            label_text = 'Assets path',
+            entry_type = 'text',
+            entry_callback = lambda value : self.settings.set('game.assets', value),
+            default_value = self.settings.get('game.assets'),
+            button_callback = lambda path : os.path.relpath(
+                validate(
+                    wmwpy.Utils.path.joinPath(self.settings.get('game.gamepath'), path),
+                    filedialog.askdirectory(
+                        initialdir = os.path.dirname(wmwpy.Utils.path.joinPath(self.settings.get('game.gamepath'), path)),
+                        title = 'Assets directory',
+                    )
+                ),
+                self.settings.get('game.gamepath')
+            ),
+            row = 1,
+        )
+        self.paths['contents']['game']['contents']['game'] = create_row(
+            self.paths['contents']['game']['frame'],
+            label_text = 'Game',
+            entry_type = 'options',
+            options = list(wmwpy.GAMES.keys()),
+            entry_callback = lambda value : self.settings.set('game.game', value),
+            default_value = self.settings.get('game.game'),
+            use_button = False,
+            row = 2,
+        )
+        
+        # default level
+        def getFile(path : str):
+            logging.debug(f'getFile: path: {path}')
+            if not isinstance(path, str):
+                raise TypeError('path must be str')
+            
+            if path in ['', None]:
+                logging.debug('getFile: no path')
+                return ''
+            
+            if path.startswith(':game:'):
+                logging.debug(f'getFile: path starts with :game:')
+                path = path.partition(':game:')[-1]
+                
+                path = pathlib.Path('/', path).as_posix()
+                
+                logging.debug(f'getFile: path after :game: {path}')
+                
+                return file
+            
+            path = pathlib.PurePath(path)
+            assets = os.path.abspath(wmwpy.Utils.path.joinPath(
+                self.settings.get('game.gamepath'),
+                self.settings.get('game.assets'),
+            ))
+            
+            print(f'getFile: In filesystem? {path.is_relative_to(assets)}')
+            if path.is_relative_to(assets):
+                logging.debug(f'getFile: relative path')
+                relPath = os.path.relpath(path, assets)
+                relPath = pathlib.Path('/', relPath).as_posix()
+                logging.debug(f'getFile: rel path: {relPath}')
+                file = f':game:{relPath}'
+                
+                logging.debug(f'getFile: file: {file}')
+                return file
+            
+            if path in ['', None]:
+                logging.debug('getFile: no path')
+                return ''
+            else:
+                logging.debug(f'getFile: absolute path: {path}')
+                file = path
+            
+            return file
         
         self.paths['contents']['level']['frame'] = ttk.LabelFrame(self.paths['frame'], text='Default level')
-        # self.paths['contents']['gamepaths']['image']['frame'] = ttk.Frame(self.paths['contents']['level']['frame'])
-        self.paths['contents']['level']['image']['label'] = ttk.Label(self.paths['contents']['level']['frame'], text="Image")
-        self.paths['contents']['level']['image']['entry'] = ttk.Entry(self.paths['contents']['level']['frame'], textvariable=self.paths['contents']['level']['image']['var'])
-        self.paths['contents']['level']['image']['button'] = ttk.Button(
-            self.paths['contents']['level']['frame'],
-            text='Browse', command=lambda : browse(
-                self.paths['contents']['level']['image']['entry'],
-                'file', title = 'Choose level image', defaultextension='*.png' ,
-                filetypes = (
-                    (
-                        ('wmw level image', '*.png'),
-                        ('any', '*.*')
-                    )
-                ),
-                initialdir = os.path.dirname(self.paths['contents']['level']['image']['var'].get())
-            )
-        )
-        
-        
-        self.paths['contents']['level']['xml']['label'] = ttk.Label(self.paths['contents']['level']['frame'], text="XML")
-        self.paths['contents']['level']['xml']['entry'] = ttk.Entry(self.paths['contents']['level']['frame'], textvariable=self.paths['contents']['level']['xml']['var'])
-        self.paths['contents']['level']['xml']['button'] = ttk.Button(
-            self.paths['contents']['level']['frame'],
-            text='Browse', command=lambda : browse(
-                self.paths['contents']['level']['xml']['entry'],
-                'file', title='Choose level XML', defaultextension='*.xml' ,
-                filetypes = (
-                    (
-                        ('wmw level XML', '*.xml'),
-                        ('any', '*.*')
-                    )
-                ),
-                initialdir = os.path.dirname(self.paths['contents']['level']['xml']['var'].get())
-            )
-        )
-        
-        self.paths['contents']['gamepaths']['label'].grid(row=0, column=0, sticky='e', padx=2, pady=2)
-        self.paths['contents']['gamepaths']['entry'].grid(row=0, column=1, sticky='ew', padx=2, pady=2)
-        self.paths['contents']['gamepaths']['button'].grid(row=0, column=2, padx=2, pady=2)
-        
-        self.paths['contents']['gamepaths']['var'].trace('w', lambda name, index, mode: self.updateSettings())
-
-        self.paths['contents']['level']['image']['label'].grid(row=0, column=0, sticky='e', padx=2, pady=2)
-        self.paths['contents']['level']['image']['entry'].grid(row=0, column=1, sticky='ew', padx=2, pady=2)
-        self.paths['contents']['level']['image']['button'].grid(row=0, column=2, padx=2, pady=2)
-        
-        self.paths['contents']['level']['image']['var'].trace('w', lambda name, index, mode: self.updateSettings())
-
-        self.paths['contents']['level']['xml']['label'].grid(row=1, column=0, sticky='e', padx=2, pady=2)
-        self.paths['contents']['level']['xml']['entry'].grid(row=1, column=1, sticky='ew', padx=2, pady=2)
-        self.paths['contents']['level']['xml']['button'].grid(row=1, column=2, padx=2, pady=2)
-        
-        self.paths['contents']['level']['xml']['var'].trace('w', lambda name, index, mode: self.updateSettings())
-
-        # self.paths['contents']['gamepaths']['frame'].columnconfigure(0, weight=1)
-        # self.paths['contents']['level']['frame'].columnconfigure(0, weight=1)
-        self.paths['contents']['gamepaths']['frame'].columnconfigure(1, weight=1)
-        self.paths['contents']['level']['frame'].columnconfigure(1, weight=1)
-
-        self.paths['contents']['gamepaths']['frame'].pack(fill='x', anchor='n', side='top')
         self.paths['contents']['level']['frame'].pack(fill='x', anchor='n', side='top')
+        self.paths['contents']['level']['frame'].columnconfigure(1, weight=1)
         
-        self.notebook.add(self.paths['frame'], text='Paths', sticky='nsew')
+        self.paths['contents']['level']['contents']['xml'] = create_row(
+            self.paths['contents']['level']['frame'],
+            label_text = 'XML',
+            entry_type = 'text',
+            entry_callback = lambda value : self.settings.set('game.default_level.xml', value),
+            default_value = self.settings.get('game.default_level.xml'),
+            button_callback = lambda path : 
+                validate(
+                    path,
+                    getFile(
+                        filedialog.askopenfilename(
+                            defaultextension = '.xml',
+                            filetypes = (
+                                (f'{self.settings.get("game.game")} Level', '*.xml'),
+                                ('Any', '*.*')
+                            ),
+                            initialdir = wmwpy.Utils.joinPath(
+                                self.settings.get('game.gamepath'),
+                                self.settings.get('game.assets'),
+                            ),
+                            title = 'Pick defualt XML file',
+                        )
+                    )
+                ),
+            row = 0,
+        )
+        self.paths['contents']['level']['contents']['image'] = create_row(
+            self.paths['contents']['level']['frame'],
+            label_text = 'Image',
+            entry_type = 'text',
+            entry_callback = lambda value : self.settings.set('game.default_level.image', value),
+            default_value = self.settings.get('game.default_level.image'),
+            button_callback = lambda path : 
+                validate(
+                    path,
+                    getFile(
+                        filedialog.askopenfilename(
+                            defaultextension = '.png',
+                            filetypes = (
+                                (f'{self.settings.get("game.game")} Level', '*.png'),
+                                ('Any', '*.*')
+                            ),
+                            initialdir = wmwpy.Utils.joinPath(
+                                self.settings.get('game.gamepath'),
+                                self.settings.get('game.assets'),
+                            ),
+                            title = 'Pick defualt PNG file',
+                        )
+                    )
+                ),
+            row = 1,
+        )
         
     def updateSettings(self):
         self.settings.set('game.gamepath', self.paths['contents']['gamepaths']['var'].get())
