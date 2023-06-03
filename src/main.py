@@ -912,7 +912,7 @@ class WME(tk.Tk):
                 ('WMW Object', '*.hs'),
                 ('Any', '*.*'),
             ),
-            initialdir = wmwpy.Utils.path.joinPath(
+            initialdir = wmwpy.utils.path.joinPath(
                 self.game.gamepath,
                 self.game.assets,
                 self.game.baseassets,
@@ -1500,7 +1500,7 @@ class WME(tk.Tk):
                 ('WMW Level', '.xml'),
                 ('Any', '*.*')
             ),
-            initialdir = wmwpy.Utils.path.joinPath(
+            initialdir = wmwpy.utils.path.joinPath(
                 self.game.gamepath,
                 self.game.assets,
                 self.game.baseassets,
@@ -1523,7 +1523,7 @@ class WME(tk.Tk):
         )
         
         if filename == None:
-            filename = wmwpy.Utils.path.joinPath(
+            filename = wmwpy.utils.path.joinPath(
                 self.game.gamepath,
                 self.game.assets,
                 self.game.baseassets,
@@ -1556,7 +1556,7 @@ class WME(tk.Tk):
                 ('WMW Level', '.xml'),
                 ('Any', '*.*')
             ),
-            initialdir = wmwpy.Utils.path.joinPath(
+            initialdir = wmwpy.utils.path.joinPath(
                 self.game.gamepath,
                 self.game.assets,
                 self.game.baseassets,
@@ -1590,7 +1590,7 @@ class WME(tk.Tk):
             return file
         
         path = pathlib.PurePath(path)
-        assets = wmwpy.Utils.path.joinPath(
+        assets = wmwpy.utils.path.joinPath(
             self.game.gamepath,
             self.game.assets,
         )
@@ -1641,7 +1641,7 @@ class WME(tk.Tk):
             )
         except:
             logging.warning(f'unable to load game: {self.settings.get("game.gamepath")}')
-            wmwpy.Utils.logging_utils.log_exception()
+            wmwpy.utils.logging_utils.log_exception()
         
         self.state = 'enabled'
     

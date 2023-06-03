@@ -349,9 +349,9 @@ class SettingsDialog(tk.Toplevel):
             default_value = self.settings.get('game.assets'),
             button_callback = lambda path : os.path.relpath(
                 validate(
-                    wmwpy.Utils.path.joinPath(self.settings.get('game.gamepath'), path),
+                    wmwpy.utils.path.joinPath(self.settings.get('game.gamepath'), path),
                     filedialog.askdirectory(
-                        initialdir = os.path.dirname(wmwpy.Utils.path.joinPath(self.settings.get('game.gamepath'), path)),
+                        initialdir = os.path.dirname(wmwpy.utils.path.joinPath(self.settings.get('game.gamepath'), path)),
                         title = 'Assets directory',
                     )
                 ),
@@ -391,7 +391,7 @@ class SettingsDialog(tk.Toplevel):
                 return file
             
             path = pathlib.PurePath(path)
-            assets = os.path.abspath(wmwpy.Utils.path.joinPath(
+            assets = os.path.abspath(wmwpy.utils.path.joinPath(
                 self.settings.get('game.gamepath'),
                 self.settings.get('game.assets'),
             ))
@@ -436,7 +436,7 @@ class SettingsDialog(tk.Toplevel):
                                 (f'{self.settings.get("game.game")} Level', '*.xml'),
                                 ('Any', '*.*')
                             ),
-                            initialdir = wmwpy.Utils.joinPath(
+                            initialdir = wmwpy.utils.joinPath(
                                 self.settings.get('game.gamepath'),
                                 self.settings.get('game.assets'),
                             ),
@@ -462,7 +462,7 @@ class SettingsDialog(tk.Toplevel):
                                 (f'{self.settings.get("game.game")} Level', '*.png'),
                                 ('Any', '*.*')
                             ),
-                            initialdir = wmwpy.Utils.joinPath(
+                            initialdir = wmwpy.utils.joinPath(
                                 self.settings.get('game.gamepath'),
                                 self.settings.get('game.assets'),
                             ),
