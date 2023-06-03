@@ -730,17 +730,19 @@ class WME(tk.Tk):
             lambda e, object = obj: self.selectObject(object)
         )
         
+        context_menu = self.createObjectContextMenu(obj)
+        
         if platform.system() == 'Darwin':
             self.level_canvas.tag_bind(
                 id,
                 '<Button-2>',
-                lambda e, object = obj, menu = self.createObjectContextMenu(obj): self.showPopup(menu, e, callback = lambda : self.selectObject(object))
+                lambda e, object = obj, menu = context_menu: self.showPopup(menu, e, callback = lambda : self.selectObject(object))
             )
         else:
             self.level_canvas.tag_bind(
                 id,
                 '<Button-3>',
-                lambda e, object = obj, menu = self.createObjectContextMenu(obj): self.showPopup(menu, e, callback = lambda : self.selectObject(object))
+                lambda e, object = obj, menu = context_menu: self.showPopup(menu, e, callback = lambda : self.selectObject(object))
             )
     
     def unbindObject(self, id):
