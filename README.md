@@ -6,7 +6,7 @@
 </p>
  Where's My Editor? is a level editor for the mobile game, Where's My Water? and all it's spinoffs.
  
- NOTE: If you came here to read a .waltex image, then go to [wmwpy](https://github.com/wmw-modding/wmwpy/blob/main/src/wmwpy/Utils/Waltex.py). `waltex.py` has moved there.
+ NOTE: If you came here to read a .waltex image, then go to [wmwpy](https://github.com/wmw-modding/wmwpy/blob/main/src/wmwpy/utils/waltex.py). `waltex.py` has moved there.
 
 # Setup
 
