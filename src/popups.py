@@ -2,7 +2,7 @@ import logging
 import copy
 import json
 import tkinter as tk
-from tkinter import ttk, filedialog
+from tkinter import ttk, filedialog, simpledialog
 import tkinter.font as tkFont
 import os
 import pathlib
@@ -525,3 +525,103 @@ if __name__ == '__main__':
             app,
             settings = settings
         )
+
+class _AskStringOptions(simpledialog.Dialog):
+    def __init__(
+        self,
+        parent: tk.Misc | None,
+        title: str | None = None,
+        prompt : str = None,
+        validate_message :  str = None,
+        options : list[str] = [],
+        validate_callback : typing.Callable[[str], bool] = None,
+    ) -> None:
+        self.options = copy.deepcopy(options)
+        self.validate_callback = validate_callback
+        self.prompt = prompt
+        self.validate_message = validate_message
+        
+        super().__init__(parent, title)
+    
+    def body(self, master: tk.Frame) -> tk.Misc | None:
+        if isinstance(self.prompt, str):
+            prompt = ttk.Label(
+                master,
+                text = self.prompt,
+            )
+            
+            prompt.pack(side = 'top', anchor = 'center')
+        
+        if len(self.options) > 0:
+            self.entry = ttk.Combobox(
+                master,
+                values = self.options,
+            )
+        else:
+            self.entry = ttk.Entry(
+                master
+            )
+        
+        self.entry.pack(fill = 'x')
+        
+        self.style = ttk.Style(self)
+        self.style.configure('Validation.TLabel', foreground = "red")
+        
+        self.validate_label = ttk.Label(
+            master,
+            text = self.validate_message if isinstance(self.validate_message, str) else 'Error',
+            style = 'Validation.TLabel',
+            anchor = 'nw',
+        )
+        
+        return self.entry
+    
+    def buttonbox(self) -> None:
+        box = ttk.Frame(self)
+
+        w = ttk.Button(box, text="OK", width=10, command=self.ok, default=tk.ACTIVE)
+        w.pack(side=tk.LEFT, padx=5, pady=5)
+        w = ttk.Button(box, text="Cancel", width=10, command=self.cancel)
+        w.pack(side=tk.LEFT, padx=5, pady=5)
+
+        self.bind("<Return>", self.ok)
+        self.bind("<Escape>", self.cancel)
+
+        box.pack()
+    
+    def apply(self) -> None:
+        return self.entry.get()
+    
+    def validate(self) -> bool:
+        self.result = self.entry.get()
+        
+        if callable(self.validate_callback):
+            validation = self.validate_callback(self.result)
+        else:
+            validation = True
+        
+        if not validation:
+            self.validate_label.pack(anchor = 'ne', side = 'left')
+        
+        return validation
+
+def askstringoptions(
+    parent = None,
+    title = None,
+    prompt : str = None,
+    validate_message : str = None,
+    options : list[str] = [],
+    validate_callback : typing.Callable[[str], bool] = None,
+    **kwargs
+):
+    d = _AskStringOptions(
+        parent = parent,
+        title = title,
+        prompt = prompt,
+        validate_message = validate_message,
+        options = options,
+        validate_callback = validate_callback,
+        **kwargs
+    )
+    
+    return d.result
