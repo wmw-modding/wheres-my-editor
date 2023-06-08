@@ -34,7 +34,7 @@ class About(tk.Toplevel):
         self.style.configure('Hyperlink.TLabel', foreground = "blue")
         
         
-        self.heading_font = tkFont.nametofont('TkHeadingFont')
+        self.heading_font = tkFont.nametofont('TkHeadingFont').copy()
         self.heading_font.configure(size = 20)
         
         self.style.configure('Heading.TLabel', font = self.heading_font)
