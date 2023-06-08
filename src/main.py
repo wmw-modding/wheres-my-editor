@@ -1191,16 +1191,16 @@ class WME(tk.Tk):
                 
                 if property in obj.defaultProperties:
                     prefix = '*'
-                    button_text = '↺'
+                    # button_text = '↺'
                     
-                    button_callback = lambda *args, prop = property : resetProperty(prop)
+                    # button_callback = lambda *args, prop = property : resetProperty(prop)
                 
                 self.objectProperties[property] = addProperty(
                     property,
                     obj.properties[property],
                     row = row,
                     button_text = button_text,
-                    label_editable = property not in obj.defaultProperties,
+                    label_editable = True,
                     entry_callback = lambda value, prop = property: updateProperty(prop, value),
                     label_callback = lambda name, prop = property: updatePropertyName(prop, name),
                     button_callback = button_callback,
@@ -1212,41 +1212,29 @@ class WME(tk.Tk):
         self.properties['panned'].configure(height = sum(sizes))
         self.properties['scrollFrame'].resetCanvasScroll()
         
-        def addNewProperty(property, value, row):
-            def setProperty(name, value):
-                if name in obj.properties:
-                    messagebox.showerror(
-                        'Property name already exists',
-                        f'Property "{name}" already exists.'
-                    )
-                    
-                    return False
-                else:
-                    obj.properties[name] = value
-                    
-                    self.updateObject(obj)
-                    self.updateProperties(obj)
-                    self.updateObjectSelector()
-                    
-                    return True
+        def addNewProperty(row):
             
-            logging.debug(f'adding property {property}')
-            logging.debug(f'{row = }')
-            logging.debug(f'{value = }')
+            properties = deepcopy(obj.defaultProperties)
+            for prop in obj.properties:
+                if prop in properties:
+                    del properties[prop]
             
-            prop = addProperty(
-                property,
-                value,
-                row=row,
-                entry_callback = lambda val, prop = property: updateProperty(prop, val),
-                label_callback = lambda name, prop = property: setProperty(name, value)
+            property = popups.askstringoptions(
+                self,
+                'New property',
+                'New property',
+                validate_message = 'Property already exists',
+                options = list(properties.keys()),
+                validate_callback = lambda name : (name != '') and (name not in obj.properties),
             )
             
-            sizes.append(prop['size'])
-            
-            prop['label'].edit_start()
-            
-            self.properties['panned'].configure(height = sum(sizes))
+            if property != None:
+                if property in obj.defaultProperties:
+                    obj.properties[property] = obj.defaultProperties[property]
+                else:
+                    obj.properties[property] = ''
+                
+                self.updateProperties()
         
         logging.debug(f'{row = }')
         
@@ -1254,7 +1242,7 @@ class WME(tk.Tk):
             self.properties['frame'],
             text = 'Add',
             command = lambda *args,
-            r = row + 1 : addNewProperty('Property', 0, r),
+            r = row + 1 : addNewProperty(r),
         )
         add.pack(side = 'bottom', expand = True, fill = 'x')
         
@@ -1760,10 +1748,7 @@ class TkErrorCatcher:
         except SystemExit as msg:
             raise SystemExit(msg)
         except Exception as e:
-            fileio = io.StringIO()
-            traceback.print_exc(file = fileio)
-            
-            logging.error(fileio.getvalue())
+            log_exception()
 
 tk.CallWrapper = TkErrorCatcher
 
