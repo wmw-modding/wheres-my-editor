@@ -1,10 +1,11 @@
 import platform
 import typing
 from tkinter import ttk
+import tkinter.font as tkFont
 import tkmacosx
 
 
-def Button(*args, system : typing.Literal['mac', 'window', 'linux'] = None, **kwargs) -> ttk.Button:
+def Button(*args, system : typing.Literal['mac', 'windows', 'linux'] = None, **kwargs) -> ttk.Button:
     if isinstance(system, str):
         system = system.lower()
     else:
@@ -12,7 +13,16 @@ def Button(*args, system : typing.Literal['mac', 'window', 'linux'] = None, **kw
 
     if platform.system() == 'Darwin' or system in ['mac', 'macos', 'darwin']:
         if 'width' in kwargs:
-            kwargs['width'] *= 10
+            style = ttk.Style()
+            try:
+                font = style.lookup(kwargs.get('style', 'TButton'), 'font')
+                font = tkFont.nametofont(font)
+            except:
+                font = tkFont.nametofont('TkDefaultFont')
+            
+            width = font.measure('0')
+            
+            kwargs['width'] *= width * 2
 
         return tkmacosx.Button(*args, **kwargs)
     else:
