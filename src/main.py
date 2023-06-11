@@ -21,7 +21,7 @@ __links__ = {
     'discord' : 'https://discord.gg/eRVfbgwNku',
 }
 
-__wmwpy_version__ = "0.5.0-beta"
+__min_wmwpy_version__ = "0.5.0-beta"
 
 import traceback
 import logging
@@ -90,9 +90,9 @@ import wmwpy
 from scrollframe import ScrollFrame
 import popups
 
-if wmwpy.__version__ < __wmwpy_version__:
-    logging.error(f'wmwpy version must be "{__wmwpy_version__}" or higher.')
-    raise ImportWarning(f'wmwpy version must be "{__wmwpy_version__}" or higher.')
+if wmwpy.__version__ < __min_wmwpy_version__:
+    logging.error(f'wmwpy version must be "{__min_wmwpy_version__}" or higher.')
+    raise ImportWarning(f'wmwpy version must be "{__min_wmwpy_version__}" or higher.')
 
 ImageColor.colormap['transparent'] = '#0000'
 
@@ -1471,7 +1471,7 @@ class WME(tk.Tk):
             title = "About",
             author = __author__,
             program = "Where's My Editor?",
-            version = __version__,
+            version = f'{__version__}\nwmwpy-{wmwpy.__version__}',
             description = """Where's My Editor? is a program to create and modify levels in the Where's My Water? game series.""",
             credits = __credits__,
             logo = Image.open(self.getAsset(self.LOGO)),

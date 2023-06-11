@@ -103,7 +103,7 @@ class About(tk.Toplevel):
         self.program_label = ttk.Label(self.frame, text = self.program)
         self.program_label.pack(anchor = 'n')
         
-        self.version_label = ttk.Label(self.frame, text = self.version)
+        self.version_label = ttk.Label(self.frame, text = self.version, justify = 'center')
         self.version_label.pack(anchor = 'n')
         
         self.author_label = ttk.Label(self.frame, text = f'Created by: {self.author}')
