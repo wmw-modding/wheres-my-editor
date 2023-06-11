@@ -19,6 +19,7 @@ __credits__ = [
 ]
 __links__ = {
     'discord' : 'https://discord.gg/eRVfbgwNku',
+    'releases' : 'https://github.com/wmw-modding/wheres-my-editor/releases/latest',
 }
 
 __min_wmwpy_version__ = "0.5.0-beta"
@@ -1462,6 +1463,7 @@ class WME(tk.Tk):
         
         self.help_menu.add_command(label = 'Discord', command = lambda *args : webbrowser.open(__links__['discord']))
         self.help_menu.add_command(label = 'About', command = self.showAbout)
+        self.help_menu.add_command(label = 'Check for update', command = lambda *args : webbrowser.open(__links__['releases']))
 
         self.menubar.add_cascade(label = 'Help', menu = self.help_menu)
     
