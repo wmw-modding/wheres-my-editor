@@ -203,6 +203,9 @@ class SettingsDialog(tk.Toplevel):
         self.confirm['ok'].pack(side='right', padx=2, pady=2)
         self.confirm['cancel'].pack(side='right', padx=2, pady=2)
         
+        self.confirm['notice'] = ttk.Label(self.confirm['frame'], text = 'Changes will apply at next launch')
+        self.confirm['notice'].pack(side='left', padx=2)
+        
         self.confirm['frame'].pack(anchor='s', fill='x')
         
         self.protocol("WM_DELETE_WINDOW", lambda *args : self.close(False))
@@ -440,7 +443,7 @@ class SettingsDialog(tk.Toplevel):
                                 self.settings.get('game.gamepath'),
                                 self.settings.get('game.assets'),
                             ),
-                            title = 'Pick defualt XML file',
+                            title = 'Pick default XML file',
                         )
                     )
                 ),
@@ -477,54 +480,6 @@ class SettingsDialog(tk.Toplevel):
         self.settings.set('game.gamepath', self.paths['contents']['gamepaths']['var'].get())
         self.settings.set('game.default_level.image', self.paths['contents']['level']['image']['var'].get())
         self.settings.set('game.default_level.xml', self.paths['contents']['level']['xml']['var'].get())
-
-if __name__ == '__main__':
-    test = 'settings'
-
-    if test == 'about':
-        __version__ = '2.0.0'
-        __author__ = 'ego-lay-atman-bay'
-        __credits__ = [
-            {
-                'name' : 'wmwpy',
-                'url' : 'https://github.com/wmw-modding/wmwpy',
-                'description' : "Where's My Editor? uses wmwpy to read and modify Where's My Water? data, e.g. levels."
-            },
-            {
-                'name' : 'rubice!',
-                'url' : 'https://www.youtube.com/channel/UCsY-c5mJYWnK6PhrkHqPwig',
-                'description' : 'Thanks to @rubice for creating the logo.'
-            },
-            {
-                'name' : 'campbellsonic',
-                'url' : 'https://github.com/campbellsonic',
-                'description' : 'Thanks to @campbellsonic for helping to read waltex images.'
-            }
-        ]
-
-
-        app = tk.Tk()
-        about = About(
-            app,
-            title = "About",
-            author = __author__,
-            program = "Where's My Editor?",
-            version = __version__,
-            description = """Where's My Editor? is a level editor for the Where's My Water? game series.""",
-            credits = __credits__,
-            logo = Image.open('assets/images/WME_logo.png'),
-        )
-
-        app.mainloop()
-
-    elif test == 'settings':
-        settings = Settings('settings.json')
-        
-        app = tk.Tk()
-        dialog = SettingsDialog(
-            app,
-            settings = settings
-        )
 
 class _AskStringOptions(simpledialog.Dialog):
     def __init__(
@@ -625,3 +580,52 @@ def askstringoptions(
     )
     
     return d.result
+
+
+if __name__ == '__main__':
+    test = 'settings'
+
+    if test == 'about':
+        __version__ = '2.0.0'
+        __author__ = 'ego-lay-atman-bay'
+        __credits__ = [
+            {
+                'name' : 'wmwpy',
+                'url' : 'https://github.com/wmw-modding/wmwpy',
+                'description' : "Where's My Editor? uses wmwpy to read and modify Where's My Water? data, e.g. levels."
+            },
+            {
+                'name' : 'rubice!',
+                'url' : 'https://www.youtube.com/channel/UCsY-c5mJYWnK6PhrkHqPwig',
+                'description' : 'Thanks to @rubice for creating the logo.'
+            },
+            {
+                'name' : 'campbellsonic',
+                'url' : 'https://github.com/campbellsonic',
+                'description' : 'Thanks to @campbellsonic for helping to read waltex images.'
+            }
+        ]
+
+
+        app = tk.Tk()
+        about = About(
+            app,
+            title = "About",
+            author = __author__,
+            program = "Where's My Editor?",
+            version = __version__,
+            description = """Where's My Editor? is a level editor for the Where's My Water? game series.""",
+            credits = __credits__,
+            logo = Image.open('assets/images/WME_logo.png'),
+        )
+
+        app.mainloop()
+
+    elif test == 'settings':
+        settings = Settings('settings.json')
+        
+        app = tk.Tk()
+        dialog = SettingsDialog(
+            app,
+            settings = settings
+        )
