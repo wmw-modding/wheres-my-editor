@@ -20,6 +20,7 @@ __credits__ = [
 __links__ = {
     'discord' : 'https://discord.gg/eRVfbgwNku',
     'releases' : 'https://github.com/wmw-modding/wheres-my-editor/releases/latest',
+    'bugs' : 'https://github.com/wmw-modding/wheres-my-editor/issues',
 }
 
 __min_wmwpy_version__ = "0.5.0-beta"
@@ -149,8 +150,36 @@ class WME(tk.Tk):
         self.updateSettings()
 
         self.selection_rect = None
-
+        
+        self.panedGrip : dict[typing.Literal['image', 'horizontal', 'vertical'], Image.Image | ImageTk.PhotoImage] = {
+            'image' : Image.open(self.getAsset('assets/images/grip.gif')).convert('RGBA'),
+        }
+        
+        self.panedGrip['horizontal'] = ImageTk.PhotoImage(self.panedGrip['image'])
+        self.panedGrip['vertical'] = ImageTk.PhotoImage(self.panedGrip['image'].rotate(90, expand = True))
+        
         self.style = ttk.Style()
+        # self.style.theme_use('clam')
+        
+        self.style.element_create("Sash.Horizontal", "image", self.panedGrip['horizontal'], sticky='we')
+        self.style.layout("Horizontal.TPanedWindow", [('Sash.Horizontal', {})])
+        
+        self.style.element_create("Sash.Vertical", "image", self.panedGrip['vertical'], sticky='ns')
+        self.style.layout("Vertical.TPanedWindow", [('Sash.Vertical', {})])
+        
+        # self.style.layout("Clicked.TPanedWindow", [('Sash.xsash', {})])
+        
+        self.style.configure('TPanedwindow', opaqueresize=False)
+        # self.style.configure('Clicked.TPanedwindow', background='blue')
+        self.style.configure('Sash', sashthickness = 5)
+        
+        # ttk.PanedWindow(orient='horizontal').cget('orient')
+        
+        # self.bind_class('TPanedwindow', '<Button-1>', lambda e : print(e.widget.configure(style = 'Clicked.TPanedwindow')))
+        # self.bind_class('TPanedwindow', '<B1-Motion>', lambda e : e.widget.tk.call(e.widget, "sash", 0, (e.x if str(e.widget["orient"]) == "horizontal" else e.y)))
+        # self.bind_class('TPanedwindow', '<ButtonRelease-1>', lambda e : e.widget.configure(style = 'TPanedwindow'))
+        # self.bind_class('Sash.TPanedWindow', '<Leave>', lambda e : e.widget.configure(style = 'TPanedwindow'))
+        # self.bind_class('Sash.TPanedWindow', '<Enter>', lambda e : e.widget.configure(style = 'Clicked.TPanedwindow'))
 
         self.active = True
 
@@ -189,11 +218,11 @@ class WME(tk.Tk):
         return self.windowIcons
 
     def createWindow(self):
-        self.seperator = ttk.PanedWindow(orient='horizontal')
-        self.seperator.pack(fill=tk.BOTH, expand=1)
+        self.separator = ttk.PanedWindow(orient='horizontal', style = 'Horizontal.TPanedWindow')
+        self.separator.pack(fill=tk.BOTH, expand=1)
 
-        self.side_pane = ttk.PanedWindow(self.seperator, orient='vertical')
-        self.seperator.add(self.side_pane)
+        self.side_pane = ttk.PanedWindow(self.separator, orient='vertical', style = "Vertical.TPanedWindow")
+        self.separator.add(self.side_pane)
         
         side_pane_width = 250
         side_pane_height = 300
@@ -203,7 +232,7 @@ class WME(tk.Tk):
         
         self.object_selector : dict[typing.Literal[
             'labelFrame',
-            'treeviewe',
+            'treeview',
             'y_scroll',
             'x_scroll',
         ], tk.Widget | ttk.Treeview] = {
@@ -259,8 +288,8 @@ class WME(tk.Tk):
         self.properties['scrollFrame'].pack(fill='both', expand=True)
         self.properties['frame'] = self.properties['scrollFrame'].viewPort
 
-        self.level_canvas = tk.Canvas(self.seperator, width=90*self.scale, height=120*self.scale)
-        self.seperator.add(self.level_canvas, weight=1)
+        self.level_canvas = tk.Canvas(self.separator, width=90*self.scale, height=120*self.scale)
+        self.separator.add(self.level_canvas, weight=1)
         
         self.level_images = {
             'background': self.level_canvas.create_image(
@@ -373,7 +402,7 @@ class WME(tk.Tk):
             self.menubar.entryconfig(item + 1, state = 'disabled')
     
     def bindKeyboardShortcuts(self, *args):
-        logging.debug('Binding keyboard shotcuts')
+        logging.debug('Binding keyboard shortcuts')
         
         self.bind(f'<{crossplatform.modifier()}-v>', self.pasteObject)
         self.bind(f'<{crossplatform.modifier()}-c>', self.copyObject)
@@ -401,7 +430,7 @@ class WME(tk.Tk):
         self.bind(f'<Shift-Right>', lambda *args : self.moveObject(amount = (4,0)))
     
     def unbindKeyboardShortcuts(self, *args):
-        logging.debug('unbinding keyboard shotcuts')
+        logging.debug('unbinding keyboard shortcuts')
         
         self.unbind(f'<{crossplatform.modifier()}-v>')
         self.unbind(f'<{crossplatform.modifier()}-c>')
@@ -484,7 +513,7 @@ class WME(tk.Tk):
         if state == 'enabled':
             state = 'normal'
         elif state not in ['enabled', 'normal', 'disabled']:
-            raise ValueError(f'uknown state {state}')
+            raise ValueError(f'unknown state {state}')
         
         self._state = state
 
@@ -1017,7 +1046,7 @@ class WME(tk.Tk):
                 for t in type:
                     t = t.lower()
                     input, var = inputType(t, value[column])
-                    input.grid(column = column, row=row, sticky='ew')
+                    input.grid(column = column, row=row, sticky='ew', padx=2)
                     if callable(entry_callback):
                         var.trace('w', lambda *args, value = var.get, col = column: entry_callback(value(), col))
                     
@@ -1038,7 +1067,7 @@ class WME(tk.Tk):
                 type = type.lower()
                 
                 input, var = inputType(type, value)
-                input.grid(column = 0, row=row, sticky = 'ew', columnspan=2)
+                input.grid(column = 0, row=row, sticky = 'ew', columnspan=2, padx=2)
                 
                 if entry_callback:
                     var.trace('w', lambda *args: entry_callback(var.get()))
@@ -1082,7 +1111,7 @@ class WME(tk.Tk):
                 'var' : vars,
             }
         
-        def removePropety(property):
+        def removeProperty(property):
             if property in obj.properties:
                 del obj.properties[property]
                 self.updateObject(obj)
@@ -1188,7 +1217,7 @@ class WME(tk.Tk):
                 logging.debug(f'{property = }')
                 prefix = ''
                 button_text = '-'
-                button_callback = lambda *args, prop = property : removePropety(prop)
+                button_callback = lambda *args, prop = property : removeProperty(prop)
                 
                 if property in obj.defaultProperties:
                     prefix = '*'
@@ -1272,7 +1301,8 @@ class WME(tk.Tk):
         if not 'panned' in self.properties:
             self.properties['panned'] = ttk.PanedWindow(
                 self.properties['frame'],
-                orient='horizontal'
+                orient='horizontal',
+                style = 'Horizontal.TPanedWindow'
             )
             self.properties['panned'].pack(expand=True, fill='both')
         
@@ -1464,6 +1494,8 @@ class WME(tk.Tk):
         self.help_menu.add_command(label = 'Discord', command = lambda *args : webbrowser.open(__links__['discord']))
         self.help_menu.add_command(label = 'About', command = self.showAbout)
         self.help_menu.add_command(label = 'Check for update', command = lambda *args : webbrowser.open(__links__['releases']))
+        self.help_menu.add_command(label = 'Bug report', command = lambda *args : webbrowser.open(__links__['bugs']))
+        self.help_menu.add_command(label = 'Open log', command = lambda *args : crossplatform.open_file(_log_filename))
 
         self.menubar.add_cascade(label = 'Help', menu = self.help_menu)
     

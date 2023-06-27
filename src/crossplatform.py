@@ -1,4 +1,6 @@
 import platform
+import subprocess
+import os
 import typing
 from tkinter import ttk
 import tkinter.font as tkFont
@@ -39,3 +41,13 @@ def shortModifier() -> typing.Literal['Ctrl', 'Cmd']:
         return 'Cmd'
     else:
         return 'Ctrl'
+
+def open_file(filepath : str):
+    filepath = os.path.abspath(filepath)
+    
+    if platform.system() == 'Darwin':       # macOS
+        subprocess.call(('open', filepath))
+    elif platform.system() == 'Windows':    # Windows
+        os.startfile(filepath)
+    else:                                   # linux variants
+        subprocess.call(('xdg-open', filepath))
