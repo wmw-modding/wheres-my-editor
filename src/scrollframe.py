@@ -50,7 +50,7 @@ class ScrollFrame(ttk.Frame):
     def onCanvasConfigure(self, event):
         '''Reset the canvas window to encompass inner frame when required'''
         canvas_width = event.width
-        self.canvas.itemconfig(self.canvas_window, width = canvas_width)            #whenever the size of the canvas changes alter the window region respectively.
+        self.canvas.itemconfig(self.canvas_window, width = canvas_width - 2)            #whenever the size of the canvas changes alter the window region respectively.
     
     def resetCanvasScroll(self):
         self.canvas.yview_moveto(0)
