@@ -151,21 +151,31 @@ class WME(tk.Tk):
 
         self.selection_rect = None
         
-        self.panedGrip : dict[typing.Literal['image', 'horizontal', 'vertical'], Image.Image | ImageTk.PhotoImage] = {
-            'image' : Image.open(self.getAsset('assets/images/grip.gif')).convert('RGBA'),
-        }
-        
-        self.panedGrip['horizontal'] = ImageTk.PhotoImage(self.panedGrip['image'])
-        self.panedGrip['vertical'] = ImageTk.PhotoImage(self.panedGrip['image'].rotate(90, expand = True))
-        
         self.style = ttk.Style()
+        
+        self.style.layout("Horizontal.TPanedWindow", [('TPanedWindow', {})])
+
+        self.style.layout("Vertical.TPanedWindow", [('TPanedWindow', {})])
+        
         # self.style.theme_use('clam')
         
-        self.style.element_create("Sash.Horizontal", "image", self.panedGrip['horizontal'], sticky='we')
-        self.style.layout("Horizontal.TPanedWindow", [('Sash.Horizontal', {})])
+        try:
+            self.panedGrip : dict[typing.Literal['image', 'horizontal', 'vertical'], Image.Image | ImageTk.PhotoImage] = {
+                'image' : Image.open(self.getAsset('assets/images/grip.gif')).convert('RGBA'),
+            }
+
+            self.panedGrip['horizontal'] = ImageTk.PhotoImage(self.panedGrip['image'])
+            self.panedGrip['vertical'] = ImageTk.PhotoImage(self.panedGrip['image'].rotate(90, expand = True))
         
-        self.style.element_create("Sash.Vertical", "image", self.panedGrip['vertical'], sticky='ns')
-        self.style.layout("Vertical.TPanedWindow", [('Sash.Vertical', {})])
+            self.style.element_create("Sash.Horizontal", "image", self.panedGrip['horizontal'], sticky='we')
+            self.style.layout("Horizontal.TPanedWindow", [('Sash.Horizontal', {})])
+
+            self.style.element_create("Sash.Vertical", "image", self.panedGrip['vertical'], sticky='ns')
+            self.style.layout("Vertical.TPanedWindow", [('Sash.Vertical', {})])
+        
+        except:
+            logging.error('Unable to set grip image')
+            log_exception()
         
         # self.style.layout("Clicked.TPanedWindow", [('Sash.xsash', {})])
         
