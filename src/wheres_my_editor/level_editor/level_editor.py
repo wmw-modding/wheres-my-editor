@@ -25,11 +25,6 @@ from tkinter import filedialog, messagebox, ttk
 
 
 class LevelEditor(tk.Tk):
-    APP_ICONS = [
-            'assets/images/icon_256x256.ico',
-        ]
-    LOGO = 'assets/images/WME_logo.png'
-
     def __init__(
         self,
         parent,
@@ -51,13 +46,14 @@ class LevelEditor(tk.Tk):
         # if len(self.windowIcons) > 0:
         #     self.iconphoto(True, *self.windowIcons)
 
-        try:
-            self.iconbitmap(default = list(self.windowIcons.keys())[0])
-        except:
+        if not isinstance(self.APP_ICONS, list):
             try:
-                self.iconphoto(True, *list(self.windowIcons.values()))
+                self.iconbitmap(default = list(self.windowIcons.keys())[0])
             except:
-                pass
+                try:
+                    self.iconphoto(True, *list(self.windowIcons.values()))
+                except:
+                    pass
 
         self.title("Where's my Editor")
         self.geometry('%dx%d' % (760 , 610) )
@@ -145,10 +141,15 @@ class LevelEditor(tk.Tk):
         self.protocol("WM_DELETE_WINDOW", self.close)
 
     def getAsset(self, path : str):
+        if not isinstance(path, str):
+            return
         return os.path.join(self.WME_assets, path)
 
     def findIcons(self):
         self.windowIcons : dict[str, ImageTk.PhotoImage] = {}
+        
+        if not isinstance(self.APP_ICONS, list):
+            return
 
         for icon in self.APP_ICONS:
             try:
@@ -1452,7 +1453,7 @@ class LevelEditor(tk.Tk):
             version = f'{__version__}\nwmwpy-{wmwpy.__version__}',
             description = """Where's My Editor? is a program to create and modify levels in the Where's My Water? game series.""",
             credits = __credits__,
-            logo = Image.open(self.getAsset(self.LOGO)),
+            logo = self.getAsset(self.LOGO),
         )
 
     def showSettings(self):
