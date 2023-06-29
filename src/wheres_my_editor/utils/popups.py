@@ -12,8 +12,8 @@ import numpy
 import typing
 import wmwpy
 
-from scrollframe import ScrollFrame
-from settings import Settings
+from .scrollframe import ScrollFrame
+from .settings import Settings
 
 class About(tk.Toplevel):
     def __init__(

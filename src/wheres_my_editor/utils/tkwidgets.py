@@ -17,12 +17,23 @@ class EditableLabel(ttk.Label):
         self.entry.delete(0, "end")
         text = self.cget("text")
         self.entry.insert(0, text)
-        self.entry.place(relx=.5, rely=.5, relwidth=1.0, relheight=1.0, anchor="center")
+        
+        width = 1.0
+        # if isinstance(self.entry, ttk.Combobox):
+        #     width = 1.5
+        
+        self.entry.place(relx=.5, rely=.5, relwidth=width, relheight=1.0, anchor="center")
         self.entry.focus_set()
         
         self.editing = True
 
     def edit_stop(self, event=None):
+        try:
+            print(self.focus_get())
+        except KeyError:
+            print('error')
+            return
+        
         if not self.editing:
             return
         self.editing = False

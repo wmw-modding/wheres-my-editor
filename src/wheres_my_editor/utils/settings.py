@@ -127,3 +127,6 @@ class Settings():
                 items = settings[value[0]]
             
             return this._get_settings(value[1::], items)
+    
+    def __str__(self) -> str:
+        return json.dumps(self.settings, indent=2)
