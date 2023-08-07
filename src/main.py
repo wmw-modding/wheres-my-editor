@@ -1,4 +1,4 @@
-__version__ = '2.3.1'
+__version__ = '2.3.2'
 __author__ = 'ego-lay-atman-bay'
 __credits__ = [
     {
@@ -199,6 +199,7 @@ class WME(tk.Tk):
         
         self.createMenubar()
         self.createWindow()
+        self.objectContextMenu = tk.Menu(self.level_canvas, tearoff = 0)
         
         self.loadGame()
         
@@ -807,12 +808,17 @@ class WME(tk.Tk):
             )
         
     def createObjectContextMenu(self, obj : wmwpy.classes.Object):
-        menu = tk.Menu(self.level_canvas, tearoff = 0)
-        menu.add_command(label = 'delete', command = lambda *args : self.deleteObject(obj), accelerator = 'Del')
-        menu.add_command(label = 'copy', command = lambda *args : self.copyObject(obj), accelerator = f'{crossplatform.shortModifier()}+C')
-        menu.add_command(label = 'cut', command = lambda *args : self.cutObject(obj), accelerator = f'{crossplatform.shortModifier()}+X')
+        # try:
+        #     self.objectContextMenu.destroy()
+        # except:
+        #     log_exception()
         
-        return menu
+        self.objectContextMenu.delete(0, 3)
+        self.objectContextMenu.add_command(label = 'delete', command = lambda *args : self.deleteObject(obj), accelerator = 'Del')
+        self.objectContextMenu.add_command(label = 'copy', command = lambda *args : self.copyObject(obj), accelerator = f'{crossplatform.shortModifier()}+C')
+        self.objectContextMenu.add_command(label = 'cut', command = lambda *args : self.cutObject(obj), accelerator = f'{crossplatform.shortModifier()}+X')
+        
+        return self.objectContextMenu
     
     def showPopup(self, menu : tk.Menu, event : tk.Event = None, callback : typing.Callable = None):
         try:
