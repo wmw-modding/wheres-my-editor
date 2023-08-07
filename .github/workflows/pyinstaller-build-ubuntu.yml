@@ -4,8 +4,6 @@ name: Package Application - Ubuntu
 on: 
   workflow_dispatch:
   push:
-    branches:
-      - 'main'
 
 jobs:
   linux-build:
