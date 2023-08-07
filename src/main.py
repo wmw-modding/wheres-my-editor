@@ -808,11 +808,6 @@ class WME(tk.Tk):
             )
         
     def createObjectContextMenu(self, obj : wmwpy.classes.Object):
-        # try:
-        #     self.objectContextMenu.destroy()
-        # except:
-        #     log_exception()
-        
         self.objectContextMenu.delete(0, 3)
         self.objectContextMenu.add_command(label = 'delete', command = lambda *args : self.deleteObject(obj), accelerator = 'Del')
         self.objectContextMenu.add_command(label = 'copy', command = lambda *args : self.copyObject(obj), accelerator = f'{crossplatform.shortModifier()}+C')
