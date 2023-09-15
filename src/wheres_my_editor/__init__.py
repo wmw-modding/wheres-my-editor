@@ -24,7 +24,6 @@ __links__ = {
 }
 __min_wmwpy_version__ = "0.5.0-beta"
 
-
 from datetime import datetime
 import io
 import logging
@@ -66,14 +65,6 @@ _log_filename = f'logs/{datetime.now().strftime("%m-%d-%y_%H-%M-%S")}.log'
 
 createLogger('file', filename = _log_filename)
 
-
-def log_exception():
-    fileio = io.StringIO()
-    traceback.print_exc(file = fileio)
-
-    logging.error(fileio.getvalue())
-
-
 import wmwpy
 
 if wmwpy.__version__ < __min_wmwpy_version__:
@@ -111,6 +102,6 @@ class TkErrorCatcher:
         except SystemExit as msg:
             raise SystemExit(msg)
         except Exception as e:
-            log_exception()
+            logging.exception('Tkinter error:')
 
 tk.CallWrapper = TkErrorCatcher

@@ -4,8 +4,6 @@ from ..utils.scrollframe import ScrollFrame
 from ..utils.settings import Settings
 from ..utils import crossplatform
 from .. utils import tkwidgets
-from .. import log_exception
-
 
 import numpy
 import wmwpy
@@ -24,16 +22,16 @@ from copy import deepcopy
 from tkinter import filedialog, messagebox, ttk
 
 
-class LevelEditor(tk.Tk):
+class LevelEditor(tk.Toplevel):
     def __init__(
         self,
-        parent,
+        parent = None,
         logo : str = None,
         app_icons : list[str] = None,
     ):
-        tk.Tk.__init__(self,parent)
+        super().__init__(parent)
         self.parent = parent
-        
+
         self.LOGO = logo
         self.APP_ICONS = app_icons
 
@@ -65,16 +63,13 @@ class LevelEditor(tk.Tk):
         self.settings = Settings(
             filename = 'settings.json',
             default_settings = {
-                'version': 2,
-                'game': {
-                    'gamepath': '',
-                    'assets': '/assets',
-                    'game': 'wmw',
+                'level_editor': {
+                    'version': 3,
                     'default_level': {
                         'xml': '',
                         'image': '',
                     },
-                },
+                }
             }
         )
         self.updateSettings()
@@ -104,8 +99,7 @@ class LevelEditor(tk.Tk):
             self.style.layout("Vertical.TPanedWindow", [('Sash.Vertical', {})])
 
         except:
-            logging.error('Unable to set grip image')
-            log_exception()
+            logging.exception('Unable to set grip image')
 
         # self.style.layout("Clicked.TPanedWindow", [('Sash.xsash', {})])
 
@@ -131,13 +125,13 @@ class LevelEditor(tk.Tk):
         self.createWindow()
 
         self.objectContextMenu = tk.Menu(self.level_canvas, tearoff = 0)
-        
+
         self.loadGame()
 
         if self.game != None:
             self.loadLevel(
-                self.settings.get('game.default_level.xml'),
-                self.settings.get('game.default_level.image')
+                self.settings.get('level_editor.default_level.xml'),
+                self.settings.get('level_editor.default_level.image')
             )
 
         self.protocol("WM_DELETE_WINDOW", self.close)
@@ -149,7 +143,7 @@ class LevelEditor(tk.Tk):
 
     def findIcons(self):
         self.windowIcons : dict[str, ImageTk.PhotoImage] = {}
-        
+
         if not isinstance(self.APP_ICONS, list):
             return
 
@@ -1506,7 +1500,7 @@ class LevelEditor(tk.Tk):
         try:
             self.level.image.save(imagePath)
         except:
-            log_exception()
+            logging.exception('unable to save image')
 
         try:
             with open(filename, 'wb') as file:
@@ -1656,8 +1650,7 @@ class LevelEditor(tk.Tk):
                 load_callback = self.updateProgressBar,
             )
         except:
-            logging.warning('Unable to load level')
-            log_exception()
+            logging.exception('Unable to load level')
             self.state = 'enabled'
             return
 
@@ -1698,7 +1691,12 @@ class LevelEditor(tk.Tk):
             pass
         try:
             default_level = this.settings.get('default_level')
-            this.settings.set('game.default_level', default_level)
+            this.settings.set('level_editor.default_level', default_level)
             this.settings.remove('default_level')
         except:
-            pass
+            try:
+                default_level = this.settings.get('game.default_level')
+                this.settings.set('level_editor.default_level', default_level)
+                this.settings.remove('game.default_level')
+            except:
+                pass
