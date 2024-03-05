@@ -1,4 +1,4 @@
-__version__ = '2.3.2'
+__version__ = '2.3.3'
 __author__ = 'ego-lay-atman-bay'
 __credits__ = [
     {
@@ -34,13 +34,12 @@ import platform
 from datetime import datetime
 import crossplatform
 
-
-def createLogger(type = 'file', filename = 'logs/log.log'):
+def createLogger(type = 'file', filename = 'logs/log.log', debug = False):
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
     format = '[%(levelname)s] %(message)s'
     datefmt = '%I:%M:%S %p'
-    level = logging.DEBUG
+    level = logging.DEBUG if debug else logging.INFO
 
     # filename = 'log.log'
     
@@ -67,13 +66,13 @@ def createLogger(type = 'file', filename = 'logs/log.log'):
 
 _log_filename = f'logs/{datetime.now().strftime("%m-%d-%y_%H-%M-%S")}.log'
 
-createLogger('file', filename = _log_filename)
+debug = False
 
-def log_exception():
-    fileio = io.StringIO()
-    traceback.print_exc(file = fileio)
-    
-    logging.error(fileio.getvalue())
+args = sys.argv[1::]
+if len(args) > 0:
+    if args[0] in ['-d', '--debug']:
+        debug = True
+createLogger('file', filename = _log_filename, debug = debug)
 
 import tkinter as tk
 from tkinter import ttk, simpledialog, messagebox, filedialog
@@ -174,8 +173,7 @@ class WME(tk.Tk):
             self.style.layout("Vertical.TPanedWindow", [('Sash.Vertical', {})])
         
         except:
-            logging.error('Unable to set grip image')
-            log_exception()
+            logging.exception('Unable to set grip image')
         
         # self.style.layout("Clicked.TPanedWindow", [('Sash.xsash', {})])
         
@@ -637,8 +635,6 @@ class WME(tk.Tk):
             self.updateLevelScroll()
             return
         
-        logging.info(f'updating object: {obj.name}, {obj.type}')
-        
         offset = numpy.array(obj.offset)
         
         pos = numpy.array(obj.pos)
@@ -700,7 +696,7 @@ class WME(tk.Tk):
                     tags = ('object', 'foreground', id)
                 )
         
-        logging.info(f"id: {id}")
+        # logging.info(f"id: {id}")
         # logging.info(f"pos: {pos}\n")
         
         self.updateLayers()
@@ -711,12 +707,12 @@ class WME(tk.Tk):
         self.updateLevelScroll()
     
     def onLevelClick(self, event : tk.Event):
-        logging.info('level')
+        logging.debug('level')
         
         mouse = (self.level_canvas.canvasx(event.x), self.level_canvas.canvasy(event.y))
         
         objects = self.level_canvas.find_overlapping(*mouse, *mouse)
-        logging.info(objects)
+        logging.debug(objects)
         length = len(objects)
         
         if length <= 1:
@@ -732,17 +728,12 @@ class WME(tk.Tk):
         self.levelContextMenu.add_command(label = 'paste', command = self.pasteObject, accelerator = f'{crossplatform.shortModifier()}+V')
     
     def onLevelRightClick(self, event):
-        logging.info('level context menu')
-        logging.info(f'canvas mouse pos = {(numpy.array(self.level_canvas.winfo_pointerxy()) - (self.winfo_rootx(), self.winfo_rooty())) - (self.level_canvas.winfo_x(), self.level_canvas.winfo_y())}')
-        logging.info(f'canvas mouse x = {self.winfo_pointerx() - self.winfo_rootx()}')
-        logging.info(f'canvas mouse y = {self.winfo_pointery() - self.winfo_rooty()}')
-        logging.info(f'event pos = {(event.x, event.y)}')
-        logging.info(f'canvas pos = {(self.level_canvas.winfo_x(), self.level_canvas.winfo_y())}')
+        logging.debug('level context menu')
         
         mouse = (self.level_canvas.canvasx(event.x), self.level_canvas.canvasy(event.y))
         
         objects = self.level_canvas.find_overlapping(*mouse, *mouse)
-        logging.info(objects)
+        logging.debug(objects)
         length = len(objects)
         
         if length <= 1:
@@ -963,7 +954,6 @@ class WME(tk.Tk):
             ),
         )
         
-        logging.info(f'{pos = }')
         self.addObject(
             filename,
             pos = self.windowPosToWMWPos(pos)
@@ -1142,8 +1132,8 @@ class WME(tk.Tk):
         def updatePropertyName(property, newName, skip_unedited = False):
             if newName == property and not skip_unedited:
                 return True
-            logging.info(f'{newName = }')
-            logging.info(f'{property = }')
+            logging.debug(f'{newName = }')
+            logging.debug(f'{property = }')
             
             if newName in obj.properties:
                 messagebox.showerror(
@@ -1172,10 +1162,6 @@ class WME(tk.Tk):
             pos[column] = newPos
             
             obj.pos = tuple(pos)
-            
-            logging.info(newPos)
-            logging.info(pos)
-            logging.info(obj.pos)
             
             self.updateObject(obj)
         
@@ -1353,8 +1339,6 @@ class WME(tk.Tk):
             item = self.object_selector['treeview'].focus()
             item = self.object_selector['treeview'].item(item)
             
-            logging.info(item)
-            
             if 'object' in item['tags']:
                 id = item['values'][2]
                 obj = self.level.getObjectById(id)
@@ -1428,14 +1412,12 @@ class WME(tk.Tk):
         
         for obj in self.level.objects:
             self.updateObject(obj)
-            logging.info('')
         
         self.updateLevelScroll()
         self.level_canvas.xview_moveto(0.23)
         self.level_canvas.yview_moveto(0.2)
     
     def dragObject(self, obj : wmwpy.classes.Object, event = None):
-        logging.info(f'mouse pos = {(event.x, event.y)}')
         obj.pos = self.windowPosToWMWPos((event.x, event.y))
         
         self.updateObject(obj)
@@ -1544,7 +1526,7 @@ class WME(tk.Tk):
         )
         
         if xml in ['', None]:
-            logging.info('Open level canceled')
+            logging.debug('Open level canceled')
             return
         
         image = os.path.splitext(xml)[0] + '.png'
@@ -1570,7 +1552,7 @@ class WME(tk.Tk):
         try:
             self.level.image.save(imagePath)
         except:
-            log_exception()
+            logging.exception('failed to save level image')
         
         try:
             with open(filename, 'wb') as file:
@@ -1675,8 +1657,7 @@ class WME(tk.Tk):
                 load_callback = self.updateProgressBar,
             )
         except:
-            logging.warning(f'unable to load game: {self.settings.get("game.gamepath")}')
-            wmwpy.utils.logging_utils.log_exception()
+            logging.exception(f'unable to load game: {self.settings.get("game.gamepath")}')
         
         self.state = 'enabled'
     
@@ -1720,13 +1701,12 @@ class WME(tk.Tk):
                 load_callback = self.updateProgressBar,
             )
         except:
-            logging.warning('Unable to load level')
-            log_exception()
+            logging.exception('Unable to load level')
             self.state = 'enabled'
             return
         
-        logging.info(f'level = {self.level}')
-        logging.info(f'objects = {self.level.objects}')
+        logging.debug(f'level = {self.level}')
+        logging.debug(f'objects = {self.level.objects}')
         
         self.level.scale = 5
         self.updateLevel()
@@ -1745,7 +1725,7 @@ class WME(tk.Tk):
                 message = 'Do you want to save changes?',
             )
         
-        logging.info(f'close option: {result}')
+        logging.debug(f'close option: {result}')
         
         if result:
             self.saveLevelAs()
@@ -1793,7 +1773,7 @@ class TkErrorCatcher:
         except SystemExit as msg:
             raise SystemExit(msg)
         except Exception as e:
-            log_exception()
+            logging.exception('tk error')
 
 tk.CallWrapper = TkErrorCatcher
 
@@ -1802,7 +1782,7 @@ def main():
         app = WME(None)
         app.mainloop()
     except Exception as e:
-        log_exception()
+        logging.exception('WME ended prematurely')
 
 if(__name__ == '__main__'):
     main()
