@@ -14,10 +14,10 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Set up Python 3.11
+    - name: Set up Python 3.12
       uses: actions/setup-python@v5
       with:
-        python-version: 3.11
+        python-version: 3.12
       
     - name: Git checkout
       uses: actions/checkout@v4
@@ -47,5 +47,5 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: "wme-ubuntu-2.2.0 - ${{github.run_number}}"
+        name: "wme-ubuntu-2.3.3 - ${{github.run_number}}"
         path: wme-Ubuntu
