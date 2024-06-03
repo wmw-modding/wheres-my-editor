@@ -1,6 +1,6 @@
 # setuptools
 wmwpy@git+https://github.com/wmw-modding/wmwpy
-# wmwpy==0.2.0b0
+# wmwpy==0.5.2b0
 Pillow==9.5.0
 tk==0.1.0
 numpy==1.26.0
