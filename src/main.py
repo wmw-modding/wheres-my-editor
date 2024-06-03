@@ -68,6 +68,9 @@ _log_filename = f'logs/{datetime.now().strftime("%m-%d-%y_%H-%M-%S")}.log'
 
 debug = False
 
+if sys.argv[0].endswith('.py'):
+    debug = True
+
 args = sys.argv[1::]
 if len(args) > 0:
     if args[0] in ['-d', '--debug']:
