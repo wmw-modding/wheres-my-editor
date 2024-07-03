@@ -290,9 +290,22 @@ class WME(tk.Tk):
             'panned',
             'left',
             'right',
-        ], tk.Widget] = {
-            'labelFrame' : ttk.LabelFrame(self.side_pane, width=side_pane_width, height=side_pane_height, text='Properties')
+            'title',
+        ], tk.Widget, tk.StringVar] = {
+            'title': tk.StringVar(value = 'Properties'),
+            'labelFrame' : ttk.LabelFrame(
+                self.side_pane,
+                width = side_pane_width,
+                height = side_pane_height,
+                text = 'Properties',
+            )
         }
+        self.properties['title'].trace_add(
+            'write',
+            lambda *args: self.properties['labelFrame'].configure(text = self.properties['title'].get()),
+        )
+        
+        self.properties['labelFrame'].configure
         self.side_pane.add(self.properties['labelFrame'])
         
         # self.properties['notebook'] = ttk.Notebook(self.properties['labelFrame'])
@@ -981,11 +994,24 @@ class WME(tk.Tk):
             obj = self.selectedObject
         
         self.resetProperties()
+
+        isLevel = False
         
         if obj == None:
-            self.properties['panned'].configure(height = 1)
-            self.properties['scrollFrame'].resetCanvasScroll()
-            return
+            # no object
+            logging.debug('level properties')
+            isLevel = True
+            obj = self.level
+            
+            if obj == None:
+                self.properties['panned'].configure(height = 1)
+                self.properties['scrollFrame'].resetCanvasScroll()
+                return
+            
+        if isLevel:
+            self.properties['title'].set('Level Properties')
+        else:
+            self.properties['title'].set('Properties')
         
         def addProperty(
             property : str,
@@ -1132,12 +1158,16 @@ class WME(tk.Tk):
         def removeProperty(property):
             if property in obj.properties:
                 del obj.properties[property]
-                self.updateObject(obj)
-                self.updateProperties(obj)
+                if not isLevel:
+                    self.updateObject(obj)
+                    self.updateProperties(obj)
+                else:
+                    self.updateProperties()
     
         def updateProperty(property, value):
             obj.properties[property] = value
-            self.updateObject(obj)
+            if not isLevel:
+                self.updateObject(obj)
         
         def resetProperty(property):
             if property in obj.defaultProperties:
@@ -1166,10 +1196,13 @@ class WME(tk.Tk):
                     del obj.properties[property]
                 obj.properties[newName] = value
                 
-                self.updateObject(obj)
-                self.updateProperties(obj)
-                self.updateObjectSelector()
+                if isLevel:
+                    self.updateProperties()
+                else:
+                    self.updateObject(obj)
+                    self.updateProperties(obj)
                 
+                self.updateObjectSelector()
                 return True
         
         def updatePosition(value, column):
@@ -1184,46 +1217,49 @@ class WME(tk.Tk):
         
         sizes : list[int] = []
         
-        self.objectProperties['name'] = addProperty(
-            'Name',
-            obj.name,
-            'text',
-            label_editable = False,
-            show_button = False,
-            row=0,
-        )
-        sizes.append(self.objectProperties['name']['size'])
+        row = -1
         
-        self.objectProperties['pos'] = addProperty(
-            'Pos',
-            obj.pos,
-            ['number', 'number'],
-            label_editable = False,
-            show_button=False,
-            row=1,
-            entry_callback = lambda value, col : updatePosition(value, col),
-            from_ = -99,
-            to = 99,
-        )
-        sizes.append(self.objectProperties['pos']['size'])
-        
-        angle = '0'
-        if 'Angle' in obj.properties:
-            angle = obj.properties['Angle']
-        self.objectProperties['angle'] = addProperty(
-            'Angle',
-            angle,
-            'number',
-            label_editable = False,
-            show_button = False,
-            row=2,
-            from_=-360,
-            to=360,
-            entry_callback = lambda value: updateProperty('Angle', value),
-        )
-        sizes.append(self.objectProperties['angle']['size'])
-        
-        row = 3
+        if not isLevel:
+            self.objectProperties['name'] = addProperty(
+                'Name',
+                obj.name,
+                'text',
+                label_editable = False,
+                show_button = False,
+                row=0,
+            )
+            sizes.append(self.objectProperties['name']['size'])
+            
+            self.objectProperties['pos'] = addProperty(
+                'Pos',
+                obj.pos,
+                ['number', 'number'],
+                label_editable = False,
+                show_button=False,
+                row=1,
+                entry_callback = lambda value, col : updatePosition(value, col),
+                from_ = -99,
+                to = 99,
+            )
+            sizes.append(self.objectProperties['pos']['size'])
+            
+            angle = '0'
+            if 'Angle' in obj.properties:
+                angle = obj.properties['Angle']
+            self.objectProperties['angle'] = addProperty(
+                'Angle',
+                angle,
+                'number',
+                label_editable = False,
+                show_button = False,
+                row=2,
+                from_=-360,
+                to=360,
+                entry_callback = lambda value: updateProperty('Angle', value),
+            )
+            sizes.append(self.objectProperties['angle']['size'])
+            
+            row = 3
         
         for property in obj.properties:
             if property not in ['Angle']:
@@ -1233,7 +1269,7 @@ class WME(tk.Tk):
                 button_text = '-'
                 button_callback = lambda *args, prop = property : removeProperty(prop)
                 
-                if property in obj.defaultProperties:
+                if not isLevel and property in obj.defaultProperties:
                     prefix = '*'
                     # button_text = '↺'
                     
@@ -1253,12 +1289,19 @@ class WME(tk.Tk):
                 
                 sizes.append(self.objectProperties[property]['size'])
         
-        self.properties['panned'].configure(height = sum(sizes))
+        if len(sizes) == 0:
+            self.properties['panned'].configure(height = 1)
+        else:
+            self.properties['panned'].configure(height = sum(sizes))
         self.properties['scrollFrame'].resetCanvasScroll()
         
         def addNewProperty(row):
             
-            properties = deepcopy(obj.defaultProperties)
+            if isLevel:
+                properties = {}
+            else:
+                properties = deepcopy(obj.defaultProperties)
+            
             for prop in obj.properties:
                 if prop in properties:
                     del properties[prop]
@@ -1273,7 +1316,7 @@ class WME(tk.Tk):
             )
             
             if property != None:
-                if property in obj.defaultProperties:
+                if not isLevel and property in obj.defaultProperties:
                     obj.properties[property] = obj.defaultProperties[property]
                 else:
                     obj.properties[property] = ''
@@ -1496,8 +1539,6 @@ class WME(tk.Tk):
         self.file_menu.add_command(label = 'Settings', command = self.showSettings)
 
         self.menubar.add_cascade(label = 'File', menu = self.file_menu)
-        
-        
         
         self.help_menu = tk.Menu(self.menubar, tearoff=0)
         
