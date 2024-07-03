@@ -165,4 +165,6 @@ src/signapk.jar
 
 android/
 .vscode/
+# My folder for extracted games
 src/game
+git_dist/

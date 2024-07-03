@@ -94,9 +94,13 @@ import wmwpy
 from scrollframe import ScrollFrame
 import popups
 
+logging.info(f'wme version: {__version__}')
+logging.info(f'wmwpy version: {wmwpy.__version__}')
+
 if wmwpy.__version__ < __min_wmwpy_version__:
     logging.error(f'wmwpy version must be "{__min_wmwpy_version__}" or higher.')
     raise ImportWarning(f'wmwpy version must be "{__min_wmwpy_version__}" or higher.')
+
 
 ImageColor.colormap['transparent'] = '#0000'
 
