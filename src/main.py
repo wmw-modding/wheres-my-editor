@@ -1,4 +1,4 @@
-__version__ = '2.3.3'
+__version__ = '2.3.4'
 __author__ = 'ego-lay-atman-bay'
 __credits__ = [
     {
@@ -63,8 +63,9 @@ def createLogger(type = 'file', filename = 'logs/log.log', debug = False):
     logger = logging.getLogger(__name__)
     logger.info(filename)
 
+_log_filename_date_format = "%m-%d-%y_%H-%M-%S"
 
-_log_filename = f'logs/{datetime.now().strftime("%m-%d-%y_%H-%M-%S")}.log'
+_log_filename = f'logs/{datetime.now().strftime(_log_filename_date_format)}.log'
 
 debug = False
 
