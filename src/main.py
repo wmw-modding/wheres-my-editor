@@ -343,6 +343,9 @@ class WME(tk.Tk):
         self.createProgressBar()
     
     def enableWindow(self):
+        self.bind(f'<{crossplatform.modifier()}-s>', self.saveLevel)
+        self.bind(f'<{crossplatform.modifier()}-S>', self.saveLevelAs)
+        self.bind(f'<{crossplatform.modifier()}-o>', self.openLevel)
         
         if platform.system() == 'Linux':
             self.level_canvas.bind("<Button-4>", self.onLevelMouseWheel)
@@ -379,6 +382,10 @@ class WME(tk.Tk):
         self.bindKeyboardShortcuts()
     
     def disableWindow(self):
+        self.unbind(f'<{crossplatform.modifier()}-s>')
+        self.unbind(f'<{crossplatform.modifier()}-S>')
+        self.unbind(f'<{crossplatform.modifier()}-o>')
+        
         if platform.system() == 'Linux':
             self.level_canvas.unbind("<Button-4>")
             self.level_canvas.unbind("<Button-5>")
@@ -1482,9 +1489,9 @@ class WME(tk.Tk):
         
         self.file_menu = tk.Menu(self.menubar, tearoff=0)
         
-        self.file_menu.add_command(label = 'Open', command = self.openLevel)
-        self.file_menu.add_command(label = 'Save', command = self.saveLevel)
-        self.file_menu.add_command(label = 'Save as...', command = self.saveLevelAs)
+        self.file_menu.add_command(label = 'Open', command = self.openLevel, accelerator = f'{crossplatform.shortModifier()}+O')
+        self.file_menu.add_command(label = 'Save', command = self.saveLevel, accelerator = f'{crossplatform.shortModifier()}+S')
+        self.file_menu.add_command(label = 'Save as...', command = self.saveLevelAs, accelerator = f'{crossplatform.shortModifier()}+Shift+S')
         self.file_menu.add_separator()
         self.file_menu.add_command(label = 'Settings', command = self.showSettings)
 
@@ -1544,6 +1551,13 @@ class WME(tk.Tk):
         self.loadLevel(xml, image)
     
     def saveLevel(self, *args, filename = None):
+        if not isinstance(self.level, wmwpy.classes.Level):
+            self.updateProgressBar(
+                1,
+                'No level to be saved.',
+                1,
+            )
+            return
         xml = self.level.export(
             filename = filename,
             saveImage = True,
@@ -1570,12 +1584,24 @@ class WME(tk.Tk):
             
             self.level._image.save(os.path.splitext(filename)[0] + '.png')
             
-            messagebox.showinfo('Success', f'Successfully saved level to {filename}')
+            self.updateProgressBar(
+                1,
+                f'Successfully saved level to {filename}',
+                1,
+            )
         except:
             messagebox.showerror('Error saving level', f'Unable to save level to {filename}')
         
     
     def saveLevelAs(self, *args):
+        if not isinstance(self.level, wmwpy.classes.Level):
+            self.updateProgressBar(
+                1,
+                'No level to be saved.',
+                1,
+            )
+            return
+        
         filename = filedialog.asksaveasfilename(
             initialfile = os.path.basename(self.level.filename),
             defaultextension = '.xml',
