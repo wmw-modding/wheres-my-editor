@@ -590,10 +590,13 @@ class WME(tk.Tk):
             return
         
         pos = numpy.array(obj.pos)
-        size = numpy.array(obj.size)
+        size = numpy.maximum(numpy.array(obj.size), [1,1])
+        logging.debug(f'object size: {size}')
         
         selectionImage = Image.new('RGBA', tuple(size * obj.scale), 'black')
         selectionImageDraw = ImageDraw.Draw(selectionImage)
+        logging.debug(f'image size: {selectionImage.size}')
+        logging.debug(f'rectangle size: {(0,0) + tuple(numpy.array(selectionImage.size) - (self.SELECTION_BORDER_WIDTH - 1))}')
         selectionImageDraw.rectangle(
             (0,0) + tuple(numpy.array(selectionImage.size) - (self.SELECTION_BORDER_WIDTH - 1)),
             fill='transparent',
