@@ -1253,9 +1253,8 @@ class WME(tk.Tk):
             )
             sizes.append(self.objectProperties['pos']['size'])
             
-            angle = '0'
-            if 'Angle' in obj.properties:
-                angle = obj.properties['Angle']
+            
+            angle = obj.properties.setdefault('Angle', 0)
             self.objectProperties['angle'] = addProperty(
                 'Angle',
                 angle,
