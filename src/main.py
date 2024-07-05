@@ -252,11 +252,13 @@ class WME(tk.Tk):
             'treeview',
             'y_scroll',
             'x_scroll',
-        ], tk.Widget | ttk.Treeview] = {
+            'menu',
+        ], tk.Widget | ttk.Treeview | tk.Menu] = {
             'labelFrame' : ttk.LabelFrame(self.side_pane, width=side_pane_width, height=side_pane_height, text='Objects'),
             'treeview' : None,
             'y_scroll' : None,
             'x_scroll' : None,
+            'menu': None,
         }
         self.side_pane.add(self.object_selector['labelFrame'])
         
@@ -272,6 +274,8 @@ class WME(tk.Tk):
         self.object_selector['treeview'].column('name', width=1)
         
         self.object_selector['treeview'].pack(side='left', fill='both', expand = True)
+
+        self.object_selector['menu'] = tk.Menu(self.object_selector['treeview'], tearoff = 0)
         
         self.object_selector['y_scroll'] = ttk.Scrollbar(
             self.object_selector['labelFrame'],
@@ -1447,18 +1451,90 @@ class WME(tk.Tk):
             
             # self.object_selector['treeview'].item(item_id, '')
         
-        def selectObject(event):
-            item = self.object_selector['treeview'].focus()
+        def selectObject(event: tk.Event):
+            if event.widget.identify_row(event.y) not in event.widget.selection():
+                event.widget.selection_set(event.widget.identify_row(event.y))
+
+            item = self.object_selector['treeview'].selection()
+            # logging.debug(f"selection: {self.object_selector['treeview'].selection()}")
             item = self.object_selector['treeview'].item(item)
             
             if 'object' in item['tags']:
                 id = item['values'][2]
                 obj = self.level.getObjectById(id)
                 self.selectObject(obj)
+                return obj, item
+
+            return None, None
+        
+        def move_object(obj: wmwpy.classes.Object, target_index: int):
+            self.level.objects.insert(target_index, self.level.objects.pop(self.level.objects.index(obj)))
+
+            self.redrawLevel()
+            self.selectObject(obj)
+            
+        def move_to_bottom(obj: wmwpy.classes.Object):
+            current_pos = self.level.objects.index(obj)
+
+            if current_pos == len(self.level.objects) - 1:
+                return
+            
+            move_object(obj, len(self.level.objects) - 1)
+        
+        def move_down(obj: wmwpy.classes.Object):
+            current_pos = self.level.objects.index(obj)
+
+            if current_pos == len(self.level.objects) - 1:
+                return
+            
+            move_object(obj, current_pos + 1)
+        
+        def move_up(obj: wmwpy.classes.Object):
+            current_pos = self.level.objects.index(obj)
+
+            if current_pos == 0:
+                return
+            
+            move_object(obj, current_pos - 1)
+        
+        def move_to_top(obj: wmwpy.classes.Object):
+            current_pos = self.level.objects.index(obj)
+
+            if current_pos == 0:
+                return
+            
+            move_object(obj, 0)
+        
+        def rightClick(event):
+            logging.debug('object selector context menu')
+            
+            obj, item = selectObject(event)
+
+            logging.debug(f'item: {item}')
+            
+            if obj is None:
+                return
+
+            self.object_selector['menu'].delete(0, 8)
+            self.object_selector['menu'].add_command(label = 'delete', command = lambda *args : self.deleteObject(obj))
+            self.object_selector['menu'].add_command(label = 'copy', command = lambda *args : self.copyObject(obj))
+            self.object_selector['menu'].add_command(label = 'cut', command = lambda *args : self.cutObject(obj))
+            self.object_selector['menu'].add_separator()
+            self.object_selector['menu'].add_command(label = '↑↑ move to top', command = lambda *args : move_to_top(obj))
+            self.object_selector['menu'].add_command(label = '↑ move up', command = lambda *args : move_up(obj))
+            self.object_selector['menu'].add_command(label = '↓ move down', command = lambda *args : move_down(obj))
+            self.object_selector['menu'].add_command(label = '↓↓ move to bottom', command = lambda *args : move_to_bottom(obj))
+            
+            self.showPopup(self.object_selector['menu'], event)
         
         self.object_selector['treeview'].bind('<ButtonRelease-1>', selectObject)
         self.object_selector['treeview'].bind('<Return>', selectObject)
-    
+
+        if platform.system() == 'Darwin':
+            self.object_selector['treeview'].bind('<Button-2>', rightClick)
+        else:
+            self.object_selector['treeview'].bind('<Button-3>', rightClick)
+        
     def resetObjectSelector(self):
         
         for row in self.object_selector['treeview'].get_children():
@@ -1529,6 +1605,12 @@ class WME(tk.Tk):
         self.level_canvas.xview_moveto(0.23)
         self.level_canvas.yview_moveto(0.2)
     
+    def redrawLevel(self):
+        self.level_canvas.delete('object')
+        self.level_canvas.delete('selection')
+        
+        self.updateLevel()
+    
     def dragObject(self, obj : wmwpy.classes.Object, event = None):
         obj.pos = self.windowPosToWMWPos((event.x, event.y))
         
@@ -1571,7 +1653,7 @@ class WME(tk.Tk):
                     logging.info('not object')
                     continue
                 
-                if item['values'][0] == obj.id:
+                if item['values'][2] == obj.id:
                     selected = child
                     break
             
