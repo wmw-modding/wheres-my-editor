@@ -1293,9 +1293,25 @@ class WME(tk.Tk):
                         options_property = split_property[0] + '#'
                     
                     logging.debug(f'options_property: {options_property}')
-                    logging.debug(f'property_def: {obj.Type.PROPERTIES.get(options_property, {})}')
                     
-                    options = obj.Type.PROPERTIES.get(options_property, {}).get('options', [])
+                    property_def = obj.Type.PROPERTIES.get(options_property, {})
+                    logging.debug(f'property_def: {property_def}')
+                    
+                    property_type = property_def.get('type', 'string')
+                    
+                    if property_type == 'object':
+                        options = [o.name for o in self.level.objects if o is not obj]
+                    elif property_type == 'fluid':
+                        options = []
+                        for material in self.game._LEVEL_MATERIALS:
+                            name = self.game._LEVEL_MATERIALS[material].get('name')
+                            if isinstance(name, list):
+                                options.extend(name)
+                            elif name:
+                                options.append(name)
+                    
+                    if len(options) == 0:
+                        options = property_def.get('options', [])
 
                     logging.debug(f'options: {options}')
                 
