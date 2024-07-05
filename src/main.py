@@ -835,9 +835,9 @@ class WME(tk.Tk):
         
     def createObjectContextMenu(self, obj : wmwpy.classes.Object):
         self.objectContextMenu.delete(0, 3)
-        self.objectContextMenu.add_command(label = 'delete', command = lambda *args : self.deleteObject(obj), accelerator = 'Del')
         self.objectContextMenu.add_command(label = 'copy', command = lambda *args : self.copyObject(obj), accelerator = f'{crossplatform.shortModifier()}+C')
         self.objectContextMenu.add_command(label = 'cut', command = lambda *args : self.cutObject(obj), accelerator = f'{crossplatform.shortModifier()}+X')
+        self.objectContextMenu.add_command(label = 'delete', command = lambda *args : self.deleteObject(obj), accelerator = 'Del')
         
         return self.objectContextMenu
     
@@ -1516,14 +1516,14 @@ class WME(tk.Tk):
                 return
 
             self.object_selector['menu'].delete(0, 8)
-            self.object_selector['menu'].add_command(label = 'delete', command = lambda *args : self.deleteObject(obj))
-            self.object_selector['menu'].add_command(label = 'copy', command = lambda *args : self.copyObject(obj))
-            self.object_selector['menu'].add_command(label = 'cut', command = lambda *args : self.cutObject(obj))
-            self.object_selector['menu'].add_separator()
             self.object_selector['menu'].add_command(label = '↑↑ move to top', command = lambda *args : move_to_top(obj))
             self.object_selector['menu'].add_command(label = '↑ move up', command = lambda *args : move_up(obj))
             self.object_selector['menu'].add_command(label = '↓ move down', command = lambda *args : move_down(obj))
             self.object_selector['menu'].add_command(label = '↓↓ move to bottom', command = lambda *args : move_to_bottom(obj))
+            self.object_selector['menu'].add_separator()
+            self.object_selector['menu'].add_command(label = 'copy', command = lambda *args : self.copyObject(obj))
+            self.object_selector['menu'].add_command(label = 'cut', command = lambda *args : self.cutObject(obj))
+            self.object_selector['menu'].add_command(label = 'delete', command = lambda *args : self.deleteObject(obj))
             
             self.showPopup(self.object_selector['menu'], event)
         
