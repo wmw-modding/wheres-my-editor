@@ -1015,17 +1015,18 @@ class WME(tk.Tk):
             self.properties['title'].set('Properties')
         
         def addProperty(
-            property : str,
-            value : str,
-            type : typing.Literal['number', 'text'] = 'text',
+            property: str,
+            value: str,
+            type: typing.Literal['number', 'text'] = 'text',
             show_button = True,
             row = 0,
-            label_prefix : str = '',
-            label_editable : bool = True,
-            entry_callback : typing.Callable[[str], typing.Any] = None,
-            label_callback : typing.Callable[[str], bool] = None,
-            button_callback : typing.Callable = None,
-            button_text : str = '-',
+            label_prefix: str = '',
+            label_editable: bool = True,
+            entry_callback: typing.Callable[[str], typing.Any] = None,
+            label_callback: typing.Callable[[str], bool] = None,
+            button_callback: typing.Callable = None,
+            button_text: str = '-',
+            options: list[str] = None,
             **kwargs,
         ) -> dict[typing.Literal[
             'label',
@@ -1076,11 +1077,19 @@ class WME(tk.Tk):
                     )
                 else:
                     var = tk.StringVar(value = value)
-                    input = ttk.Entry(
-                        self.properties['right'],
-                        textvariable = var,
-                        **kwargs
-                    )
+                    if options and len(options) > 0:
+                        input = ttk.Combobox(
+                            self.properties['right'],
+                            textvariable = var,
+                            values = options,
+                            **kwargs,
+                        )
+                    else:
+                        input = ttk.Entry(
+                            self.properties['right'],
+                            textvariable = var,
+                            **kwargs,
+                        )
                 
                 # input.insert(0, value)
                 
@@ -1093,7 +1102,7 @@ class WME(tk.Tk):
                     input, var = inputType(t, value[column])
                     input.grid(column = column, row=row, sticky='ew', padx=2)
                     if callable(entry_callback):
-                        var.trace('w', lambda *args, value = var.get, col = column: entry_callback(value(), col))
+                        var.trace_add('write', lambda *args, value = var.get, col = column: entry_callback(value(), col))
                     
                     input.bind('<Return>', lambda e: self.focus())
                         
@@ -1132,11 +1141,11 @@ class WME(tk.Tk):
             if show_button:
                 button = crossplatform.Button(
                     self.properties['right'],
-                    text=button_text,
-                    width=2,
+                    text = button_text,
+                    width = 2,
                     command = button_callback,
                 )
-                button.grid(column=2, row=row)
+                button.grid(column = 2, row = row)
                 
                 if button.winfo_reqheight() > row_size:
                     row_size = button.winfo_reqheight()
@@ -1145,8 +1154,8 @@ class WME(tk.Tk):
             
             logging.debug(f'{row_size = }')
             
-            self.properties['left'].rowconfigure(row, minsize=row_size)
-            self.properties['right'].rowconfigure(row, minsize=row_size)
+            self.properties['left'].rowconfigure(row, minsize = row_size)
+            self.properties['right'].rowconfigure(row, minsize = row_size)
             
             return {
                 'label' : name,
@@ -1276,9 +1285,25 @@ class WME(tk.Tk):
                     
                     # button_callback = lambda *args, prop = property : resetProperty(prop)
                 
+                options = []
+                
+                if not isLevel and obj.Type:
+                    options_property = property
+                    split_property = obj.Type.split_property_num(property)
+                    if split_property[1]:
+                        options_property = split_property[0] + '#'
+                    
+                    logging.debug(f'options_property: {options_property}')
+                    logging.debug(f'property_def: {obj.Type.PROPERTIES.get(options_property, {})}')
+                    
+                    options = obj.Type.PROPERTIES.get(options_property, {}).get('options', [])
+
+                    logging.debug(f'options: {options}')
+                
                 self.objectProperties[property] = addProperty(
                     property,
                     obj.properties[property],
+                    options = options,
                     row = row,
                     button_text = button_text,
                     label_editable = True,
@@ -1297,11 +1322,25 @@ class WME(tk.Tk):
         self.properties['scrollFrame'].resetCanvasScroll()
         
         def addNewProperty(row):
-            
             if isLevel:
                 properties = {}
             else:
                 properties = deepcopy(obj.defaultProperties)
+            
+            if not isLevel and obj.Type:
+                for prop in obj.Type.PROPERTIES:
+                    property = prop
+                    if prop.endswith('#'):
+                        split_prop = obj.Type.split_property_num(prop)
+                        num = 0
+                        while split_prop[0] + str(num) in obj.properties:
+                            num += 1
+                        property = split_prop[0] + str(num)
+                    
+                    if property in properties:
+                        continue
+                    
+                    properties[property] = obj.Type.PROPERTIES[prop].get('default', '')
             
             for prop in obj.properties:
                 if prop in properties:
@@ -1312,15 +1351,12 @@ class WME(tk.Tk):
                 'New property',
                 'New property',
                 validate_message = 'Property already exists',
-                options = list(properties.keys()),
+                options = sorted(properties),
                 validate_callback = lambda name : (name != '') and (name not in obj.properties),
             )
             
             if property != None:
-                if not isLevel and property in obj.defaultProperties:
-                    obj.properties[property] = obj.defaultProperties[property]
-                else:
-                    obj.properties[property] = ''
+                obj.properties[property] = properties.get(property, '')
                 
                 self.updateProperties()
         
