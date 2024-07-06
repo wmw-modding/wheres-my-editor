@@ -768,7 +768,7 @@ class WME(tk.Tk):
                     tags = ('object', 'foreground', id)
                 )
         
-        if obj.Type is not None:
+        if self.settings.get('visualization.radius', True) and obj.Type is not None:
             properties = deepcopy(obj.defaultProperties)
             properties.update(obj.properties)
             for property in properties:
@@ -1737,7 +1737,7 @@ class WME(tk.Tk):
         self.menubar = tk.Menu(self)
         self.config(menu = self.menubar)
         
-        self.file_menu = tk.Menu(self.menubar, tearoff=0)
+        self.file_menu = tk.Menu(self.menubar, tearoff = 0)
         
         self.file_menu.add_command(label = 'Open', command = self.openLevel, accelerator = f'{crossplatform.shortModifier()}+O')
         self.file_menu.add_command(label = 'Save', command = self.saveLevel, accelerator = f'{crossplatform.shortModifier()}+S')
@@ -1747,7 +1747,7 @@ class WME(tk.Tk):
 
         self.menubar.add_cascade(label = 'File', menu = self.file_menu)
         
-        self.help_menu = tk.Menu(self.menubar, tearoff=0)
+        self.help_menu = tk.Menu(self.menubar, tearoff = 0)
         
         self.help_menu.add_command(label = 'Discord', command = lambda *args : webbrowser.open(__links__['discord']))
         self.help_menu.add_command(label = 'About', command = self.showAbout)
@@ -1756,6 +1756,30 @@ class WME(tk.Tk):
         self.help_menu.add_command(label = 'Open log', command = lambda *args : crossplatform.open_file(_log_filename))
 
         self.menubar.add_cascade(label = 'Help', menu = self.help_menu)
+
+        self.view_menu: dict[
+            typing.Literal[
+                'menu',
+                'vars',
+            ],
+            tk.Menu | dict[typing.Literal[
+                'radius'
+            ], tk.BooleanVar]
+        ] = {
+            'menu': tk.Menu(self.menubar, tearoff = 0),
+            'vars': {
+                'radius': tk.BooleanVar(value = self.settings.get('visualization.radius', True))
+            }
+        }
+        
+        self.view_menu['vars']['radius'].trace_add('write', lambda *args : self.updateView('radius', self.view_menu['vars']['radius'].get()))
+        self.view_menu['menu'].add_checkbutton(label = 'radius', onvalue = True, offvalue = False, variable = self.view_menu['vars']['radius'])
+
+        self.menubar.add_cascade(label = 'View', menu = self.view_menu['menu'])
+    
+    def updateView(self, view: str, state: bool = True):
+        self.settings.set(['visualization', view], state)
+        self.updateLevel()
     
     def showAbout(self):
         about = popups.About(
