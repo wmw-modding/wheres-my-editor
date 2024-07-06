@@ -1245,7 +1245,7 @@ class WME(tk.Tk):
                 'text',
                 label_editable = False,
                 show_button = False,
-                entry_callback = lambda value, col : updateObjectName(value),
+                entry_callback = lambda value : updateObjectName(value),
                 row=0,
             )
             sizes.append(self.objectProperties['name']['size'])
