@@ -11,12 +11,14 @@ __author__ = 'ego-lay-atman-bay'
 
 import json
 from copy import deepcopy
+from typing import Any
+import os
 
-class Settings():
+class Settings(dict):
     def __init__(
-        this,
+        self,
         filename : str = 'settings.json',
-        default_settings : dict[str] = {'version' : 1},
+        default_settings : dict[str, Any] = None,
     ) -> None:
         """Settings object.
 
@@ -25,63 +27,49 @@ class Settings():
             default_settings (dict, optional): Default settings. Defaults to {'version' : 1}.
         """
         
-        this.filename = filename
-        this.default_settings = deepcopy(default_settings)
-        this.settings = deepcopy(this.default_settings)
+        self.filename = filename
+        if default_settings == None:
+            default_settings = {'version' : 1}
+        self.default_settings = deepcopy(default_settings)
+        super().__init__(self.default_settings)
         
-        this.load()
+        self.load()
     
-    def load(this, **kwargs):
+    def load(self, **kwargs):
         """Load the settings file. If the file does not exist, then create it.
 
         Returns:
             dict: Loaded settings.
         """
-        try:
-            this.settings = kwargs['settings']
-        except:
-            try:
-                with open(this.filename, 'r') as file:
+        if kwargs.get('settings'):
+            self.update(kwargs['settings'])
+        else:
+            if os.path.isfile(self.filename):
+                with open(self.filename, 'r') as file:
                     settings = json.load(file)
                 
-                def addSettings(settings, default):
-                    for setting in settings:
-                        if isinstance(settings[setting], dict):
-                            try:
-                                if not isinstance(default[setting], dict):
-                                    default[setting] = {}
-                            except:
-                                default[setting] = {}
-                            
-                            addSettings(settings[setting], default[setting])
-                        else:
-                            default[setting] = settings[setting]
-                
-                addSettings(settings, this.settings)
-            except:
-                pass
-            this.save()
-        return this.settings
+                self.update(settings)
+            self.save()
     
-    def save(this):
+    def save(self):
         """Save the settings.
         """
-        with open(this.filename, 'w') as file:
-            json.dump(this.settings, file, indent=2)
+        with open(self.filename, 'w') as file:
+            json.dump(self, file, indent=2)
     
-    def set(this, name : str, value):
+    def set(self, name : str, value):
         """Set a setting.
 
         Args:
             name (str): The name of the setting to change
             value (Any): The value to save.
         """
-        option = this._split_option(name)
-        settings = this._get_settings(option, this.settings)
+        option = self._split_option(name)
+        settings = self._get_settings(option, self)
         settings[option[-1]] = value
-        this.save()
+        self.save()
     
-    def get(this, name : str):
+    def get(self, name : str):
         """Get a setting.
 
         Args:
@@ -90,33 +78,37 @@ class Settings():
         Returns:
             Any: The value that the setting is set to.
         """
-        option = this._split_option(name)
-        settings = this._get_settings(option, this.settings)
+        option = self._split_option(name)
+        settings = self._get_settings(option, self)
         return settings[option[-1]]
     
-    def remove(this, name : str):
+    def remove(self, name : str):
         """Delete a setting.
 
         Args:
             name (str): Name of setting to delete.
         """
-        option = this._split_option(name)
-        settings = this._get_settings(option, this.settings)
+        option = self._split_option(name)
+        settings = self._get_settings(option, self)
         del settings[option[-1]]
-        this.save()
+        self.save()
     
-    def initialize(this):
+    def initialize(self):
         """Initialize the settings. This resets the settings, then saves.
         """
-        this.settings = deepcopy(this.default_settings)
-        this.save()
+        self.clear()
+        self.update(self.default_settings)
+        self.save()
     
-    def _split_option(this, value : str | list) -> list[str]:
+    def _split_option(self, value : str | list) -> list[str]:
         if isinstance(value, (list, tuple)):
             return list(value)
-        return value.split('.')
+        elif isinstance(value, str):
+            return value.split('.')
+        else:
+            raise [value]
     
-    def _get_settings(this, value : list, settings : dict):
+    def _get_settings(self, value : list, settings : dict):
         if len(value) <= 1:
             return settings
         else:
@@ -126,4 +118,4 @@ class Settings():
                 settings[value[0]] = {}
                 items = settings[value[0]]
             
-            return this._get_settings(value[1::], items)
+            return self._get_settings(value[1::], items)

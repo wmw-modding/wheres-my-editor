@@ -152,6 +152,9 @@ class WME(tk.Tk):
                         'image': '',
                     },
                 },
+                'visualization': {
+                    'radius': True,
+                }
             }
         )
         self.updateSettings()
@@ -660,9 +663,12 @@ class WME(tk.Tk):
         offset = numpy.array(offset)
         
         pos = pos - offset
-        pos = (pos * self.OBJECT_MULTIPLIER) * self.level.scale
+        pos = self.toLevelCanvasCoord(pos)
         
         return pos
+    
+    def toLevelCanvasCoord(self, pos: int | float | numpy.ndarray) -> float | numpy.ndarray:
+        return (pos * self.OBJECT_MULTIPLIER) * self.level.scale
     
     def updateObject(self, obj : wmwpy.classes.Object):
         if obj == None:
@@ -1815,6 +1821,8 @@ class WME(tk.Tk):
             logging.debug(f'getFile: path after :game: {path}')
             
             file = self.game.filesystem.get(path)
+            if isinstance(file, wmwpy.filesystem.File):
+                file.reload()
             return file
         
         path = pathlib.PurePath(path)
@@ -1837,6 +1845,7 @@ class WME(tk.Tk):
             logging.debug(f'getFile: file: {file}')
             if isinstance(file, wmwpy.filesystem.File):
                 logging.debug(f'getFile: file.path: {file.path}')
+                file.reload()
             return file
         
         if path in ['', None]:

@@ -182,7 +182,7 @@ class SettingsDialog(tk.Toplevel):
     def __init__(self, root, settings: Settings, page=0) -> None:
         super().__init__(root)
         
-        self._settings = copy.deepcopy(settings.settings)
+        self._settings = copy.deepcopy(settings)
         self.settings = settings
         self.page = page
 
@@ -217,7 +217,7 @@ class SettingsDialog(tk.Toplevel):
         # print(self.settings)
         # print(self._settings)
         if not saveSettings:
-            self.settings.settings = self._settings
+            self.settings.update(self._settings)
             self.settings.save()
         
         self.destroy()
