@@ -103,8 +103,24 @@ if wmwpy.__version__ < __min_wmwpy_version__:
     raise ImportWarning(f'wmwpy version must be "{__min_wmwpy_version__}" or higher.')
 
 
+# add transparent color
 ImageColor.colormap['transparent'] = '#0000'
 
+
+# add create_circle and create_circle_arc to canvas
+# https://stackoverflow.com/a/17985217/17129659
+def _create_circle(self, x, y, r, **kwargs):
+    return self.create_oval(x-r, y-r, x+r, y+r, **kwargs)
+tk.Canvas.create_circle = _create_circle
+
+def _create_circle_arc(self, x, y, r, **kwargs):
+    if "start" in kwargs and "end" in kwargs:
+        kwargs["extent"] = kwargs.pop("end") - kwargs["start"]
+    return self.create_arc(x-r, y-r, x+r, y+r, **kwargs)
+tk.Canvas.create_circle_arc = _create_circle_arc
+
+
+# WME class
 class WME(tk.Tk):
     APP_ICONS = [
             'assets/images/icon_256x256.ico',
@@ -585,14 +601,21 @@ class WME(tk.Tk):
             elif event.num == 5:
                 scroll( 1, "units" )
     
-    OBJECT_MULTIPLIER = [1.25,-1.25]
+    OBJECT_MULTIPLIER = 1.25
     
     def updateLayers(self):
         objects = self.level_canvas.find_withtag('object')
         if len(objects) < 0:
             return
         
-        self.level_canvas.tag_raise('object', 'level')
+        last_tag = 'level'
+        for visualization_tag in self.settings.get('visualization', {}):
+            visualizations = self.level_canvas.find_withtag(visualization_tag)
+            if len(visualizations):
+                self.level_canvas.tag_raise(visualization_tag, last_tag)
+                last_tag = visualization_tag
+        
+        self.level_canvas.tag_raise('object', last_tag)
         
         background = self.level_canvas.find_withtag('background')
         foreground = self.level_canvas.find_withtag('foreground')
@@ -668,7 +691,10 @@ class WME(tk.Tk):
         return pos
     
     def toLevelCanvasCoord(self, pos: int | float | numpy.ndarray) -> float | numpy.ndarray:
-        return (pos * self.OBJECT_MULTIPLIER) * self.level.scale
+        if isinstance(pos, (int,float)):
+            return (pos * self.OBJECT_MULTIPLIER) * self.level.scale
+        else:
+            return (pos * numpy.array([self.OBJECT_MULTIPLIER, -self.OBJECT_MULTIPLIER])) * self.level.scale
     
     def updateObject(self, obj : wmwpy.classes.Object):
         if obj == None:
@@ -686,15 +712,20 @@ class WME(tk.Tk):
         
         items = self.level_canvas.find_withtag(id)
         
+        logging.debug(f'items: {items}')
+        
         background = None
         foreground = None
         
         for item in items:
             tags = self.level_canvas.gettags(item)
+            logging.debug(f'tags: {tags}')
             if 'background' in tags:
                 background = item
             elif 'foreground' in tags:
                 foreground = item
+        
+        self.level_canvas.delete(f'radius&&{id}')
         
         if len(items) > 0:
             if background:
@@ -736,6 +767,30 @@ class WME(tk.Tk):
                     image = obj.foreground_PhotoImage,
                     tags = ('object', 'foreground', id)
                 )
+        
+        if obj.Type is not None:
+            properties = deepcopy(obj.defaultProperties)
+            properties.update(obj.properties)
+            for property in properties:
+                property_def = obj.Type.PROPERTIES.get(property, {})
+                if property_def.get('type') != 'radius':
+                    continue
+                radius = obj.Type.get_property(property)
+
+                logging.debug(f'radius: {radius}')
+
+                radius_canvas_size = self.toLevelCanvasCoord(radius)
+
+                self.level_canvas.create_circle(
+                    pos[0],
+                    pos[1],
+                    radius_canvas_size,
+                    fill = '',
+                    outline = 'red',
+                    width = 1,
+                    tags = ('radius', property, id)
+                )
+
         
         # logging.info(f"id: {id}")
         # logging.info(f"pos: {pos}\n")
@@ -1629,12 +1684,18 @@ class WME(tk.Tk):
         self.updateObject(obj)
     
     def windowPosToWMWPos(self, pos : tuple = (0,0)):
-        pos = numpy.array((self.level_canvas.canvasx(pos[0]),
-                           self.level_canvas.canvasy(pos[1])))
-        pos = pos / self.level.scale
-        pos = pos / self.OBJECT_MULTIPLIER
-        
-        return tuple(pos)
+        if isinstance(pos, (int, float)):
+            pos = pos / self.level.scale
+            pos = pos / self.OBJECT_MULTIPLIER
+
+            return pos
+        else:
+            pos = numpy.array((self.level_canvas.canvasx(pos[0]),
+                            self.level_canvas.canvasy(pos[1])))
+            pos = pos / self.level.scale
+            pos = pos / numpy.array([self.OBJECT_MULTIPLIER, -self.OBJECT_MULTIPLIER])
+            
+            return tuple(pos)
     
     def getRelativeMousePos(self, pos : tuple, widget : tk.Widget):
         return numpy.array((numpy.array(pos) - (self.winfo_rootx(),
@@ -1865,7 +1926,8 @@ class WME(tk.Tk):
     
     def loadGame(self):
         gamepath = self.settings.get('game.gamepath')
-        if gamepath == '':
+        logging.debug(f'gamepath: {gamepath}')
+        if not gamepath:
             gamepath = filedialog.askdirectory(
                 parent = self,
                 title = 'Select Game directory',
@@ -1959,17 +2021,19 @@ class WME(tk.Tk):
         if result != None:
             self.destroy()
     
-    def updateSettings(this):
+    def updateSettings(self):
         try:
-            gamedir = this.settings.get('gamedir')
-            this.settings.set('game.gamepath', gamedir)
-            this.settings.remove('gamedir')
+            gamedir = self.settings.get('gamedir')
+            if gamedir:
+                self.settings.set('game.gamepath', gamedir)
+                self.settings.remove('gamedir')
         except:
             pass
         try:
-            default_level = this.settings.get('default_level')
-            this.settings.set('game.default_level', default_level)
-            this.settings.remove('default_level')
+            default_level = self.settings.get('default_level')
+            if default_level:
+                self.settings.set('game.default_level', default_level)
+                self.settings.remove('default_level')
         except:
             pass
 

@@ -49,6 +49,7 @@ class Settings(dict):
                     settings = json.load(file)
                 
                 self.update(settings)
+                print(f'settings: {self}')
             self.save()
     
     def save(self):
@@ -69,7 +70,7 @@ class Settings(dict):
         settings[option[-1]] = value
         self.save()
     
-    def get(self, name : str):
+    def get(self, name : str, default: Any = None):
         """Get a setting.
 
         Args:
@@ -80,7 +81,13 @@ class Settings(dict):
         """
         option = self._split_option(name)
         settings = self._get_settings(option, self)
-        return settings[option[-1]]
+        print(f'settings: {settings}')
+        print(f'option: {option}')
+        try:
+            print(f'value: {settings[option[-1]]}')
+            return settings[option[-1]]
+        except:
+            return default
     
     def remove(self, name : str):
         """Delete a setting.
