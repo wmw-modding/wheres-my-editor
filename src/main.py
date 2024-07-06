@@ -682,7 +682,7 @@ class WME(tk.Tk):
         
         pos = self.getObjectPosition(pos, offset)
         
-        id = f'{obj.name}-{str(obj.id)}'
+        id = f'object-{str(obj.id)}'
         
         items = self.level_canvas.find_withtag(id)
         
