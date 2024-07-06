@@ -946,7 +946,7 @@ class WME(tk.Tk):
         if obj == None:
             return
         
-        self.level_canvas.delete(f'{obj.name}-{str(obj.id)}')
+        self.level_canvas.delete(f'object-{str(obj.id)}')
         
         if obj in self.level.objects:
             index = self.level.objects.index(obj)
