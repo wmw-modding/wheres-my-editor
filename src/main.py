@@ -1228,6 +1228,11 @@ class WME(tk.Tk):
             obj.pos = tuple(pos)
             
             self.updateObject(obj)
+
+        def updateObjectName(name):
+            obj.name = name
+            self.updateObject(obj)
+            self.updateObjectSelector()
         
         sizes : list[int] = []
         
@@ -1240,6 +1245,7 @@ class WME(tk.Tk):
                 'text',
                 label_editable = False,
                 show_button = False,
+                entry_callback = lambda value, col : updateObjectName(value),
                 row=0,
             )
             sizes.append(self.objectProperties['name']['size'])
