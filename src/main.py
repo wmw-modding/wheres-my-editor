@@ -168,8 +168,14 @@ class WME(tk.Tk):
                         'image': '',
                     },
                 },
-                'visualization': {
+                'view': {
                     'radius': True,
+                    'PlatinumType': {
+                        'platinum': True,
+                        'normal': True,
+                        'note': True,
+                        'none': True,
+                    }
                 }
             }
         )
@@ -608,31 +614,27 @@ class WME(tk.Tk):
         if len(objects) < 0:
             return
         
+        def raise_tag(bottom, top):
+            objects = self.level_canvas.find_withtag(top)
+            if len(objects):
+                self.level_canvas.tag_raise(top, bottom)
+                return top
+            return bottom
+        
         last_tag = 'level'
-        for visualization_tag in self.settings.get('visualization', {}):
-            visualizations = self.level_canvas.find_withtag(visualization_tag)
-            if len(visualizations):
-                self.level_canvas.tag_raise(visualization_tag, last_tag)
-                last_tag = visualization_tag
         
-        self.level_canvas.tag_raise('object', last_tag)
+        for obj in self.level.objects:
+            obj_id = f'object-{obj.id}'
+            last_tag = raise_tag(last_tag, obj_id)
         
-        background = self.level_canvas.find_withtag('background')
-        foreground = self.level_canvas.find_withtag('foreground')
-        if len(background) > 0:
-            background = 'background'
-        else:
-            background = 'level'
+        last_tag = raise_tag(last_tag, 'background')
+        last_tag = raise_tag(last_tag, 'foreground')
         
-        if len(foreground) > 0:
-            foreground = 'foreground'
-        else:
-            return
-        
-        self.level_canvas.tag_raise(foreground, background)
+        for visualization_tag in self.settings.get('view', {}):
+            last_tag = raise_tag(last_tag, visualization_tag)
         
         if len(self.level_canvas.find_withtag('selection')) > 0:
-            self.level_canvas.tag_raise('selection', 'object')
+            raise_tag('object', 'selection')
     
     SELECTION_BORDER_WIDTH = 2
     
@@ -642,6 +644,14 @@ class WME(tk.Tk):
         if obj == None:
             self.level_canvas.delete('selection')
             # logging.info('deleted selection')
+            return
+        
+        obj_id = f'object-{str(obj.id)}'
+        
+        platinum_type = obj.properties.get('PlatinumType', obj.defaultProperties.get('PlatinumType', 'none'))
+
+        if not self.settings.get(['view.PlatinumType', platinum_type], True):
+            self.level_canvas.delete('selection')
             return
         
         pos = numpy.array(obj.pos)
@@ -654,9 +664,9 @@ class WME(tk.Tk):
         logging.debug(f'rectangle size: {(0,0) + tuple(numpy.array(selectionImage.size) - (self.SELECTION_BORDER_WIDTH - 1))}')
         selectionImageDraw.rectangle(
             (0,0) + tuple(numpy.array(selectionImage.size) - (self.SELECTION_BORDER_WIDTH - 1)),
-            fill='transparent',
-            outline='black',
-            width=self.SELECTION_BORDER_WIDTH,
+            fill = 'transparent',
+            outline = 'black',
+            width = self.SELECTION_BORDER_WIDTH,
         )
         selectionImage = obj.rotateImage(selectionImage)
         self.selectionPhotoImage = ImageTk.PhotoImage(selectionImage)
@@ -679,8 +689,9 @@ class WME(tk.Tk):
                 *pos
             )
         
-        self.bindObject(id, obj)
     
+        self.bindObject(id, obj)
+        
     def getObjectPosition(self, pos = (0,0), offset  = (0,0)):
         pos = numpy.array(pos)
         offset = numpy.array(offset)
@@ -709,6 +720,12 @@ class WME(tk.Tk):
         pos = self.getObjectPosition(pos, offset)
         
         id = f'object-{str(obj.id)}'
+        
+        platinum_type = obj.properties.get('PlatinumType', obj.defaultProperties.get('PlatinumType', 'none'))
+
+        if not self.settings.get(['view.PlatinumType', platinum_type], True):
+            self.level_canvas.delete(id)
+            return
         
         items = self.level_canvas.find_withtag(id)
         
@@ -768,7 +785,7 @@ class WME(tk.Tk):
                     tags = ('object', 'foreground', id)
                 )
         
-        if self.settings.get('visualization.radius', True) and obj.Type is not None:
+        if self.settings.get('view.radius', True) and obj.Type is not None:
             properties = deepcopy(obj.defaultProperties)
             properties.update(obj.properties)
             for property in properties:
@@ -787,7 +804,7 @@ class WME(tk.Tk):
                     radius_canvas_size,
                     fill = '',
                     outline = 'red',
-                    width = 1,
+                    width = self.OBJECT_MULTIPLIER,
                     tags = ('radius', property, id)
                 )
 
@@ -1760,25 +1777,50 @@ class WME(tk.Tk):
         self.view_menu: dict[
             typing.Literal[
                 'menu',
+                'sub',
                 'vars',
             ],
             tk.Menu | dict[typing.Literal[
-                'radius'
-            ], tk.BooleanVar]
+                'radius',
+                'PlatinumType',
+            ], tk.BooleanVar] | dict[str, tk.Menu]
         ] = {
             'menu': tk.Menu(self.menubar, tearoff = 0),
+            'sub': {
+                'PlatinumType': None,
+            },
             'vars': {
-                'radius': tk.BooleanVar(value = self.settings.get('visualization.radius', True))
+                'radius': tk.BooleanVar(value = self.settings.get('view.radius', True)),
+                'PlatinumType': {
+                    'platinum': tk.BooleanVar(value = self.settings.get('view.PlatinumType.platinum', True)),
+                    'normal': tk.BooleanVar(value = self.settings.get('view.PlatinumType.normal', True)),
+                    'note': tk.BooleanVar(value = self.settings.get('view.PlatinumType.note', True)),
+                    'none': tk.BooleanVar(value = self.settings.get('view.PlatinumType.none', True)),
+                }
             }
         }
         
         self.view_menu['vars']['radius'].trace_add('write', lambda *args : self.updateView('radius', self.view_menu['vars']['radius'].get()))
         self.view_menu['menu'].add_checkbutton(label = 'radius', onvalue = True, offvalue = False, variable = self.view_menu['vars']['radius'])
 
+        self.view_menu['sub']['PlatinumType'] = tk.Menu(self.view_menu['menu'], tearoff = 0)
+        
+        self.view_menu['vars']['PlatinumType']['platinum'].trace_add('write', lambda *args : self.updateView('PlatinumType.platinum', self.view_menu['vars']['PlatinumType']['platinum'].get()))
+        self.view_menu['sub']['PlatinumType'].add_checkbutton(label = 'platinum', onvalue = True, offvalue = False, variable = self.view_menu['vars']['PlatinumType']['platinum'])
+        self.view_menu['vars']['PlatinumType']['normal'].trace_add('write', lambda *args : self.updateView('PlatinumType.normal', self.view_menu['vars']['PlatinumType']['normal'].get()))
+        self.view_menu['sub']['PlatinumType'].add_checkbutton(label = 'normal', onvalue = True, offvalue = False, variable = self.view_menu['vars']['PlatinumType']['normal'])
+        self.view_menu['vars']['PlatinumType']['note'].trace_add('write', lambda *args : self.updateView('PlatinumType.note', self.view_menu['vars']['PlatinumType']['note'].get()))
+        self.view_menu['sub']['PlatinumType'].add_checkbutton(label = 'note', onvalue = True, offvalue = False, variable = self.view_menu['vars']['PlatinumType']['note'])
+        self.view_menu['vars']['PlatinumType']['none'].trace_add('write', lambda *args : self.updateView('PlatinumType.none', self.view_menu['vars']['PlatinumType']['none'].get()))
+        self.view_menu['sub']['PlatinumType'].add_checkbutton(label = 'none', onvalue = True, offvalue = False, variable = self.view_menu['vars']['PlatinumType']['none'])
+
+        self.view_menu['menu'].add_cascade(label = 'platinum type', menu = self.view_menu['sub']['PlatinumType'])
+        
+
         self.menubar.add_cascade(label = 'View', menu = self.view_menu['menu'])
     
     def updateView(self, view: str, state: bool = True):
-        self.settings.set(['visualization', view], state)
+        self.settings.set(['view', view], state)
         self.updateLevel()
     
     def showAbout(self):
@@ -1995,6 +2037,7 @@ class WME(tk.Tk):
         
         if isinstance(self.level, wmwpy.classes.Level):
             self.level_canvas.delete('object')
+            self.level_canvas.delete('radius')
             self.level_canvas.delete('selection')
         
         self.resetProperties()
