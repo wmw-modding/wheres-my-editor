@@ -23,7 +23,7 @@ __links__ = {
     'bugs' : 'https://github.com/wmw-modding/wheres-my-editor/issues',
 }
 
-__min_wmwpy_version__ = "0.5.0-beta"
+__min_wmwpy_version__ = "0.6.0-beta"
 
 import traceback
 import logging
