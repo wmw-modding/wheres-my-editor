@@ -105,7 +105,10 @@ class Settings(dict):
     
     def _split_option(self, value : str | list) -> list[str]:
         if isinstance(value, (list, tuple)):
-            return list(value)
+            parts = []
+            for part in value:
+                parts.extend(self._split_option(part))
+            return parts
         elif isinstance(value, str):
             return value.split('.')
         else:
