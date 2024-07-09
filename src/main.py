@@ -1047,23 +1047,26 @@ class WME(tk.Tk):
         if (obj == None) or isinstance(obj, tk.Event):
             obj = self.selectedObject
         
-        if obj == None:
-            return
+        if self.selectedPart['type']:
+            self.dragPart(
+                obj = obj,
+                amount = amount,
+            )
+        else:
+            if obj == None:
+                return
+            
+            amount = numpy.array(amount)
+            pos = tuple(obj.pos + amount)
+            obj.pos = pos
+            self.updateObject(obj)
+            
+            if self.selectedObject == obj:
+                if 'pos' in self.objectProperties:
+                    self.objectProperties['pos']['var'][0].set(pos[0])
+                    self.objectProperties['pos']['var'][1].set(pos[1])
         
-        amount = numpy.array(amount)
-        
-        pos = tuple(obj.pos + amount)
-        
-        obj.pos = pos
-        
-        self.updateObject(obj)
-        
-        if self.selectedObject == obj:
-            if 'pos' in self.objectProperties:
-                self.objectProperties['pos']['var'][0].set(pos[0])
-                self.objectProperties['pos']['var'][1].set(pos[1])
-        
-        return pos
+            return pos
     
     def deleteObject(self, obj : wmwpy.classes.Object = None):
         if (obj == None) or isinstance(obj, tk.Event):
@@ -1893,7 +1896,12 @@ class WME(tk.Tk):
         # self.updateLayers()
         logging.debug(f'selected part: {self.selectedPart}')
     
-    def dragPart(self, event: tk.Event = None, obj: wmwpy.classes.Object | None = None):
+    def dragPart(
+        self,
+        event: tk.Event = None,
+        obj: wmwpy.classes.Object | None = None,
+        amount: tuple[float, float] | None = None,
+    ):
         if obj == None:
             obj = self.selectedObject
         if obj == None:
@@ -1905,10 +1913,15 @@ class WME(tk.Tk):
             is_global = False
             if obj.Type and obj.Type.get_property('PathIsGlobal'):
                 is_global = True
-            pos = self.windowPosToWMWPos((event.x, event.y), (0.25 * is_global) + 1)
             
-            if not is_global:
-                pos = numpy.array(pos) - (numpy.array(obj.pos) * 1.25)
+            if amount:
+                current = obj.Type.get_property(self.selectedPart['property'])
+                pos = numpy.array(current) + amount
+            else:
+                pos = self.windowPosToWMWPos((event.x, event.y), (0.25 * is_global) + 1)
+            
+                if not is_global:
+                    pos = numpy.array(pos) - (numpy.array(obj.pos) * 1.25)
             
             logging.debug(f'new pos: {pos}')
             obj.properties[self.selectedPart['property']] = ' '.join([str(x) for x in pos])
