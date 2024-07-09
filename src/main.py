@@ -913,9 +913,6 @@ class WME(tk.Tk):
                         width = 2,
                         tags = ('path', 'pathLine', id),
                     )
-                
-                        
-
         
         # logging.info(f"id: {id}")
         # logging.info(f"pos: {pos}\n")
@@ -1043,7 +1040,7 @@ class WME(tk.Tk):
         finally:
             menu.grab_release()
     
-    def moveObject(self, obj : wmwpy.classes.Object = None, amount : tuple[float,float] = (0,0)) -> tuple[float,float]:
+    def moveObject(self, obj : wmwpy.classes.Object | None = None, amount : tuple[float,float] = (0,0)) -> tuple[float,float]:
         if not self.checkLevelFocus():
             return
         
@@ -1915,9 +1912,9 @@ class WME(tk.Tk):
             
             logging.debug(f'new pos: {pos}')
             obj.properties[self.selectedPart['property']] = ' '.join([str(x) for x in pos])
+            self.objectProperties[self.selectedPart['property']]['var'][0].set(obj.properties[self.selectedPart['property']])
         
         self.updateObject(obj)
-        self.updateProperties(obj)
     
     def createMenubar(self):
         self.menubar = tk.Menu(self)
