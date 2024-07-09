@@ -102,6 +102,27 @@ class Settings(dict):
         self.clear()
         self.update(self.default_settings)
         self.save()
+
+    def update(self, merge: dict = None, /, **kwargs):
+        if merge == None:
+            merge = kwargs
+        
+        if not isinstance(merge, dict):
+            merge = dict(merge)
+
+        def merge_dict(new: dict, default: dict):
+            for key in new:
+                if isinstance(new[key], dict):
+                    default.setdefault(key, {})
+                    if not isinstance(default[key], dict):
+                        default[key] = {}
+                    merge_dict(new[key], default[key])
+                else:
+                    default[key] = new[key]
+        
+        merge_dict(merge, self)
+        self.save()
+        return self
     
     def _split_option(self, value : str | list) -> list[str]:
         if isinstance(value, (list, tuple)):
