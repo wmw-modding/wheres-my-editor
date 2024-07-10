@@ -880,7 +880,7 @@ class WME(tk.Tk):
                     path_canvas_points.append(tuple(global_pos))
                     
                     color = 'black'
-                    if self.selectedPart['property'] == property:
+                    if obj == self.selectedObject and self.selectedPart['property'] == property:
                         color = 'yellow'
                     
                     point_id = self.level_canvas.create_circle(
@@ -1794,6 +1794,11 @@ class WME(tk.Tk):
         logging.info('updating level')
         
         self.selectedObject = None
+        self.selectedPart = {
+            'type': None,
+            'id': None,
+            'property': None,
+        }
         self.updateProperties()
         self.updateSelectionRectangle()
         self.updateObjectSelector()
