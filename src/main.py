@@ -1079,20 +1079,11 @@ class WME(tk.Tk):
         if obj == None:
             return
         
-        logging.debug(f'deleting: object-{str(obj.id)}')
-
-        tags = self.level_canvas.find_withtag(f'object-{str(obj.id)}')
-
-        logging.debug(f'tags: {tags}')
-        
         self.level_canvas.delete(f'object-{str(obj.id)}')
         
         if obj in self.level.objects:
-            logging.debug('obj in level')
             index = self.level.objects.index(obj)
             del self.level.objects[index]
-        else:
-            logging.debug('obj not in level')
         
         if obj == self.selectedObject:
             self.selectObject(None)
@@ -1108,7 +1099,7 @@ class WME(tk.Tk):
     
     def copyObject(
         self,
-        obj : wmwpy.classes.Object = None,
+        obj : wmwpy.classes.Object | None = None,
     ):
         if not self.checkLevelFocus():
             return
@@ -2231,6 +2222,7 @@ class WME(tk.Tk):
             self.level_canvas.delete('object')
             self.level_canvas.delete('radius')
             self.level_canvas.delete('selection')
+            self.level_canvas.delete('path')
         
         self.resetProperties()
         self.resetObjectSelector()
