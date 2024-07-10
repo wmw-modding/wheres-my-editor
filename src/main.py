@@ -1188,7 +1188,7 @@ class WME(tk.Tk):
             pos = self.windowPosToWMWPos(pos)
         )
     
-    def updateProperties(self, obj : wmwpy.classes.Object = None):
+    def updateProperties(self, obj : wmwpy.classes.Object | None = None):
         if obj == None:
             obj = self.selectedObject
         
@@ -1225,6 +1225,7 @@ class WME(tk.Tk):
             button_callback: typing.Callable = None,
             button_text: str = '-',
             options: list[str] = None,
+            label_color: str | tuple = None,
             **kwargs,
         ) -> dict[typing.Literal[
             'label',
@@ -1242,11 +1243,13 @@ class WME(tk.Tk):
                     label_frame,
                     text = property,
                     callback = label_callback,
+                    foreground = label_color,
                 )
             else:
                 name = ttk.Label(
                     label_frame,
                     text = property,
+                    foreground = label_color,
                 )
                 
             if label_prefix not in ['', None]:
@@ -1481,12 +1484,18 @@ class WME(tk.Tk):
                 prefix = ''
                 button_text = '-'
                 button_callback = lambda *args, prop = property : removeProperty(prop)
+                color = 'black'
                 
                 if not isLevel and property in obj.defaultProperties:
                     prefix = '*'
                     # button_text = '↺'
                     
                     # button_callback = lambda *args, prop = property : resetProperty(prop)
+                
+                logging.debug(f'selectedPart: {self.selectedPart}')
+                logging.debug(f'property selected: {self.selectedPart["property"] == property}')
+                if self.selectedPart['property'] == property:
+                    color = 'yellow'
                 
                 options = []
                 
@@ -1530,6 +1539,7 @@ class WME(tk.Tk):
                     label_callback = lambda name, prop = property: updatePropertyName(prop, name),
                     button_callback = button_callback,
                     label_prefix = prefix,
+                    label_color = color,
                 )
                 
                 sizes.append(self.objectProperties[property]['size'])
@@ -1842,7 +1852,12 @@ class WME(tk.Tk):
                              self.winfo_rooty())) - (widget.winfo_x(),
                                                      widget.winfo_y()))
     
-    def selectObject(self, obj : wmwpy.classes.Object = None, event: tk.Event = None):
+    def selectObject(
+        self,
+        obj : wmwpy.classes.Object = None,
+        event: tk.Event = None,
+        partInfo: dict[str, str] = None,
+    ):
         self.selectedPart = {
             'type': None,
             'id': None,
@@ -1851,6 +1866,11 @@ class WME(tk.Tk):
         if self.selectedObject in self.level.objects:
             self.updateObject(self.selectedObject)
         self.selectedObject = obj
+        
+        if isinstance(partInfo, dict):
+            self.selectedPart['type'] = partInfo.get('type', None)
+            self.selectedPart['id'] = partInfo.get('id', None)
+            self.selectedPart['property'] = partInfo.get('property', None)
         
         if event:
             obj_pos = self.getObjectPosition(obj.pos, obj.offset)
@@ -1892,14 +1912,14 @@ class WME(tk.Tk):
         id: str,
         property: str,
     ):
-        self.selectObject(obj)
-        self.selectedPart = {
-            'type': type,
-            'id': id,
-            'property': property,
-        }
-        self.updateObject(obj)
-        # self.updateLayers()
+        self.selectObject(
+            obj,
+            partInfo = {
+                'type': type,
+                'id': id,
+                'property': property,
+            }
+        )
         logging.debug(f'selected part: {self.selectedPart}')
     
     def dragPart(
