@@ -819,30 +819,26 @@ class WME(tk.Tk):
                     tags = ('object', 'foreground', id)
                 )
         
-        if self.settings.get('view.radius', True) and obj.Type is not None:
-            properties = deepcopy(obj.defaultProperties)
-            properties.update(obj.properties)
+        if (obj == self.selectedObject or self.settings.get('view.radius', True)) and obj.Type is not None:
+            properties = filter(lambda name : obj.Type.PROPERTIES[name].get('type', 'string') == 'radius', obj.Type.PROPERTIES)
+            
             for property in properties:
-                property_def = obj.Type.PROPERTIES.get(property, {})
-                if property_def.get('type') != 'radius':
-                    continue
-                radius = obj.Type.get_property(property)
-
-                logging.debug(f'radius: {radius}')
-
-                radius_canvas_size = self.toLevelCanvasCoord(radius)
-
-                self.level_canvas.create_circle(
-                    pos[0],
-                    pos[1],
-                    radius_canvas_size,
-                    fill = '',
-                    outline = 'red',
-                    width = self.OBJECT_MULTIPLIER,
-                    tags = ('radius', property, id)
-                )
+                props = obj.Type.get_properties(property)
+                for name, radius in props.items():
+                    logging.debug(f'radius: {radius}')
+                    radius_canvas_size = self.toLevelCanvasCoord(radius)
+                    if radius_canvas_size > 0:
+                        self.level_canvas.create_circle(
+                            pos[0],
+                            pos[1],
+                            radius_canvas_size,
+                            fill = '',
+                            outline = 'red',
+                            width = self.OBJECT_MULTIPLIER,
+                            tags = ('radius', property, id)
+                        )
         
-        if self.settings.get('view.path', True) and obj.Type is not None:
+        if (obj == self.selectedObject or self.settings.get('view.path', True)) and obj.Type is not None:
             path_points = obj.Type.get_properties('PathPos#')
             logging.debug(f'path_points: {path_points}')
             if isinstance(path_points, dict) and len(path_points) > 0:
@@ -1863,9 +1859,10 @@ class WME(tk.Tk):
             'id': None,
             'property': None,
         }
-        if self.selectedObject in self.level.objects:
-            self.updateObject(self.selectedObject)
+        old_object = self.selectedObject
         self.selectedObject = obj
+        if old_object in self.level.objects:
+            self.updateObject(old_object)
         
         if isinstance(partInfo, dict):
             self.selectedPart['type'] = partInfo.get('type', None)
