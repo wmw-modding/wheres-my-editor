@@ -1079,11 +1079,20 @@ class WME(tk.Tk):
         if obj == None:
             return
         
+        logging.debug(f'deleting: object-{str(obj.id)}')
+
+        tags = self.level_canvas.find_withtag(f'object-{str(obj.id)}')
+
+        logging.debug(f'tags: {tags}')
+        
         self.level_canvas.delete(f'object-{str(obj.id)}')
         
         if obj in self.level.objects:
+            logging.debug('obj in level')
             index = self.level.objects.index(obj)
             del self.level.objects[index]
+        else:
+            logging.debug('obj not in level')
         
         if obj == self.selectedObject:
             self.selectObject(None)
@@ -1843,7 +1852,8 @@ class WME(tk.Tk):
             'id': None,
             'property': None,
         }
-        self.updateObject(self.selectedObject)
+        if self.selectedObject in self.level.objects:
+            self.updateObject(self.selectedObject)
         self.selectedObject = obj
         
         if event:
