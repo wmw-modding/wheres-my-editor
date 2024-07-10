@@ -807,7 +807,7 @@ class WME(tk.Tk):
                     pos[1],
                     anchor = 'c',
                     image = obj.background_PhotoImage,
-                    tags = ('object', 'background', id)
+                    tags = ('object', 'background', id),
                 )
                 
             if len(obj._foreground) > 0:
@@ -828,15 +828,17 @@ class WME(tk.Tk):
                     logging.debug(f'radius: {radius}')
                     radius_canvas_size = self.toLevelCanvasCoord(radius)
                     if radius_canvas_size > 0:
-                        self.level_canvas.create_circle(
+                        r_id = self.level_canvas.create_circle(
                             pos[0],
                             pos[1],
                             radius_canvas_size,
                             fill = '',
                             outline = 'red',
                             width = self.OBJECT_MULTIPLIER,
-                            tags = ('radius', property, id)
+                            tags = ('passthrough', 'part', 'radius', property, id),
                         )
+                        
+                        logging.debug(f'radius tags: {self.level_canvas.gettags(r_id)}')
         
         if (obj == self.selectedObject or self.settings.get('view.path', True)) and obj.Type is not None:
             path_points = obj.Type.get_properties('PathPos#')
@@ -885,7 +887,7 @@ class WME(tk.Tk):
                         3,
                         fill = color,
                         outline = '',
-                        tags = ('path', 'pathPoint', id),
+                        tags = ('part', 'path', property, 'pathPoint', id),
                     )
                     
                     self.level_canvas.tag_bind(
@@ -895,20 +897,22 @@ class WME(tk.Tk):
                     )
 
                 if is_closed:
-                    self.level_canvas.create_polygon(
+                    line = self.level_canvas.create_polygon(
                         path_canvas_points,
                         fill = '',
                         outline = 'black',
                         width = 2,
-                        tags = ('path', 'pathLine', id),
+                        tags = ('passthrough', 'part', 'path', property, 'pathLine', id),
                     )
                 else:
-                    self.level_canvas.create_line(
+                    line = self.level_canvas.create_line(
                         path_canvas_points,
                         fill = 'black',
                         width = 2,
-                        tags = ('path', 'pathLine', id),
+                        tags = ('passthrough', 'part', 'path', property, 'pathLine', id),
                     )
+                
+                # self.level_canvas.tag_bind(line, '<Button-1>', self.onLevelClick)
         
         # logging.info(f"id: {id}")
         # logging.info(f"pos: {pos}\n")
@@ -917,11 +921,16 @@ class WME(tk.Tk):
         
         self.bindObject(f'object&&{id}', obj)
         
+        
         self.updateSelectionRectangle()
         self.updateLevelScroll()
+
     
     def onLevelClick(self, event : tk.Event):
         logging.debug('level')
+        
+        if self.level == None:
+            return
         
         mouse = (self.level_canvas.canvasx(event.x), self.level_canvas.canvasy(event.y))
         
@@ -929,15 +938,43 @@ class WME(tk.Tk):
         logging.debug(f'under mouse: {objects}')
         length = len(objects)
         
-        tags = [self.level_canvas.gettags(id) for id in objects]
-        logging.debug(f'tags: {tags}')
-        
-        if length <= 1:
-            if length == 1:
-                if objects[0] != self.level_images['background']:
-                    return
+        for id in reversed(objects):
+            tags = self.level_canvas.gettags(id)
+            if tags[0] in ['selection', 'level']:
+                continue
             
-            self.selectObject(None)
+            obj_tag = -1
+            if not tags[obj_tag].startswith('object-'):
+                logging.debug(f'tag not obj: {tags}')
+                obj_tag = -2
+            
+            if tags[obj_tag].startswith('object-'):
+                obj = self.level.getObjectById(tags[obj_tag][7::])
+                if obj == None:
+                    continue
+                else:
+                    logging.debug(f'obj name: {obj.name}')
+            else:
+                continue
+            
+            if tags[0] == 'passthrough':
+                continue
+            elif tags[0] == 'object':
+                logging.debug(f'selecting obj: {obj.name}')
+                self.selectObject(obj)
+                return
+            elif tags[0] == 'part':
+                self.selectPart(
+                    obj,
+                    tags[1],
+                    id,
+                    tags[2],
+                )
+                return
+        
+        self.selectObject(None)
+            
+            
     
     def onLevelMove(self, event: tk.Event):
         if self.selectedPart:
@@ -1815,6 +1852,8 @@ class WME(tk.Tk):
         self.updateLevelScroll()
         self.level_canvas.xview_moveto(0.23)
         self.level_canvas.yview_moveto(0.2)
+        
+        self.level_canvas.tag_bind('passthrough', '<Button-1>', self.onLevelClick)
     
     def redrawLevel(self):
         self.level_canvas.delete('object')
@@ -2242,9 +2281,8 @@ class WME(tk.Tk):
         
         if isinstance(self.level, wmwpy.classes.Level):
             self.level_canvas.delete('object')
-            self.level_canvas.delete('radius')
+            self.level_canvas.delete('part')
             self.level_canvas.delete('selection')
-            self.level_canvas.delete('path')
         
         self.resetProperties()
         self.resetObjectSelector()
