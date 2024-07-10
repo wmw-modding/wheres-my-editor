@@ -749,8 +749,9 @@ class WME(tk.Tk):
             return
         
         offset = numpy.array(obj.offset)
-        pos = numpy.array(obj.pos)
-        pos = self.getObjectPosition(pos, offset)
+        canvas_pos = numpy.array(obj.pos)
+        canvas_pos = self.getObjectPosition(canvas_pos, offset)
+        true_pos = self.getObjectPosition(obj.pos)
         
         id = f'object-{str(obj.id)}'
         
@@ -782,8 +783,8 @@ class WME(tk.Tk):
             if background:
                 self.level_canvas.coords(
                     background,
-                    pos[0],
-                    pos[1],
+                    canvas_pos[0],
+                    canvas_pos[1],
                 )
                 self.level_canvas.itemconfig(
                     background,
@@ -793,8 +794,8 @@ class WME(tk.Tk):
             if foreground:
                 self.level_canvas.coords(
                     foreground,
-                    pos[0],
-                    pos[1],
+                    canvas_pos[0],
+                    canvas_pos[1],
                 )
                 self.level_canvas.itemconfig(
                     foreground,
@@ -803,8 +804,8 @@ class WME(tk.Tk):
         else:
             if len(obj._background) > 0:
                 self.level_canvas.create_image(
-                    pos[0],
-                    pos[1],
+                    canvas_pos[0],
+                    canvas_pos[1],
                     anchor = 'c',
                     image = obj.background_PhotoImage,
                     tags = ('object', 'background', id),
@@ -812,8 +813,8 @@ class WME(tk.Tk):
                 
             if len(obj._foreground) > 0:
                 self.level_canvas.create_image(
-                    pos[0],
-                    pos[1],
+                    canvas_pos[0],
+                    canvas_pos[1],
                     anchor = 'c',
                     image = obj.foreground_PhotoImage,
                     tags = ('object', 'foreground', id)
@@ -829,8 +830,8 @@ class WME(tk.Tk):
                     radius_canvas_size = self.toLevelCanvasCoord(radius)
                     if radius_canvas_size > 0:
                         r_id = self.level_canvas.create_circle(
-                            pos[0],
-                            pos[1],
+                            true_pos[0],
+                            true_pos[1],
                             radius_canvas_size,
                             fill = '',
                             outline = 'red',
@@ -868,7 +869,7 @@ class WME(tk.Tk):
                     
                     path_pos = numpy.array(path_pos)
                     
-                    global_pos = copy(pos)
+                    global_pos = copy(canvas_pos)
                     if is_global:
                         global_pos = self.toLevelCanvasCoord(path_pos)
                     else:
