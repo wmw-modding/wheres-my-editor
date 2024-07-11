@@ -880,7 +880,7 @@ class WME(tk.Tk):
                     
                     color = 'black'
                     if obj == self.selectedObject and self.selectedPart['property'] == property:
-                        color = 'yellow'
+                        color = 'blue'
                     
                     point_id = self.level_canvas.create_circle(
                         global_pos[0],
