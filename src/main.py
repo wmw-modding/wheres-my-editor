@@ -79,7 +79,6 @@ def setup_logger(
     if os.path.isdir(dir):
         log_files = os.listdir(dir)
         logs = []
-
         
         for file in log_files:
             if file == os.path.basename(log_filename):
