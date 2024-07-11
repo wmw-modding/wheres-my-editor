@@ -25,16 +25,19 @@ __links__ = {
 
 __min_wmwpy_version__ = "0.6.0-beta"
 
-import traceback
 import logging
 import os
 import sys
-import io
 import platform
 from datetime import datetime
 import crossplatform
+import re
 
-def createLogger(type = 'file', filename = 'logs/log.log', debug = False):
+def createLogger(
+    type = 'file',
+    filename = 'logs/log.log',
+    debug = False,
+):
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
     format = '[%(levelname)s] %(message)s'
@@ -63,9 +66,40 @@ def createLogger(type = 'file', filename = 'logs/log.log', debug = False):
     logger = logging.getLogger(__name__)
     logger.info(filename)
 
-_log_filename_date_format = "%m-%d-%y_%H-%M-%S"
+def setup_logger(
+    name: str,
+    dir: str = 'logs',
+    extension: str = 'log',
+    keep: int = 5,
+    debug: bool = False,
+):
+    log_filename = os.path.join(dir, f'{datetime.now().strftime(name)}.{extension}')
+    
+    log_files = os.listdir(dir)
+    logs = []
 
-_log_filename = f'logs/{datetime.now().strftime(_log_filename_date_format)}.log'
+    createLogger('file', filename = log_filename, debug = debug)
+    
+    for file in log_files:
+        if file == os.path.basename(log_filename):
+            continue
+        
+        try:
+            logs.append((datetime.strptime(os.path.splitext(file)[0], name), file))
+        except ValueError:
+            continue
+    
+    logs.sort(key = lambda i: i[0])
+    
+    logs = logs[max(0, keep-1)::]
+    
+    for log in logs:
+        logging.debug(f'deleting log: {log[1]}')
+        os.remove(os.path.join(dir, log[1]))
+        
+    return log_filename
+    
+_log_filename_format = "%m-%d-%y_%H-%M-%S"
 
 debug = False
 
@@ -76,13 +110,16 @@ args = sys.argv[1::]
 if len(args) > 0:
     if args[0] in ['-d', '--debug']:
         debug = True
-createLogger('file', filename = _log_filename, debug = debug)
+
+_log_filename = setup_logger(
+    _log_filename_format,
+    debug = debug,
+)
 
 import tkinter as tk
-from tkinter import ttk, simpledialog, messagebox, filedialog
+from tkinter import ttk, messagebox, filedialog
 import tkwidgets
-from PIL import Image, ImageTk, ImageColor, ImageDraw
-import json
+from PIL import Image, ImageTk, ImageDraw
 from settings import Settings
 from lxml import etree
 import numpy
