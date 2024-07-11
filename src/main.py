@@ -923,12 +923,6 @@ class WME(tk.Tk):
                         outline = '',
                         tags = ('part', 'path', property, 'pathPoint', id),
                     )
-                    
-                    self.level_canvas.tag_bind(
-                        point_id,
-                        '<Button-1>',
-                        lambda e, object = obj, prop = property, id = point_id : self.selectPart(object, 'path', id, prop)
-                    )
 
                 if is_closed:
                     line = self.level_canvas.create_polygon(
@@ -968,8 +962,13 @@ class WME(tk.Tk):
         
         mouse = (self.level_canvas.canvasx(event.x), self.level_canvas.canvasy(event.y))
         
-        objects = self.level_canvas.find_overlapping(*mouse, *mouse)
+        # objects = self.level_canvas.find_overlapping(*mouse, *mouse)
+        objects = self.level_canvas.find_overlapping(
+            mouse[0] - 5, mouse[1] - 5,
+            mouse[0] + 5, mouse[1] + 5,
+        )
         logging.debug(f'under mouse: {objects}')
+        # logging.debug(f'close: {close}')
         length = len(objects)
         
         for id in reversed(objects):
@@ -1048,11 +1047,6 @@ class WME(tk.Tk):
             id,
             '<Button1-Motion>',
             lambda e, object = obj: self.dragObject(object, e)
-        )
-        self.level_canvas.tag_bind(
-            id,
-            '<Button-1>',
-            lambda e, object = obj: self.selectObject(object, e)
         )
         
         context_menu = self.createObjectContextMenu(obj)
