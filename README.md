@@ -103,9 +103,9 @@ This will override your editable installation of wmwpy (in the venv, it will not
 pip install -e ../wmwpy
 ```
 
-You can also edit `requirements.txt` to replace `wmwpy@git+https://github.com/wmw-modding/wmwpy` with `-e "../wmwpy"`, and then you won't have to bother with reinstalling wmwpy, but if you're going to be publishing your edits, you might want to replace it with the link to your wmwpy clone repo instead of a path to your local clone.
+(Tip: you can also install `requirements/requirements-build.txt` to only install the build requirements)
 
-Note: you need `requirements.txt` in the same directory, as this `requirements-build.txt` references `requirements.txt`.
+You can also edit `requirements.txt` to add  `-e "../wmwpy"`, and then you won't have to bother with reinstalling wmwpy, but if you're going to be publishing your edits, you might want to replace it with the link to your wmwpy clone repo instead of a path to your local clone.
 
 ### Build exe
 

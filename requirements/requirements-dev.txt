@@ -1,0 +1,3 @@
+# dev wmwpy
+wmwpy@git+https://github.com/wmw-modding/wmwpy
+-r requirements-deps.txt

@@ -1,3 +1,2 @@
-setuptools
--r requirements.txt
-pyinstaller==6.7.0
+# building
+-r requirements/requirements-nightly.txt

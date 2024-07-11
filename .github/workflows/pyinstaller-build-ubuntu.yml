@@ -33,8 +33,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pyinstaller
-        pip install -r requirements.txt
+        pip install -r requirements/requirements-nightly.txt
     
     - name: pyinstaller build
       run: |

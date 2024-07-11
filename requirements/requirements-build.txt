@@ -1,0 +1,3 @@
+# for building
+pyinstaller==6.9.0
+-r requirements-deps.txt

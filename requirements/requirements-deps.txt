@@ -1,0 +1,5 @@
+# main dependencies
+setuptools
+tk==0.1.0
+numpy==2.0.0
+tkmacosx==1.0.5

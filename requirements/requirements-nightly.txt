@@ -1,0 +1,3 @@
+# nightly builds (wmwpy from github)
+-r requirements-dev.txt
+-r requirements-build.txt

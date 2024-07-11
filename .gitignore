@@ -168,3 +168,6 @@ android/
 # My folder for extracted games
 src/game
 git_dist/
+
+# my local wmwpy installation
+requirements-local.txt
