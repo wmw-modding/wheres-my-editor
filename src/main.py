@@ -913,7 +913,7 @@ class WME(tk.Tk):
                     
                     color = 'black'
                     if obj == self.selectedObject and self.selectedPart['property'] == property:
-                        color = 'blue'
+                        color = 'yellow'
                     
                     point_id = self.level_canvas.create_circle(
                         global_pos[0],
@@ -1562,7 +1562,7 @@ class WME(tk.Tk):
                 logging.debug(f'selectedPart: {self.selectedPart}')
                 logging.debug(f'property selected: {self.selectedPart["property"] == property}')
                 if self.selectedPart['property'] == property:
-                    color = 'yellow'
+                    color = 'blue'
                 
                 options = []
                 
