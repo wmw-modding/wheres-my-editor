@@ -74,28 +74,29 @@ def setup_logger(
     debug: bool = False,
 ):
     log_filename = os.path.join(dir, f'{datetime.now().strftime(name)}.{extension}')
-    
-    log_files = os.listdir(dir)
-    logs = []
-
     createLogger('file', filename = log_filename, debug = debug)
     
-    for file in log_files:
-        if file == os.path.basename(log_filename):
-            continue
+    if os.path.isdir(dir):
+        log_files = os.listdir(dir)
+        logs = []
+
         
-        try:
-            logs.append((datetime.strptime(os.path.splitext(file)[0], name), file))
-        except ValueError:
-            continue
-    
-    logs.sort(key = lambda i: i[0])
-    
-    logs = logs[max(0, keep-1)::]
-    
-    for log in logs:
-        logging.debug(f'deleting log: {log[1]}')
-        os.remove(os.path.join(dir, log[1]))
+        for file in log_files:
+            if file == os.path.basename(log_filename):
+                continue
+            
+            try:
+                logs.append((datetime.strptime(os.path.splitext(file)[0], name), file))
+            except ValueError:
+                continue
+        
+        logs.sort(key = lambda i: i[0])
+        
+        logs = logs[max(0, keep-1)::]
+        
+        for log in logs:
+            logging.debug(f'deleting log: {log[1]}')
+            os.remove(os.path.join(dir, log[1]))
         
     return log_filename
     
