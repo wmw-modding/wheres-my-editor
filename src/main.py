@@ -103,10 +103,6 @@ if wmwpy.__version__ < __min_wmwpy_version__:
     raise ImportWarning(f'wmwpy version must be "{__min_wmwpy_version__}" or higher.')
 
 
-# add transparent color
-ImageColor.colormap['transparent'] = '#0000'
-
-
 # add create_circle and create_circle_arc to canvas
 # https://stackoverflow.com/a/17985217/17129659
 def _create_circle(self, x, y, r, **kwargs):
@@ -698,7 +694,7 @@ class WME(tk.Tk):
         logging.debug(f'rectangle size: {(0,0) + tuple(numpy.array(selectionImage.size) - (self.SELECTION_BORDER_WIDTH - 1))}')
         selectionImageDraw.rectangle(
             (0,0) + tuple(numpy.array(selectionImage.size) - (self.SELECTION_BORDER_WIDTH - 1)),
-            fill = 'transparent',
+            fill = '#0000',
             outline = 'black',
             width = self.SELECTION_BORDER_WIDTH,
         )
