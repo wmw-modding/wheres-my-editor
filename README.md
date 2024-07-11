@@ -11,12 +11,25 @@ NOTE: If you came here to read a .waltex image, then go to [wmwpy](https://githu
 # Get started
 To get started
 1. Get the latest release from the [releases tab](https://github.com/wmw-modding/wheres-my-editor/releases/latest). Extract the zip folder into it's own folder (to keep it's files organized).
-2. Next, you need to get the game files. You can get them in many ways, but generally, you want to have the game extracted into a folder, and all the assets in the assets (or Content) folder.
+2. Next, you need to get the game files. You can get them in many ways, but generally, you want to have the game extracted into a folder, and all the assets in the `assets` (or `Content`) folder.
 3. Open the Where's My Editor app (wme.exe)
 4. Select the game folder.
 5. Now you got it up and running.
 
-If you run into any issues, please send a bug report (shortcut in Help > Send bug report, or the issues page in this repository).
+If you run into any issues, please send a bug report (shortcut in **Help > Send bug report**, or the issues page in this repository).
+
+# How to use
+
+After you load a level, you can move around, and edit objects.
+
+## Moving objects
+
+You can move objects by clicking on it, and dragging it anywhere. You can also use the arrow keys for finer placement. You can also hold some modifier keys to change the amount moved
+
+- **Shift** + **Arrow key** = 4
+- **Arrow key** = 1
+- **Control** (or **Command**) + **Arrow key** = 0.5
+- **Alt** + **Arrow key** = 0.1
 
 # Development
 If you're going to be editing wme, you should also edit wmwpy, as wmwpy handles all the reading and writing of the wmw files.
