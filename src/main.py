@@ -2089,17 +2089,15 @@ class WME(tk.Tk):
         self.file_menu.add_separator()
         self.file_menu.add_command(label = 'Settings', command = self.showSettings)
 
-        self.menubar.add_cascade(label = 'File', menu = self.file_menu)
-        
+
         self.help_menu = tk.Menu(self.menubar, tearoff = 0)
-        
+
         self.help_menu.add_command(label = 'Discord', command = lambda *args : webbrowser.open(__links__['discord']))
         self.help_menu.add_command(label = 'About', command = self.showAbout)
         self.help_menu.add_command(label = 'Check for update', command = lambda *args : webbrowser.open(__links__['releases']))
         self.help_menu.add_command(label = 'Bug report', command = lambda *args : webbrowser.open(__links__['bugs']))
         self.help_menu.add_command(label = 'Open log', command = lambda *args : crossplatform.open_file(_log_filename))
 
-        self.menubar.add_cascade(label = 'Help', menu = self.help_menu)
 
         self.view_menu: dict[
             typing.Literal[
@@ -2147,7 +2145,9 @@ class WME(tk.Tk):
         self.view_menu['vars']['path'].trace_add('write', lambda *args : self.updateView('path', self.view_menu['vars']['path'].get()))
         self.view_menu['menu'].add_checkbutton(label = 'path', onvalue = True, offvalue = False, variable = self.view_menu['vars']['path'])
 
+        self.menubar.add_cascade(label = 'File', menu = self.file_menu)
         self.menubar.add_cascade(label = 'View', menu = self.view_menu['menu'])
+        self.menubar.add_cascade(label = 'Help', menu = self.help_menu)
     
     def updateView(self, view: str, state: bool = True):
         self.settings.set(['view', view], state)
