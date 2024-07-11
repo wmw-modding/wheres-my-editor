@@ -107,6 +107,8 @@ pip install -e ../wmwpy
 
 You can also edit `requirements.txt` to add  `-e "../wmwpy"`, and then you won't have to bother with reinstalling wmwpy, but if you're going to be publishing your edits, you might want to replace it with the link to your wmwpy clone repo instead of a path to your local clone.
 
+If you're going to be making a release, please note that the github action will install wmwpy from pypi, so you may have to edit `requirements/requirements-dist.txt` if you want to use your personal edit of wmwpy.
+
 ### Build exe
 
 ```sh
