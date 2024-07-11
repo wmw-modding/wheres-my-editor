@@ -852,6 +852,15 @@ class WME(tk.Tk):
                     image = obj.foreground_PhotoImage,
                     tags = ('object', 'foreground', id)
                 )
+            
+            if len(obj._foreground) == 0 and len(obj._background) == 0:
+                self.level_canvas.create_image(
+                    canvas_pos[0],
+                    canvas_pos[1],
+                    anchor = 'c',
+                    image = ImageTk.PhotoImage(Image.new('RGBA', (1, 1), 'black')),
+                    tags = ('object', 'foreground', id),
+                )
         
         if (obj == self.selectedObject or self.settings.get('view.radius', True)) and obj.Type is not None:
             properties = filter(lambda name : obj.Type.PROPERTIES[name].get('type', 'string') == 'radius', obj.Type.PROPERTIES)
@@ -924,21 +933,22 @@ class WME(tk.Tk):
                         tags = ('part', 'path', property, 'pathPoint', id),
                     )
 
-                if is_closed:
-                    line = self.level_canvas.create_polygon(
-                        path_canvas_points,
-                        fill = '',
-                        outline = 'black',
-                        width = 2,
-                        tags = ('passthrough', 'part', 'path', property, 'pathLine', id),
-                    )
-                else:
-                    line = self.level_canvas.create_line(
-                        path_canvas_points,
-                        fill = 'black',
-                        width = 2,
-                        tags = ('passthrough', 'part', 'path', property, 'pathLine', id),
-                    )
+                if len(path_canvas_points) > 1:
+                    if is_closed:
+                        line = self.level_canvas.create_polygon(
+                            path_canvas_points,
+                            fill = '',
+                            outline = 'black',
+                            width = 2,
+                            tags = ('passthrough', 'part', 'path', property, 'pathLine', id),
+                        )
+                    else:
+                        line = self.level_canvas.create_line(
+                            path_canvas_points,
+                            fill = 'black',
+                            width = 2,
+                            tags = ('passthrough', 'part', 'path', property, 'pathLine', id),
+                        )
                 
                 # self.level_canvas.tag_bind(line, '<Button-1>', self.onLevelClick)
         
@@ -952,27 +962,34 @@ class WME(tk.Tk):
         
         self.updateSelectionRectangle()
         self.updateLevelScroll()
-
     
-    def onLevelClick(self, event : tk.Event):
-        logging.debug('level')
-        
-        if self.level == None:
-            return
-        
-        mouse = (self.level_canvas.canvasx(event.x), self.level_canvas.canvasy(event.y))
+    
+    def selectObjectAt(
+        self,
+        pos: tuple[float, float] | list[float] | tk.Event,
+        halo: int | float = 5,
+    ):
+        event = None
+        if isinstance(pos, tk.Event):
+            event = pos
+            logging.debug(f'select obj event: {event.__dict__}')
+            pos = (pos.x, pos.y)
+
+            pos = (
+                self.level_canvas.canvasx(pos[0]),
+                self.level_canvas.canvasy(pos[1])
+            )
         
         # objects = self.level_canvas.find_overlapping(*mouse, *mouse)
         objects = self.level_canvas.find_overlapping(
-            mouse[0] - 5, mouse[1] - 5,
-            mouse[0] + 5, mouse[1] + 5,
+            pos[0] - halo, pos[1] - halo,
+            pos[0] + halo, pos[1] + halo,
         )
         logging.debug(f'under mouse: {objects}')
-        # logging.debug(f'close: {close}')
-        length = len(objects)
         
         for id in reversed(objects):
             tags = self.level_canvas.gettags(id)
+            logging.debug(f'tags: {tags}')
             if tags[0] in ['selection', 'level']:
                 continue
             
@@ -983,6 +1000,7 @@ class WME(tk.Tk):
             
             if tags[obj_tag].startswith('object-'):
                 obj = self.level.getObjectById(tags[obj_tag][7::])
+                logging.debug(f'obj: {obj}')
                 if obj == None:
                     continue
                 else:
@@ -994,8 +1012,8 @@ class WME(tk.Tk):
                 continue
             elif tags[0] == 'object':
                 logging.debug(f'selecting obj: {obj.name}')
-                self.selectObject(obj)
-                return
+                self.selectObject(obj, event)
+                return 'object', obj
             elif tags[0] == 'part':
                 self.selectPart(
                     obj,
@@ -1003,15 +1021,27 @@ class WME(tk.Tk):
                     id,
                     tags[2],
                 )
-                return
+                return 'part', obj, self.selectedPart
         
         self.selectObject(None)
+        
+        return None, None
+    
+    def onLevelClick(self, event : tk.Event):
+        logging.debug('level')
+        
+        if self.level == None:
+            return
+        
+        self.selectObjectAt(event)
             
             
     
     def onLevelMove(self, event: tk.Event):
-        if self.selectedPart:
+        if self.selectedPart['type'] != None:
             self.dragPart(event)
+        elif self.selectedObject:
+            self.dragObject(self.selectedObject, event)
         
     
     def createLevelContextMenu(self):
@@ -1022,19 +1052,15 @@ class WME(tk.Tk):
     def onLevelRightClick(self, event):
         logging.debug('level context menu')
         
-        mouse = (self.level_canvas.canvasx(event.x), self.level_canvas.canvasy(event.y))
+        selected_type, selected_obj, *extra = self.selectObjectAt(event)
         
-        objects = self.level_canvas.find_overlapping(*mouse, *mouse)
-        logging.debug(objects)
-        length = len(objects)
-        
-        if length <= 1:
-            if length == 1:
-                if objects[0] != self.level_images['background']:
-                    return
-            
-            self.selectObject(None)
+        if selected_type == None:
             self.showPopup(self.levelContextMenu, event)
+        elif selected_type == 'object':
+            self.showPopup(self.createObjectContextMenu(selected_obj), event)
+        elif selected_type == 'part':
+            self.showPopup(self.createPartContextMenu(selected_obj, extra[0]), event)
+            
     
     def bindObject(self, id, obj : wmwpy.classes.Object | None = None):
         if obj == None:
@@ -1043,26 +1069,26 @@ class WME(tk.Tk):
             else:
                 return
         
-        self.level_canvas.tag_bind(
-            id,
-            '<Button1-Motion>',
-            lambda e, object = obj: self.dragObject(object, e)
-        )
+        # self.level_canvas.tag_bind(
+        #     id,
+        #     '<Button1-Motion>',
+        #     lambda e, object = obj: self.dragObject(object, e)
+        # )
         
         context_menu = self.createObjectContextMenu(obj)
         
-        if platform.system() == 'Darwin':
-            self.level_canvas.tag_bind(
-                id,
-                '<Button-2>',
-                lambda e, object = obj, menu = context_menu: self.showPopup(menu, e, callback = lambda : self.selectObject(object))
-            )
-        else:
-            self.level_canvas.tag_bind(
-                id,
-                '<Button-3>',
-                lambda e, object = obj, menu = context_menu: self.showPopup(menu, e, callback = lambda : self.selectObject(object))
-            )
+        # if platform.system() == 'Darwin':
+        #     self.level_canvas.tag_bind(
+        #         id,
+        #         '<Button-2>',
+        #         lambda e, object = obj, menu = context_menu: self.showPopup(menu, e, callback = lambda : self.selectObject(object))
+        #     )
+        # else:
+        #     self.level_canvas.tag_bind(
+        #         id,
+        #         '<Button-3>',
+        #         lambda e, object = obj, menu = context_menu: self.showPopup(menu, e, callback = lambda : self.selectObject(object))
+        #     )
     
     def unbindObject(self, id):
         self.level_canvas.tag_unbind(
@@ -1090,6 +1116,23 @@ class WME(tk.Tk):
         self.objectContextMenu.add_command(label = 'copy', command = lambda *args : self.copyObject(obj), accelerator = f'{crossplatform.shortModifier()}+C')
         self.objectContextMenu.add_command(label = 'cut', command = lambda *args : self.cutObject(obj), accelerator = f'{crossplatform.shortModifier()}+X')
         self.objectContextMenu.add_command(label = 'delete', command = lambda *args : self.deleteObject(obj), accelerator = 'Del')
+        
+        return self.objectContextMenu
+
+    def createPartContextMenu(
+        self,
+        obj: wmwpy.classes.Object,
+        part: dict[
+            typing.Literal[
+                'type',
+                'id',
+                'property'
+            ], str | None,
+        ],
+        ):
+        
+        self.objectContextMenu.delete(0, 3)
+        self.objectContextMenu.add_command(label = 'delete', command = lambda *args : self.deleteProperty(obj, part['property']), accelerator = 'Del')
         
         return self.objectContextMenu
     
@@ -1140,16 +1183,27 @@ class WME(tk.Tk):
         if obj == None:
             return
         
-        self.level_canvas.delete(f'object-{str(obj.id)}')
-        
-        if obj in self.level.objects:
-            index = self.level.objects.index(obj)
-            del self.level.objects[index]
-        
-        if obj == self.selectedObject:
-            self.selectObject(None)
-        
-        self.updateObjectSelector()
+        if self.selectedPart['type']:
+            self.deleteProperty(obj, self.selectedPart['property'])
+        else:
+            self.level_canvas.delete(f'object-{str(obj.id)}')
+            
+            if obj in self.level.objects:
+                index = self.level.objects.index(obj)
+                del self.level.objects[index]
+            
+            if obj == self.selectedObject:
+                self.selectObject(None)
+            
+            self.updateObjectSelector()
+    
+    def deleteProperty(self, obj: wmwpy.classes.Object, property: str):
+        if property in obj.properties:
+            del obj.properties[property]
+
+            self.updateObject(obj)
+            if self.selectedObject == obj:
+                self.updateProperties()
     
     def checkLevelFocus(
         self,
@@ -1729,6 +1783,7 @@ class WME(tk.Tk):
             item = self.object_selector['treeview'].selection()
             # logging.debug(f"selection: {self.object_selector['treeview'].selection()}")
             item = self.object_selector['treeview'].item(item)
+            self.level_canvas.focus_set()
             
             if 'object' in item['tags']:
                 id = item['values'][2]
@@ -1799,7 +1854,6 @@ class WME(tk.Tk):
             self.showPopup(self.object_selector['menu'], event)
         
         self.object_selector['treeview'].bind('<ButtonRelease-1>', selectObject)
-        self.object_selector['treeview'].bind('<Return>', selectObject)
 
         if platform.system() == 'Darwin':
             self.object_selector['treeview'].bind('<Button-2>', rightClick)
@@ -1918,7 +1972,7 @@ class WME(tk.Tk):
     def selectObject(
         self,
         obj : wmwpy.classes.Object = None,
-        event: tk.Event = None,
+        event: tk.Event | None = None,
         partInfo: dict[str, str] = None,
     ):
         self.selectedPart = {
@@ -1936,9 +1990,6 @@ class WME(tk.Tk):
             self.selectedPart['id'] = partInfo.get('id', None)
             self.selectedPart['property'] = partInfo.get('property', None)
         
-        if event:
-            obj_pos = self.getObjectPosition(obj.pos, obj.offset)
-            self.dragInfo['offset'] = numpy.array((obj_pos[0], obj_pos[1])) - (self.level_canvas.canvasx(event.x), self.level_canvas.canvasy(event.y))
         
         # logging.debug(obj.name)
         logging.debug('object')
@@ -1946,11 +1997,17 @@ class WME(tk.Tk):
         self.updateObject(obj)
         self.updateProperties()
         self.updateSelectionRectangle()
+        if event:
+            obj_pos = self.getObjectPosition(obj.pos, obj.offset)
+            self.dragInfo['offset'] = numpy.array((obj_pos[0], obj_pos[1])) - (self.level_canvas.canvasx(event.x), self.level_canvas.canvasy(event.y))
+        else:
+            self.dragInfo['offset'] = (0,0)
         
         if self.selectedObject == None:
             if len(self.object_selector['treeview'].selection()) > 0:
                 self.object_selector['treeview'].selection_remove(self.object_selector['treeview'].selection()[0])
         else:
+            
             children = self.object_selector['treeview'].get_children('')
             
             selected = None
@@ -1985,6 +2042,7 @@ class WME(tk.Tk):
             }
         )
         logging.debug(f'selected part: {self.selectedPart}')
+        return self.selectedPart
     
     def dragPart(
         self,
