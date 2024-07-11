@@ -43,6 +43,7 @@ def createLogger(
     format = '[%(levelname)s] %(message)s'
     datefmt = '%I:%M:%S %p'
     level = logging.DEBUG if debug else logging.INFO
+    # level = logging.CRITICAL
 
     # filename = 'log.log'
     
@@ -2369,6 +2370,7 @@ class WME(tk.Tk):
             self.level_canvas.delete('object')
             self.level_canvas.delete('part')
             self.level_canvas.delete('selection')
+            self.level.objects.clear()
         
         self.resetProperties()
         self.resetObjectSelector()
