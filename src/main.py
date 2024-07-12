@@ -160,6 +160,14 @@ class WME(tk.Tk):
             'assets/images/icon_256x256.ico',
         ]
     LOGO = 'assets/images/WME_logo.png'
+    ASSETS = {
+        'folder_icon': {
+            'path': 'assets/images/folder.png',
+            'format': 'photo',
+            'size': (16,16),
+            'cache': None,
+        }
+    }
     
     def __init__(self, parent):
         tk.Tk.__init__(self,parent)
@@ -168,7 +176,7 @@ class WME(tk.Tk):
         if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
             self.WME_assets = sys._MEIPASS
         else:
-            self.WME_assets = '.'
+            self.WME_assets = os.path.dirname(__file__)
         
         self.findIcons()
         # if len(self.windowIcons) > 0:
@@ -228,7 +236,7 @@ class WME(tk.Tk):
         
         try:
             self.panedGrip : dict[typing.Literal['image', 'horizontal', 'vertical'], Image.Image | ImageTk.PhotoImage] = {
-                'image' : Image.open(self.getAsset('assets/images/grip.gif')).convert('RGBA'),
+                'image' : Image.open(self.getAssetPath('assets/images/grip.gif')).convert('RGBA'),
             }
 
             self.panedGrip['horizontal'] = ImageTk.PhotoImage(self.panedGrip['image'])
@@ -291,20 +299,53 @@ class WME(tk.Tk):
         
         self.protocol("WM_DELETE_WINDOW", self.close)
     
-    def getAsset(self, path : str):
+    def getAssetPath(self, path : str):
         return os.path.join(self.WME_assets, path)
+    
+    def getAsset(self, name: str) -> typing.Any:
+        info = self.ASSETS[name]
+        if info.get('cache'):
+            return info.get('cache')
+        else:
+            path = self.getAssetPath(info['path'])
+            logging.debug(f'asset format: {info["format"]}')
+            size = info.get('size')
+            if info['format'] == 'image':
+                info['cache'] = Image.open(path)
+                if size:
+                    info['cache'] = info['cache'].resize(size)
+            elif info['format'] == 'photo':
+                image = Image.open(path)
+                if size:
+                    image = image.resize(size)
+                info['cache'] = ImageTk.PhotoImage(image)
+            elif info['format'] == 'bitmap':
+                image = Image.open(path)
+                if size:
+                    image = image.resize(size)
+                info['cache'] = ImageTk.BitmapImage(image.convert('1'), foreground = 'black')
+            elif info['format'] == 'bytes':
+                info['cache'] = None
+                with open(path, 'rb') as file:
+                    info['cache'] = file.read()
+            else:
+                info['cache'] = None
+                with open(path, 'r') as file:
+                    info['cache'] = file.read()
+            
+            return info['cache']
     
     def findIcons(self):
         self.windowIcons : dict[str, ImageTk.PhotoImage] = {}
         
         for icon in self.APP_ICONS:
             try:
-                self.windowIcons[self.getAsset(icon)] = ImageTk.PhotoImage(
-                        Image.open(self.getAsset(icon))
+                self.windowIcons[self.getAssetPath(icon)] = ImageTk.PhotoImage(
+                        Image.open(self.getAssetPath(icon))
                     )
                 
             except:
-                pass
+                logging.exception('cannot load icon')
         
         return self.windowIcons
 
@@ -1264,7 +1305,8 @@ class WME(tk.Tk):
             )
     
     def addObject(
-        self, obj : wmwpy.classes.Object | str,
+        self,
+        obj : wmwpy.classes.Object | str,
         properties: dict = {},
         pos: tuple[float, float] = (0, 0),
         name: str = 'Obj',
@@ -1283,6 +1325,59 @@ class WME(tk.Tk):
         self.updateObjectSelector()
         
         return obj
+
+    def changeObjectFilename(
+        self,
+        obj: wmwpy.classes.Object,
+        new_path: str | None,
+    ):
+        if obj not in self.level.objects:
+            return
+        
+        level_index = self.level.objects.index(obj)
+        
+        if new_path == None:
+            new_path = filedialog.askopenfilename(
+                defaultextension = '.hs',
+                filetypes = (
+                    ('WMW Object', '*.hs'),
+                    ('Any', '*.*'),
+                ),
+                initialdir = wmwpy.utils.path.joinPath(
+                    self.game.gamepath,
+                    self.game.assets,
+                    self.game.baseassets,
+                    'Objects'
+                ),
+            )
+        
+        if new_path == None:
+            return
+        
+        if not isinstance(new_path, (wmwpy.filesystem.File)):
+            new_path = self.getFile(new_path)
+        
+        if new_path == None:
+            return
+        
+        self.level.objects.remove(obj)
+        
+        new_obj = self.level.addObject(
+            new_path,
+            properties = deepcopy(obj.properties),
+            pos = copy(obj.pos),
+            name = obj.name,
+        )
+        
+        self.level.objects.insert(level_index, self.level.objects.pop(self.level.objects.index(new_obj)))
+
+        
+        self.updateObject(new_obj)
+        self.updateObjectSelector()
+        if self.selectedObject == obj:
+            self.selectObject(new_obj)
+        
+        return new_obj
     
     def addObjectSelector(self, pos : tuple = (0,0)):
         filename = filedialog.askopenfilename(
@@ -1336,12 +1431,15 @@ class WME(tk.Tk):
             row = 0,
             label_prefix: str = '',
             label_editable: bool = True,
+            update_on_entry_edit: bool = True,
             entry_callback: typing.Callable[[str], typing.Any] = None,
             label_callback: typing.Callable[[str], bool] = None,
-            button_callback: typing.Callable = None,
+            button_callback: typing.Callable[[list[tk.StringVar]], str | list[str] | None] = None,
             button_text: str = '-',
             options: list[str] = None,
             label_color: str | tuple = None,
+            button_image: tk.PhotoImage = None,
+            button_bitmap: tk.BitmapImage = None,
             **kwargs,
         ) -> dict[typing.Literal[
             'label',
@@ -1418,13 +1516,14 @@ class WME(tk.Tk):
                     t = t.lower()
                     input, var = inputType(t, value[column])
                     input.grid(column = column, row=row, sticky='ew', padx=2)
-                    if callable(entry_callback):
+                    if callable(entry_callback) and update_on_entry_edit:
                         var.trace_add('write', lambda *args, value = var.get, col = column: entry_callback(value(), col))
                     
                     input.bind('<Return>', lambda e: self.focus())
+                    if not update_on_entry_edit:
+                        input.bind('<FocusOut>', lambda e, value = input.get, col = column: entry_callback(value(), col))
                         
                         # input.bind('<Return>', lambda e, value = input.get, col = column: entry_callback(value(), col))
-                        # input.bind('<FocusOut>', lambda e, value = input.get, col = column: entry_callback(value(), col))
                     
                     column += 1
                     
@@ -1440,12 +1539,14 @@ class WME(tk.Tk):
                 input, var = inputType(type, value)
                 input.grid(column = 0, row=row, sticky = 'ew', columnspan=2, padx=2)
                 
-                if entry_callback:
-                    var.trace('w', lambda *args: entry_callback(var.get()))
+                if entry_callback and update_on_entry_edit:
+                    var.trace_add('write', lambda *args: entry_callback(var.get()))
                     # input.bind('<Return>', lambda e: entry_callback(input.get()))
-                    # input.bind('<FocusOut>', lambda e: entry_callback(input.get()))
+                    input.bind('<FocusOut>', lambda e: entry_callback(input.get()))
                 
                 input.bind('<Return>', lambda e: self.focus())
+                if not update_on_entry_edit:
+                    input.bind('<FocusOut>', lambda e: entry_callback(input.get()))
                 
                 if input.winfo_reqheight() > row_size:
                     row_size = input.winfo_reqheight()
@@ -1456,11 +1557,31 @@ class WME(tk.Tk):
             button = None
             
             if show_button:
+                def callback(*args):
+                    if callable(button_callback):
+                        value = button_callback(vars, *args)
+                        if value != None:
+                            if len(vars) > 1 and isinstance(value, (list, tuple)):
+                                for i, val in enumerate(value[0:len(vars)]):
+                                    vars[i].set(str(val))
+                            else:
+                                vars[0].set(str(value))
+                
+                # if isinstance(button_image, Image.Image):
+                #     logging.debug(f'button is PIL image: {button_image}')
+                #     button_image = ImageTk.PhotoImage(button_image.resize((32,32)))
+                #     button_text = None
+                # else:
+                #     logging.debug(f'button not PIL image: {button_image}')
+                    
+                
                 button = crossplatform.Button(
                     self.properties['right'],
                     text = button_text,
                     width = 2,
-                    command = button_callback,
+                    command = callback,
+                    bitmap = button_bitmap,
+                    image = button_image,
                 )
                 button.grid(column = 2, row = row)
                 
@@ -1591,10 +1712,24 @@ class WME(tk.Tk):
             )
             sizes.append(self.objectProperties['angle']['size'])
             
-            row = 3
+            self.objectProperties['Filename'] = addProperty(
+                'Filename',
+                obj.filename,
+                'text',
+                label_editable = False,
+                show_button = True,
+                row = 3,
+                update_on_entry_edit = False,
+                entry_callback = lambda name, object = obj: self.changeObjectFilename(object, f':game:{name}'),
+                button_callback = lambda vars, object = obj: self.changeObjectFilename(object, None),
+                button_image = self.getAsset('folder_icon'),
+            )
+            sizes.append(self.objectProperties['angle']['size'])
+            
+            row = 4
         
         for property in obj.properties:
-            if property not in ['Angle']:
+            if property not in ['Angle', 'Filename']:
                 row += 1
                 logging.debug(f'{property = }')
                 prefix = ''
@@ -2163,7 +2298,7 @@ class WME(tk.Tk):
             version = f'{__version__}\nwmwpy-{wmwpy.__version__}',
             description = """Where's My Editor? is a program to create and modify levels in the Where's My Water? game series.""",
             credits = __credits__,
-            logo = Image.open(self.getAsset(self.LOGO)),
+            logo = Image.open(self.getAssetPath(self.LOGO)),
         )
     
     def showSettings(self):
