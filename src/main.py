@@ -2366,7 +2366,7 @@ class WME(tk.Tk):
             
             self.updateProgressBar(
                 1,
-                f'Successfully saved level to {filename}',
+                f'Successfully saved level',
                 1,
             )
         except:
