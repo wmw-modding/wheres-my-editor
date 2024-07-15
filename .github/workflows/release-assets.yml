@@ -1,0 +1,64 @@
+name: Package Application
+
+on: 
+  workflow_dispatch:
+  release:
+    types: [published]
+
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            platform: Ubuntu
+          - os: macos-latest
+            platform: MacOS
+          - os: windows-latest
+            platform: Windows
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: 3.12
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip &&
+        pip install -r requirements/requirements-dist.txt
+    
+    - name: pyinstaller build
+      run: |
+        python build.py
+
+    - name: Move files
+      run: |
+       mv ./dist ./wme-${{ matrix.platform }}
+    
+    - name: Zip files (Windows)
+      if: ${{ matrix.platform == 'Windows' }}
+      shell: pwsh
+      run: |
+        7z a ./wme-${{ matrix.platform }}.zip ./wme-${{ matrix.platform }} 
+    
+    - name: Zip files (not Windows)
+      if: ${{ matrix.platform != 'Windows' }}
+      run: |
+        zip -r ./wme-${{ matrix.platform }}.zip ./wme-${{ matrix.platform }}
+
+    - name: Upload Release Asset
+      uses: xresloader/upload-to-github-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        file: "./wme-${{ matrix.platform }}.zip"
+        update_latest_release: true
+        release_id: ${{ github.event.release.id }}
