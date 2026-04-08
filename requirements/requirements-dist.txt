@@ -1,3 +1,3 @@
 # for releases (wmwpy from pypi)
-wmwpy==0.6.0b0
+wmwpy==1.0.0
 -r requirements-build.txt
