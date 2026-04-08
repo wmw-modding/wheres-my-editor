@@ -10,7 +10,6 @@ options = [
     'src/main.py',
     '--icon=src/assets/images/icon_256x256.ico',
     f'--add-data=src/assets{os.pathsep}assets',
-    f'--add-data=src/pipe.py{os.pathsep}.',
     '--name=wme',
     '--onefile',
 ]
