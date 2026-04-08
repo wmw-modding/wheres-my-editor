@@ -7,6 +7,11 @@ __credits__ = [
         'description' : "Where's My Editor? uses wmwpy to read and modify Where's My Water? data, e.g. levels."
     },
     {
+        'name': 'SuperHero2010',
+        'url': 'https://github.com/SuperHero2010',
+        'description': 'Thanks to @SuperHero2010 for continuing development',
+    },
+    {
         'name' : 'rubice!',
         'url' : 'https://www.youtube.com/channel/UCsY-c5mJYWnK6PhrkHqPwig',
         'description' : 'Thanks to @rubice for creating the logo.'
@@ -15,7 +20,7 @@ __credits__ = [
         'name' : 'campbellsonic',
         'url' : 'https://github.com/campbellsonic',
         'description' : 'Thanks to @campbellsonic for helping to read waltex images.'
-    }
+    },
 ]
 __links__ = {
     'discord' : 'https://discord.gg/eRVfbgwNku',
