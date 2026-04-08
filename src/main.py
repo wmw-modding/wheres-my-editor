@@ -926,73 +926,20 @@ class WME(tk.Tk):
                         logging.debug(f'radius tags: {self.level_canvas.gettags(r_id)}')
         
         if (obj == self.selectedObject or self.settings.get('view.path', True)) and obj.Type is not None:
+            # Handle PathPos# properties (existing code)
             path_points = obj.Type.get_properties('PathPos#')
             logging.debug(f'path_points: {path_points}')
             if isinstance(path_points, dict) and len(path_points) > 0:
-                is_global = obj.Type.get_property('PathIsGlobal')
-                is_closed = obj.Type.get_property('PathIsClosed')
-
-                if is_global:
-                    path_start = obj.pos
-                else:
-                    path_start = (0, 0)
-                
-                path_canvas_points = []
-
-                for property, path_point in path_points.items():
-                    logging.debug(f'property: {property}')
-                    logging.debug(f'value: {path_point}')
-                    path_pos = copy(path_start)
-                        
-                    if isinstance(path_point, list):
-                        if len(path_point) == 1:
-                            path_point += [path_start[1]]
-                            path_pos = tuple(path_point)
-                        elif len(path_point) >= 2:
-                            path_pos = (path_point[0], path_point[1])
-                    
-                    path_pos = numpy.array(path_pos)
-                    
-                    global_pos = copy(canvas_pos)
-                    if is_global:
-                        global_pos = self.toLevelCanvasCoord(path_pos)
-                    else:
-                        # global_pos = self.getObjectPosition(obj.pos) + path_pos
-                        global_pos = self.toLevelCanvasCoord(obj.pos) + self.toLevelCanvasCoord(path_pos, 1)
-                    
-                    path_canvas_points.append(tuple(global_pos))
-                    
-                    color = 'black'
-                    if obj == self.selectedObject and self.selectedPart['property'] == property:
-                        color = 'yellow'
-                    
-                    point_id = self.level_canvas.create_circle(
-                        global_pos[0],
-                        global_pos[1],
-                        3,
-                        fill = color,
-                        outline = '',
-                        tags = ('part', 'path', property, 'pathPoint', id),
-                    )
-
-                if len(path_canvas_points) > 1:
-                    if is_closed:
-                        line = self.level_canvas.create_polygon(
-                            path_canvas_points,
-                            fill = '',
-                            outline = 'black',
-                            width = 2,
-                            tags = ('passthrough', 'part', 'path', property, 'pathLine', id),
-                        )
-                    else:
-                        line = self.level_canvas.create_line(
-                            path_canvas_points,
-                            fill = 'black',
-                            width = 2,
-                            tags = ('passthrough', 'part', 'path', property, 'pathLine', id),
-                        )
-                
-                # self.level_canvas.tag_bind(line, '<Button-1>', self.onLevelClick)
+                self._drawPathPosPoints(obj, path_points, canvas_pos, id)
+            
+            # Handle PathPoints property (for pipes and similar objects)
+            try:
+                path_points_str = obj.Type.get_property('PathPoints')
+                if path_points_str and path_points_str.strip():
+                    self._drawPathPoints(obj, path_points_str, canvas_pos, id)
+            except AttributeError:
+                # PathPoints property doesn't exist for this object type
+                pass
         
         # logging.info(f"id: {id}")
         # logging.info(f"pos: {pos}\n")
@@ -1004,6 +951,148 @@ class WME(tk.Tk):
         
         self.updateSelectionRectangle()
         self.updateLevelScroll()
+    
+    
+    def _drawPathPosPoints(self, obj, path_points, canvas_pos, id):
+        """Draw PathPos# properties (existing functionality)"""
+        is_global = obj.Type.get_property('PathIsGlobal')
+        is_closed = obj.Type.get_property('PathIsClosed')
+
+        if is_global:
+            path_start = obj.pos
+        else:
+            path_start = (0, 0)
+        
+        path_canvas_points = []
+
+        for property, path_point in path_points.items():
+            logging.debug(f'property: {property}')
+            logging.debug(f'value: {path_point}')
+            path_pos = copy(path_start)
+                
+            if isinstance(path_point, list):
+                if len(path_point) == 1:
+                    path_point += [path_start[1]]
+                    path_pos = tuple(path_point)
+                elif len(path_point) >= 2:
+                    path_pos = (path_point[0], path_point[1])
+            
+            path_pos = numpy.array(path_pos)
+            
+            global_pos = copy(canvas_pos)
+            if is_global:
+                global_pos = self.toLevelCanvasCoord(path_pos)
+            else:
+                global_pos = self.toLevelCanvasCoord(obj.pos) + self.toLevelCanvasCoord(path_pos, 1)
+            
+            path_canvas_points.append(tuple(global_pos))
+            
+            color = 'black'
+            if obj == self.selectedObject and self.selectedPart['property'] == property:
+                color = 'yellow'
+            
+            point_id = self.level_canvas.create_circle(
+                global_pos[0],
+                global_pos[1],
+                3,
+                fill = color,
+                outline = '',
+                tags = ('part', 'path', property, 'pathPoint', id),
+            )
+
+        if len(path_canvas_points) > 1:
+            if is_closed:
+                line = self.level_canvas.create_polygon(
+                    path_canvas_points,
+                    fill = '',
+                    outline = 'black',
+                    width = 2,
+                    tags = ('passthrough', 'part', 'path', property, 'pathLine', id),
+                )
+            else:
+                line = self.level_canvas.create_line(
+                    path_canvas_points,
+                    fill = 'black',
+                    width = 2,
+                    tags = ('passthrough', 'part', 'path', property, 'pathLine', id),
+                )
+    
+    
+    def _drawPathPoints(self, obj, path_points_str, canvas_pos, id):
+        """Draw PathPoints property (for pipes and similar objects)"""
+        try:
+            # Parse PathPoints string: "x1 y1,x2 y2,x3 y3,..."
+            points = []
+            point_pairs = path_points_str.split(',')
+            
+            for pair in point_pairs:
+                coords = pair.strip().split()
+                if len(coords) >= 2:
+                    x, y = float(coords[0]), float(coords[1])
+                    points.append((x, y))
+            
+            if len(points) < 2:
+                logging.debug(f'PathPoints has less than 2 points: {len(points)}')
+                return
+            
+            logging.debug(f'Drawing {len(points)} PathPoints for {obj.name}')
+            
+            # Convert to canvas coordinates
+            path_canvas_points = []
+            for i, (x, y) in enumerate(points):
+                # PathPoints are relative to object position
+                global_pos = self.toLevelCanvasCoord(obj.pos) + self.toLevelCanvasCoord((x, y), 1)
+                path_canvas_points.append(tuple(global_pos))
+                
+                # Draw point with size based on point index
+                point_size = 4 if i == 0 or i == len(points) - 1 else 3  # Larger endpoints
+                color = 'black'
+                if obj == self.selectedObject and self.selectedPart.get('property') == f'PathPoints[{i}]':
+                    color = 'yellow'
+                
+                point_id = self.level_canvas.create_circle(
+                    global_pos[0],
+                    global_pos[1],
+                    point_size,
+                    fill = color,
+                    outline = 'darkblue' if i == 0 else 'darkred' if i == len(points) - 1 else '',
+                    width = 1,
+                    tags = ('part', 'path', f'PathPoints[{i}]', 'pathPoint', id),
+                )
+            
+            # Draw connecting lines between all points
+            if len(path_canvas_points) > 1:
+                # Draw lines between consecutive points
+                for i in range(len(path_canvas_points) - 1):
+                    line = self.level_canvas.create_line(
+                        [path_canvas_points[i], path_canvas_points[i + 1]],
+                        fill = 'black',
+                        width = 2,
+                        tags = ('passthrough', 'part', 'path', f'PathPoints[{i}-{i+1}]', 'pathLine', id),
+                    )
+                
+                # Optional: Draw dashed line for path direction indicator
+                if len(path_canvas_points) > 2:
+                    # Create arrow-like indicators along the path
+                    for i in range(len(path_canvas_points) - 1):
+                        start = path_canvas_points[i]
+                        end = path_canvas_points[i + 1]
+                        # Calculate midpoint for direction indicator
+                        mid_x = (start[0] + end[0]) / 2
+                        mid_y = (start[1] + end[1]) / 2
+                        
+                        # Small arrow indicator
+                        arrow_id = self.level_canvas.create_polygon(
+                            [mid_x - 2, mid_y - 2, mid_x + 2, mid_y - 2, mid_x, mid_y + 2],
+                            fill = 'gray',
+                            outline = '',
+                            tags = ('passthrough', 'part', 'path', 'PathPoints', 'pathDirection', id),
+                        )
+                
+        except (ValueError, IndexError) as e:
+            logging.error(f'Error parsing PathPoints "{path_points_str}": {e}')
+        except Exception as e:
+            logging.error(f'Unexpected error drawing PathPoints: {e}')
     
     
     def selectObjectAt(
@@ -2194,22 +2283,74 @@ class WME(tk.Tk):
         logging.debug('dragging part')
         if self.selectedPart['type'] == 'path':
             logging.debug('type: path')
-            is_global = False
-            if obj.Type and obj.Type.get_property('PathIsGlobal'):
-                is_global = True
             
-            if amount:
-                current = obj.Type.get_property(self.selectedPart['property'])
-                pos = numpy.array(current) + amount
-            else:
-                pos = self.windowPosToWMWPos((event.x, event.y), (0.25 * is_global) + 1)
+            # Handle PathPos# properties (existing functionality)
+            if self.selectedPart['property'].startswith('PathPos'):
+                is_global = False
+                if obj.Type and obj.Type.get_property('PathIsGlobal'):
+                    is_global = True
+                
+                if amount:
+                    current = obj.Type.get_property(self.selectedPart['property'])
+                    pos = numpy.array(current) + amount
+                else:
+                    pos = self.windowPosToWMWPos((event.x, event.y), (0.25 * is_global) + 1)
+                
+                    if not is_global:
+                        pos = numpy.array(pos) - (numpy.array(obj.pos) * 1.25)
+                
+                logging.debug(f'new pos: {pos}')
+                obj.properties[self.selectedPart['property']] = ' '.join([str(x) for x in pos])
+                self.objectProperties[self.selectedPart['property']]['var'][0].set(obj.properties[self.selectedPart['property']])
             
-                if not is_global:
-                    pos = numpy.array(pos) - (numpy.array(obj.pos) * 1.25)
-            
-            logging.debug(f'new pos: {pos}')
-            obj.properties[self.selectedPart['property']] = ' '.join([str(x) for x in pos])
-            self.objectProperties[self.selectedPart['property']]['var'][0].set(obj.properties[self.selectedPart['property']])
+            # Handle PathPoints property (new functionality)
+            elif self.selectedPart['property'].startswith('PathPoints['):
+                # Extract point index from property name like "PathPoints[0]"
+                import re
+                match = re.match(r'PathPoints\[(\d+)\]', self.selectedPart['property'])
+                if not match:
+                    return
+                
+                point_index = int(match.group(1))
+                
+                # Get current PathPoints string
+                path_points_str = obj.Type.get_property('PathPoints')
+                if not path_points_str:
+                    return
+                
+                # Parse PathPoints string
+                points = []
+                point_pairs = path_points_str.split(',')
+                for pair in point_pairs:
+                    coords = pair.strip().split()
+                    if len(coords) >= 2:
+                        x, y = float(coords[0]), float(coords[1])
+                        points.append((x, y))
+                
+                if point_index >= len(points):
+                    return
+                
+                # Calculate new position
+                if amount:
+                    new_pos = numpy.array(points[point_index]) + amount
+                else:
+                    # Convert mouse position to world coordinates
+                    world_pos = self.windowPosToWMWPos((event.x, event.y))
+                    # PathPoints are relative to object position
+                    new_pos = numpy.array(world_pos) - numpy.array(obj.pos)
+                
+                # Update the specific point
+                points[point_index] = tuple(new_pos)
+                
+                # Rebuild PathPoints string
+                new_path_points = ','.join([f'{x:.4f} {y:.4f}' for x, y in points])
+                
+                # Update object property
+                obj.properties['PathPoints'] = new_path_points
+                if 'PathPoints' in self.objectProperties:
+                    self.objectProperties['PathPoints']['var'][0].set(new_path_points)
+                
+                logging.debug(f'Updated PathPoints[{point_index}] to {new_pos}')
         
         self.updateObject(obj)
     
