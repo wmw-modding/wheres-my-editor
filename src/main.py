@@ -930,7 +930,13 @@ class WME(tk.Tk):
                         
                         logging.debug(f'radius tags: {self.level_canvas.gettags(r_id)}')
         
-        if (obj == self.selectedObject or self.settings.get('view.path', True)) and obj.Type is not None:
+        is_selected = obj == self.selectedObject
+        view_path = self.settings.get('view.path', True)
+        has_type = obj.Type is not None
+        
+        logging.debug(f'Path drawing conditions for {obj.name}: selected={is_selected}, view.path={view_path}, has_type={has_type}')
+        
+        if (is_selected or view_path) and has_type:
             # Handle PathPos# properties (existing code)
             path_points = obj.Type.get_properties('PathPos#')
             logging.debug(f'path_points: {path_points}')
@@ -939,11 +945,34 @@ class WME(tk.Tk):
             
             # Handle PathPoints property (for pipes and similar objects)
             try:
-                path_points_str = obj.Type.get_property('PathPoints')
-                if path_points_str and path_points_str.strip():
-                    self._drawPathPoints(obj, path_points_str, canvas_pos, id)
-            except AttributeError:
+                path_points_data = obj.Type.get_property('PathPoints')
+                logging.debug(f'PathPoints property value: {path_points_data}')
+                
+                # Handle both string and list formats
+                if path_points_data:
+                    if isinstance(path_points_data, str):
+                        path_points_str = path_points_data
+                    elif isinstance(path_points_data, list):
+                        # Convert list of lists to string format
+                        points = []
+                        for point in path_points_data:
+                            if isinstance(point, (list, tuple)) and len(point) >= 2:
+                                points.append(f'{float(point[0]):.4f} {float(point[1]):.4f}')
+                        path_points_str = ','.join(points)
+                    else:
+                        logging.debug(f'PathPoints has unexpected format: {type(path_points_data)}')
+                        return
+                    
+                    if path_points_str and path_points_str.strip():
+                        logging.debug(f'Calling _drawPathPoints for {obj.name} with: {path_points_str}')
+                        self._drawPathPoints(obj, path_points_str, canvas_pos, id)
+                    else:
+                        logging.debug(f'PathPoints is empty or None for {obj.name}')
+                else:
+                    logging.debug(f'PathPoints is None for {obj.name}')
+            except AttributeError as e:
                 # PathPoints property doesn't exist for this object type
+                logging.debug(f'PathPoints property not found for {obj.name}: {e}')
                 pass
         
         # logging.info(f"id: {id}")
@@ -1025,6 +1054,7 @@ class WME(tk.Tk):
     
     def _drawPathPoints(self, obj, path_points_str, canvas_pos, id):
         """Draw PathPoints property (for pipes and similar objects)"""
+        logging.debug(f'_drawPathPoints called for {obj.name} with: {path_points_str}')
         try:
             # Parse PathPoints string: "x1 y1,x2 y2,x3 y3,..."
             points = []
@@ -1035,6 +1065,8 @@ class WME(tk.Tk):
                 if len(coords) >= 2:
                     x, y = float(coords[0]), float(coords[1])
                     points.append((x, y))
+            
+            logging.debug(f'Parsed {len(points)} points: {points}')
             
             if len(points) < 2:
                 logging.debug(f'PathPoints has less than 2 points: {len(points)}')
@@ -1055,6 +1087,7 @@ class WME(tk.Tk):
                 if obj == self.selectedObject and self.selectedPart.get('property') == f'PathPoints[{i}]':
                     color = 'yellow'
                 
+                logging.debug(f'Drawing point {i} at {global_pos}')
                 point_id = self.level_canvas.create_circle(
                     global_pos[0],
                     global_pos[1],
@@ -1067,6 +1100,7 @@ class WME(tk.Tk):
             
             # Draw connecting lines between all points
             if len(path_canvas_points) > 1:
+                logging.debug(f'Drawing {len(path_canvas_points)-1} connecting lines')
                 # Draw lines between consecutive points
                 for i in range(len(path_canvas_points) - 1):
                     line = self.level_canvas.create_line(
@@ -2318,19 +2352,30 @@ class WME(tk.Tk):
                 
                 point_index = int(match.group(1))
                 
-                # Get current PathPoints string
-                path_points_str = obj.Type.get_property('PathPoints')
-                if not path_points_str:
+                # Get current PathPoints data
+                path_points_data = obj.Type.get_property('PathPoints')
+                if not path_points_data:
                     return
                 
-                # Parse PathPoints string
-                points = []
-                point_pairs = path_points_str.split(',')
-                for pair in point_pairs:
-                    coords = pair.strip().split()
-                    if len(coords) >= 2:
-                        x, y = float(coords[0]), float(coords[1])
-                        points.append((x, y))
+                # Handle both string and list formats
+                if isinstance(path_points_data, str):
+                    # Parse string format: "x1 y1,x2 y2,x3 y3"
+                    points = []
+                    point_pairs = path_points_data.split(',')
+                    for pair in point_pairs:
+                        coords = pair.strip().split()
+                        if len(coords) >= 2:
+                            x, y = float(coords[0]), float(coords[1])
+                            points.append((x, y))
+                elif isinstance(path_points_data, list):
+                    # Use list format directly: [[x1, y1], [x2, y2], [x3, y3]]
+                    points = []
+                    for point in path_points_data:
+                        if isinstance(point, (list, tuple)) and len(point) >= 2:
+                            points.append((float(point[0]), float(point[1])))
+                else:
+                    logging.debug(f'PathPoints has unexpected format: {type(path_points_data)}')
+                    return
                 
                 if point_index >= len(points):
                     return
@@ -2344,20 +2389,28 @@ class WME(tk.Tk):
                     # PathPoints are relative to object position
                     new_pos = numpy.array(world_pos) - numpy.array(obj.pos)
                 
-                # Update the specific point
+                # Update specific point
                 points[point_index] = tuple(new_pos)
                 
-                # Rebuild PathPoints string
-                new_path_points = ','.join([f'{x:.4f} {y:.4f}' for x, y in points])
+                # Update PathPoints in the same format as received
+                if isinstance(path_points_data, str):
+                    # Rebuild string format
+                    new_path_points = ','.join([f'{x:.4f} {y:.4f}' for x, y in points])
+                else:
+                    # Update list format
+                    new_path_points = [[x, y] for x, y in points]
                 
                 # Update object property
                 obj.properties['PathPoints'] = new_path_points
                 if 'PathPoints' in self.objectProperties:
-                    self.objectProperties['PathPoints']['var'][0].set(new_path_points)
+                    if isinstance(path_points_data, str):
+                        self.objectProperties['PathPoints']['var'][0].set(new_path_points)
+                    else:
+                        # For list format, convert to string for display
+                        display_str = ','.join([f'{x:.4f} {y:.4f}' for x, y in points])
+                        self.objectProperties['PathPoints']['var'][0].set(display_str)
                 
                 logging.debug(f'Updated PathPoints[{point_index}] to {new_pos}')
-        
-        self.updateObject(obj)
     
     def createMenubar(self):
         self.menubar = tk.Menu(self)
