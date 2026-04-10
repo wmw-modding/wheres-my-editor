@@ -828,7 +828,11 @@ class WME(tk.Tk):
             self.updateLevelScroll()
             return
         
-        offset = numpy.array(obj.offset)
+        try:
+            offset = numpy.array(obj.offset)
+        except Exception as e:
+            logging.warning(f'Failed to get offset for {obj.name}: {e}')
+            offset = numpy.array([0, 0])
         canvas_pos = numpy.array(obj.pos)
         canvas_pos = self.getObjectPosition(canvas_pos, offset)
         true_pos = self.getObjectPosition(obj.pos)
@@ -892,13 +896,17 @@ class WME(tk.Tk):
                 )
                 
             if len(obj._foreground) > 0:
-                self.level_canvas.create_image(
-                    canvas_pos[0],
-                    canvas_pos[1],
-                    anchor = 'c',
-                    image = obj.foreground_PhotoImage,
-                    tags = ('object', 'foreground', id)
-                )
+                try:
+                    self.level_canvas.create_image(
+                        canvas_pos[0],
+                        canvas_pos[1],
+                        anchor = 'c',
+                        image = obj.foreground_PhotoImage,
+                        tags = ('object', 'foreground', id)
+                    )
+                except Exception as e:
+                    logging.warning(f'Failed to create foreground image for {obj.name}: {e}')
+                    pass
             
             if len(obj._foreground) == 0 and len(obj._background) == 0:
                 self.level_canvas.create_image(
