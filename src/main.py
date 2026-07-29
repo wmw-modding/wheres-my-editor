@@ -2442,7 +2442,7 @@ class WME(tk.Tk):
         def move_object(obj: wmwpy.classes.Object, target_index: int):
             self.level.objects.insert(target_index, self.level.objects.pop(self.level.objects.index(obj)))
 
-            self.redrawLevel()
+            self.updateLevel()
             self.updateObjectSelector()
             if obj in self.level.objects:
                 self.selectObject(obj)
@@ -2562,21 +2562,24 @@ class WME(tk.Tk):
 
         self.selectedObject = None
         self.selectedPart = {'type': None, 'id': None, 'property': None}
-        
+
         for obj in self.level.objects:
             self.updateObject(obj)
 
-        # Defer expensive UI updates until after all objects are drawn
+        for obj in reversed(self.level.objects):
+            id = f'object-{str(obj.id)}'
+            items = self.level_canvas.find_withtag(id)
+            for item in items:
+                self.level_canvas.tag_raise(item)
+
         self.updateProperties()
         self.updateSelectionRectangle()
         self.updateObjectSelector()
 
-        # Call the proper update functions that handle both enabling and disabling
         self._updateParticleTrajectories()
         self._updateVacuum()
         self._updateParentConnections()
 
-        # Defer scroll updates until after all objects are drawn
         self.updateLevelScroll()
         self.level_canvas.xview_moveto(0.23)
         self.level_canvas.yview_moveto(0.2)
