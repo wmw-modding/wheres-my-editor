@@ -826,18 +826,94 @@ class WME(tk.Tk):
 
                     obj_angle = float(obj.properties.get('Angle', 0))
 
+                    fluid_list = ['_ooze', '_poison']
                     filename = sprite.properties.get('filename', '')
+                    icicle_corner = ''
+                    icicle_corner_left = ''
+                    icicle_medium = ''
+                    icicle_small = ''
+                    icicle_large = ''
+                    icicle = ''
+                    icicle_corner_glow = ''
+                    icicle_large_glow = ''
+                    icicle_medium_glow = ''
+                    icicle_small_glow = ''
+                    if fluid_list[0] in filename.lower():
+                        icicle_corner = f'icicle_corner{fluid_list[0]}'
+                        icicle_medium = f'icicle_medium{fluid_list[0]}'
+                        icicle_small = f'icicle_small{fluid_list[0]}'
+                        icicle_large = f'icicle_large{fluid_list[0]}'
+                        icicle = f'icicle{fluid_list[0]}'
+                        icicle_corner_left = f'icicle_corner_left{fluid_list[0]}'
+                        icicle_corner_glow = f'icicle_corner_glow{fluid_list[0]}'
+                        icicle_large_glow = f'icicle_large_glow{fluid_list[0]}'
+                        icicle_medium_glow = f'icicle_medium_glow{fluid_list[0]}'
+                        icicle_small_glow = f'icicle_small_glow{fluid_list[0]}'
+                    elif fluid_list[1] in filename.lower():
+                        icicle_corner = f'icicle_corner{fluid_list[1]}'
+                        icicle_medium = f'icicle_medium{fluid_list[1]}'
+                        icicle_small = f'icicle_small{fluid_list[1]}'
+                        icicle_large = f'icicle_large{fluid_list[1]}'
+                        icicle = f'icicle{fluid_list[1]}'
+                        icicle_corner_left = f'icicle_corner_left{fluid_list[1]}'
+                        icicle_corner_glow = f'icicle_corner_glow{fluid_list[1]}'
+                        icicle_large_glow = f'icicle_large_glow{fluid_list[1]}'
+                        icicle_medium_glow = f'icicle_medium_glow{fluid_list[1]}'
+                        icicle_small_glow = f'icicle_small_glow{fluid_list[1]}'
+                    else:
+                        icicle_corner = 'icicle_corner'
+                        icicle_medium = 'icicle_medium'
+                        icicle_small = 'icicle_small'
+                        icicle_large = 'icicle_large'
+                        icicle = 'icicle'
+                        icicle_corner_left = 'icicle_corner_left'
+                        icicle_corner_glow = 'icicle_corner_glow'
+                        icicle_large_glow = 'icicle_large_glow'
+                        icicle_medium_glow = 'icicle_medium_glow'
+                        icicle_small_glow = 'icicle_small_glow'
                     if 'icicle' in filename.lower() and 'glow' in filename.lower():
                         obj_filename = getattr(obj, 'filename', '')
-                        if 'icicle_corner_left' in obj_filename.lower():
-                            sprite_image, sprite_pos = Icicle.icicle_corner_left(sprite, filename, sprite.image, sprite_pos, sprite_size)
-                            print(f"icicle_corner_left: {sprite_image} & {list(sprite_pos)}")
-                        elif 'icicle_corner' in obj_filename.lower() and 'left' not in obj_filename.lower():
-                            sprite_image, sprite_pos = Icicle.icicle_corner(sprite, filename, sprite.image, sprite_pos, sprite_size)
-                            print(f"icicle_corner: {sprite_image} & {list(sprite_pos)}")
+                        if not '/Water/' in filename:
+                            print("Execute WMW")
+                            if 'icicle_corner_left' in obj_filename.lower():
+                                sprite_image, sprite_pos = Icicle.icicle_corner_left(sprite, filename, sprite.image, sprite_pos, sprite_size, 'icicle_corner_glow', False)
+                                print(f"icicle_corner_left: {sprite_image} & {list(sprite_pos)}")
+                            elif 'icicle_corner' in obj_filename.lower() and 'left' not in obj_filename.lower():
+                                sprite_image, sprite_pos = Icicle.icicle_corner(sprite, filename, sprite.image, sprite_pos, sprite_size, 'icicle_corner_glow', False)
+                                print(f"icicle_corner: {sprite_image} & {list(sprite_pos)}")
+                            elif 'icicle_large' in obj_filename.lower():
+                                sprite_image, sprite_pos = Icicle.icicle_large(sprite, filename, sprite.image, sprite_pos, 'icicle_large_glow', False)
+                                print(f"icicle_large: {sprite_image} & {list(sprite_pos)}")
+                            elif 'icicle_medium' in obj_filename.lower():
+                                sprite_image, sprite_pos = Icicle.icicle_medium(sprite, filename, sprite.image, sprite_pos, 'icicle_medium_glow', False)
+                                print(f"icicle_medium: {sprite_image} & {list(sprite_pos)}")
+                            elif 'icicle_small' in obj_filename.lower():
+                                sprite_image, sprite_pos = Icicle.icicle_small(sprite, filename, sprite.image, sprite_pos, 'icicle_small_glow', False)
+                                print(f"icicle_small: {sprite_image} & {list(sprite_pos)}")
+                            else:
+                                sprite_image = sprite.image.rotate(180, resample = Image.BILINEAR)
+                                print(f"icicle_glow: {sprite_image} & {list(sprite_pos)}")
+                        elif '/Water/' in filename:
+                            print("Execute WMW2")
+                            if icicle_corner_left in obj_filename.lower():
+                                sprite_image, sprite_pos = Icicle.icicle_corner_left(sprite, filename, sprite.image, sprite_pos, sprite_size, icicle_corner_glow, True)
+                                print(f"icicle_corner_left: {sprite_image} & {list(sprite_pos)}")
+                            elif icicle_corner in obj_filename.lower() and 'left' not in obj_filename.lower():
+                                sprite_image, sprite_pos = Icicle.icicle_corner(sprite, filename, sprite.image, sprite_pos, sprite_size, icicle_corner_glow, True)
+                                print(f"icicle_corner: {sprite_image} & {list(sprite_pos)}")
+                            elif icicle_large in obj_filename.lower():
+                                sprite_image, sprite_pos = Icicle.icicle_large(sprite, filename, sprite.image, sprite_pos, icicle_large_glow, True)
+                                print(f"icicle_large: {sprite_image} & {list(sprite_pos)}")
+                            elif icicle_medium in obj_filename.lower():
+                                sprite_image, sprite_pos = Icicle.icicle_medium(sprite, filename, sprite.image, sprite_pos, icicle_medium_glow, True)
+                            elif icicle_small in obj_filename.lower():
+                                sprite_image, sprite_pos = Icicle.icicle_small(sprite, filename, sprite.image, sprite_pos, icicle_small_glow, True)
+                                print(f"icicle_small: {sprite_image} & {list(sprite_pos)}")
+                            else:
+                                sprite_image = sprite.image.rotate(180, resample = Image.BILINEAR)
+                                print(f"icicle_glow: {sprite_image} & {list(sprite_pos)}")
                         else:
-                            sprite_image = sprite.image.rotate(180, resample = Image.BILINEAR)
-                            print(f"icicle_glow: {sprite_image} & {list(sprite_pos)}")
+                            print("Skip")
                     else:
                         sprite_image = sprite.image
 
@@ -861,7 +937,6 @@ class WME(tk.Tk):
                     if not hasattr(obj, '_child_sprite_photoimages'):
                         obj._child_sprite_photoimages = []
                     obj._child_sprite_photoimages.append(sprite_photoimage)
-
                 except Exception as e:
                     logging.warning(f'Failed to create child sprite for {obj.name}: {e}')
 
