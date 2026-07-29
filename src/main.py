@@ -906,6 +906,7 @@ class WME(tk.Tk):
                                 print(f"icicle_large: {sprite_image} & {list(sprite_pos)}")
                             elif icicle_medium in obj_filename.lower():
                                 sprite_image, sprite_pos = Icicle.icicle_medium(sprite, filename, sprite.image, sprite_pos, icicle_medium_glow, True)
+                                print(f"icicle_medium: {sprite_image} & {list(sprite_pos)}")
                             elif icicle_small in obj_filename.lower():
                                 sprite_image, sprite_pos = Icicle.icicle_small(sprite, filename, sprite.image, sprite_pos, icicle_small_glow, True)
                                 print(f"icicle_small: {sprite_image} & {list(sprite_pos)}")
@@ -913,7 +914,7 @@ class WME(tk.Tk):
                                 sprite_image = sprite.image.rotate(180, resample = Image.BILINEAR)
                                 print(f"icicle_glow: {sprite_image} & {list(sprite_pos)}")
                         else:
-                            print("Skip")
+                            print("Skip icicle")
                     else:
                         sprite_image = sprite.image
 
