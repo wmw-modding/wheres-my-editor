@@ -6,7 +6,6 @@ from tkinter import ttk
 import tkinter.font as tkFont
 import tkmacosx
 
-
 def Button(*args, system : typing.Literal['mac', 'windows', 'linux'] = None, **kwargs) -> ttk.Button:
     if isinstance(system, str):
         system = system.lower()
@@ -21,9 +20,9 @@ def Button(*args, system : typing.Literal['mac', 'windows', 'linux'] = None, **k
                 font = tkFont.nametofont(font)
             except:
                 font = tkFont.nametofont('TkDefaultFont')
-            
+
             width = font.measure('0')
-            
+
             kwargs['width'] *= width * 2
 
         return tkmacosx.Button(*args, **kwargs)
@@ -44,7 +43,7 @@ def shortModifier() -> typing.Literal['Ctrl', 'Cmd']:
 
 def open_file(filepath : str):
     filepath = os.path.abspath(filepath)
-    
+
     if platform.system() == 'Darwin':       # macOS
         subprocess.call(('open', filepath))
     elif platform.system() == 'Windows':    # Windows

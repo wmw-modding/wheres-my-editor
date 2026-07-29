@@ -36,22 +36,16 @@ import sys
 import platform
 from datetime import datetime
 import crossplatform
-import re
 
-def createLogger(
-    type = 'file',
-    filename = 'logs/log.log',
-    debug = False,
-):
+def createLogger(type = 'file', filename = 'logs/log.log', debug = False):
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
     format = '[%(levelname)s] %(message)s'
     datefmt = '%I:%M:%S %p'
     level = logging.DEBUG if debug else logging.INFO
     # level = logging.CRITICAL
-
     # filename = 'log.log'
-    
+
     handlers = []
 
     if type == 'file':
@@ -59,52 +53,46 @@ def createLogger(
             os.mkdir('logs')
         except:
             pass
-        
+
         handlers.append(logging.FileHandler(filename))
         format = '[%(asctime)s] [%(levelname)s] %(message)s'
 
         # logging.basicConfig(filename=filename, filemode='w', format=format, datefmt=datefmt, level=level)
         # logger.info('logging file')
-    
+
     handlers.append(logging.StreamHandler())
     logging.basicConfig(format=format, datefmt=datefmt, level=level, handlers=handlers)
-    
+
     logger = logging.getLogger(__name__)
     logger.info(filename)
 
-def setup_logger(
-    name: str,
-    dir: str = 'logs',
-    extension: str = 'log',
-    keep: int = 5,
-    debug: bool = False,
-):
+def setup_logger(name: str, dir: str = 'logs', extension: str = 'log', keep: int = 5, debug: bool = False):
     log_filename = os.path.join(dir, f'{datetime.now().strftime(name)}.{extension}')
     createLogger('file', filename = log_filename, debug = debug)
-    
+
     if os.path.isdir(dir):
         log_files = os.listdir(dir)
         logs = []
-        
+
         for file in log_files:
             if file == os.path.basename(log_filename):
                 continue
-            
+
             try:
                 logs.append((datetime.strptime(os.path.splitext(file)[0], name), file))
             except ValueError:
                 continue
-        
+
         logs.sort(key = lambda i: i[0])
-        
+
         logs = logs[max(0, keep-1)::]
-        
+
         for log in logs:
             logging.debug(f'deleting log: {log[1]}')
             os.remove(os.path.join(dir, log[1]))
-        
+
     return log_filename
-    
+
 _log_filename_format = "%m-%d-%y_%H-%M-%S"
 
 debug = False
@@ -117,17 +105,13 @@ if len(args) > 0:
     if args[0] in ['-d', '--debug']:
         debug = True
 
-_log_filename = setup_logger(
-    _log_filename_format,
-    debug = debug,
-)
+_log_filename = setup_logger(_log_filename_format, debug = debug)
 
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import tkwidgets
 from PIL import Image, ImageTk, ImageDraw
 from settings import Settings
-from lxml import etree
 import numpy
 import typing
 from copy import copy, deepcopy
@@ -138,6 +122,8 @@ import wmwpy
 from scrollframe import ScrollFrame
 import popups
 
+from icicle import Icicle
+
 logging.info(f'wme version: {__version__}')
 logging.info(f'wmwpy version: {wmwpy.__version__}')
 
@@ -145,9 +131,9 @@ if wmwpy.__version__ < __min_wmwpy_version__:
     logging.error(f'wmwpy version must be "{__min_wmwpy_version__}" or higher.')
     raise ImportWarning(f'wmwpy version must be "{__min_wmwpy_version__}" or higher.')
 
-
 # add create_circle and create_circle_arc to canvas
 # https://stackoverflow.com/a/17985217/17129659
+
 def _create_circle(self, x, y, r, **kwargs):
     return self.create_oval(x-r, y-r, x+r, y+r, **kwargs)
 tk.Canvas.create_circle = _create_circle
@@ -158,35 +144,32 @@ def _create_circle_arc(self, x, y, r, **kwargs):
     return self.create_arc(x-r, y-r, x+r, y+r, **kwargs)
 tk.Canvas.create_circle_arc = _create_circle_arc
 
-
 # WME class
 class WME(tk.Tk):
-    APP_ICONS = [
-            'assets/images/icon_256x256.ico',
-        ]
+    APP_ICONS = ['assets/images/icon_256x256.ico']
     LOGO = 'assets/images/WME_logo.png'
     ASSETS = {
         'folder_icon': {
             'path': 'assets/images/folder.png',
             'format': 'photo',
             'size': (16,16),
-            'cache': None,
+            'cache': None
         }
     }
-    
+
     def __init__(self, parent):
         tk.Tk.__init__(self,parent)
         self.parent = parent
-        
+
         if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
             self.WME_assets = sys._MEIPASS
         else:
             self.WME_assets = os.path.dirname(__file__)
-        
+
         self.findIcons()
         # if len(self.windowIcons) > 0:
         #     self.iconphoto(True, *self.windowIcons)
-        
+
         try:
             self.iconbitmap(default = list(self.windowIcons.keys())[0])
         except:
@@ -194,16 +177,16 @@ class WME(tk.Tk):
                 self.iconphoto(True, *list(self.windowIcons.values()))
             except:
                 pass
-        
+
         self.title("Where's my Editor")
         self.geometry('%dx%d' % (760 , 610) )
         self.minsize(500,300)
-        
+
         self.clipboard = None
-        
+
         self.scale = 5
         self.settings = Settings(
-            filename = 'settings.json',
+            filename = os.path.join(os.path.dirname(__file__), 'settings.json'),
             default_settings = {
                 'version': 2,
                 'game': {
@@ -212,7 +195,7 @@ class WME(tk.Tk):
                     'game': 'wmw',
                     'default_level': {
                         'xml': '',
-                        'image': '',
+                        'image': ''
                     },
                 },
                 'view': {
@@ -221,49 +204,49 @@ class WME(tk.Tk):
                         'platinum': True,
                         'normal': True,
                         'note': True,
-                        'none': True,
+                        'none': True
                     },
                     'path': True,
+                    'particleTrajectory': True,
+                    'vacuum': True,
+                    'parent': True
                 }
             }
         )
         self.updateSettings()
 
         self.selection_rect = None
-        
+
         self.style = ttk.Style()
-        
+
         self.style.layout("Horizontal.TPanedWindow", [('TPanedWindow', {})])
 
         self.style.layout("Vertical.TPanedWindow", [('TPanedWindow', {})])
-        
+
         # self.style.theme_use('clam')
-        
+
         try:
-            self.panedGrip : dict[typing.Literal['image', 'horizontal', 'vertical'], Image.Image | ImageTk.PhotoImage] = {
-                'image' : Image.open(self.getAssetPath('assets/images/grip.gif')).convert('RGBA'),
-            }
+            self.panedGrip : dict[typing.Literal['image', 'horizontal', 'vertical'], Image.Image | ImageTk.PhotoImage] = {'image' : Image.open(self.getAssetPath('assets/images/grip.gif')).convert('RGBA')}
 
             self.panedGrip['horizontal'] = ImageTk.PhotoImage(self.panedGrip['image'])
             self.panedGrip['vertical'] = ImageTk.PhotoImage(self.panedGrip['image'].rotate(90, expand = True))
-        
+
             self.style.element_create("Sash.Horizontal", "image", self.panedGrip['horizontal'], sticky='we')
             self.style.layout("Horizontal.TPanedWindow", [('Sash.Horizontal', {})])
 
             self.style.element_create("Sash.Vertical", "image", self.panedGrip['vertical'], sticky='ns')
             self.style.layout("Vertical.TPanedWindow", [('Sash.Vertical', {})])
-        
         except:
             logging.exception('Unable to set grip image')
-        
+
         # self.style.layout("Clicked.TPanedWindow", [('Sash.xsash', {})])
-        
+
         self.style.configure('TPanedwindow', opaqueresize=False)
         # self.style.configure('Clicked.TPanedwindow', background='blue')
         self.style.configure('Sash', sashthickness = 5)
-        
+
         # ttk.PanedWindow(orient='horizontal').cget('orient')
-        
+
         # self.bind_class('TPanedwindow', '<Button-1>', lambda e : print(e.widget.configure(style = 'Clicked.TPanedwindow')))
         # self.bind_class('TPanedwindow', '<B1-Motion>', lambda e : e.widget.tk.call(e.widget, "sash", 0, (e.x if str(e.widget["orient"]) == "horizontal" else e.y)))
         # self.bind_class('TPanedwindow', '<ButtonRelease-1>', lambda e : e.widget.configure(style = 'TPanedwindow'))
@@ -273,40 +256,25 @@ class WME(tk.Tk):
         self.active = True
 
         self.selectedObject: wmwpy.classes.Object | None = None
-        self.selectedPart: dict[
-            typing.Literal[
-                'type',
-                'id',
-                'property'
-            ], str | None,
-        ] = {
-            'type': None,
-            'id': None,
-            'property': None,
-        }
-        self.dragInfo: dict[typing.Literal['offset'], tuple[float, float]] = {
-            'offset': (0, 0),
-        }
+        self.selectedPart: dict[typing.Literal['type', 'id', 'property'], str | None] = {'type': None, 'id': None, 'property': None}
+        self.dragInfo: dict[typing.Literal['offset'], tuple[float, float]] = {'offset': (0, 0)}
         self.level : wmwpy.classes.Level = None
         self.game : wmwpy.Game = None
-        
+
         self.createMenubar()
         self.createWindow()
         self.objectContextMenu = tk.Menu(self.level_canvas, tearoff = 0)
-        
+
         self.loadGame()
-        
+
         if self.game != None:
-            self.loadLevel(
-                self.settings.get('game.default_level.xml'),
-                self.settings.get('game.default_level.image')
-            )
-        
+            self.loadLevel(self.settings.get('game.default_level.xml'), self.settings.get('game.default_level.image'))
+
         self.protocol("WM_DELETE_WINDOW", self.close)
-    
+
     def getAssetPath(self, path : str):
         return os.path.join(self.WME_assets, path)
-    
+
     def getAsset(self, name: str) -> typing.Any:
         info = self.ASSETS[name]
         if info.get('cache'):
@@ -337,21 +305,19 @@ class WME(tk.Tk):
                 info['cache'] = None
                 with open(path, 'r') as file:
                     info['cache'] = file.read()
-            
+
             return info['cache']
-    
+
     def findIcons(self):
         self.windowIcons : dict[str, ImageTk.PhotoImage] = {}
-        
+
         for icon in self.APP_ICONS:
             try:
-                self.windowIcons[self.getAssetPath(icon)] = ImageTk.PhotoImage(
-                        Image.open(self.getAssetPath(icon))
-                    )
-                
+                self.windowIcons[self.getAssetPath(icon)] = ImageTk.PhotoImage(Image.open(self.getAssetPath(icon)))
+
             except:
                 logging.exception('cannot load icon')
-        
+
         return self.windowIcons
 
     def createWindow(self):
@@ -360,53 +326,52 @@ class WME(tk.Tk):
 
         self.side_pane = ttk.PanedWindow(self.separator, orient='vertical', style = "Vertical.TPanedWindow")
         self.separator.add(self.side_pane)
-        
+
         side_pane_width = 250
         side_pane_height = 300
-        
-        
+
         # create object selector
-        
+
         self.object_selector : dict[typing.Literal[
             'labelFrame',
             'treeview',
             'y_scroll',
             'x_scroll',
-            'menu',
+            'menu'
         ], tk.Widget | ttk.Treeview | tk.Menu] = {
             'labelFrame' : ttk.LabelFrame(self.side_pane, width=side_pane_width, height=side_pane_height, text='Objects'),
             'treeview' : None,
             'y_scroll' : None,
             'x_scroll' : None,
-            'menu': None,
+            'menu': None
         }
         self.side_pane.add(self.object_selector['labelFrame'])
-        
+
         self.object_selector['treeview'] = ttk.Treeview(
             self.object_selector['labelFrame'],
             show = 'headings',
             name = 'objects',
-            columns = ['name', 'type'],
+            columns = ['name', 'type']
         )
         self.object_selector['treeview'].heading('type', text='Type', anchor='w')
         self.object_selector['treeview'].heading('name', text='Name', anchor='w')
         self.object_selector['treeview'].column('type', width=1)
         self.object_selector['treeview'].column('name', width=1)
-        
+
         self.object_selector['treeview'].pack(side='left', fill='both', expand = True)
 
         self.object_selector['menu'] = tk.Menu(self.object_selector['treeview'], tearoff = 0)
-        
+
         self.object_selector['y_scroll'] = ttk.Scrollbar(
             self.object_selector['labelFrame'],
             orient='vertical',
             command = self.object_selector['treeview'].yview
         )
-        
+
         self.object_selector['treeview'].configure(yscrollcommand = self.object_selector['y_scroll'].set)
-        
+
         self.object_selector['y_scroll'].pack(side='right', fill='y')
-        
+
         self.properties : dict[typing.Literal[
             'labelFrame',
             'notebook',
@@ -415,27 +380,27 @@ class WME(tk.Tk):
             'panned',
             'left',
             'right',
-            'title',
+            'title'
         ], tk.Widget, tk.StringVar] = {
             'title': tk.StringVar(value = 'Properties'),
             'labelFrame' : ttk.LabelFrame(
                 self.side_pane,
                 width = side_pane_width,
                 height = side_pane_height,
-                text = 'Properties',
+                text = 'Properties'
             )
         }
         self.properties['title'].trace_add(
             'write',
             lambda *args: self.properties['labelFrame'].configure(text = self.properties['title'].get()),
         )
-        
+
         self.properties['labelFrame'].configure
         self.side_pane.add(self.properties['labelFrame'])
-        
+
         # self.properties['notebook'] = ttk.Notebook(self.properties['labelFrame'])
-        
-        self.properties['scrollFrame'] = ScrollFrame(self.properties['labelFrame'], usettk=True, width=side_pane_width,)
+
+        self.properties['scrollFrame'] = ScrollFrame(self.properties['labelFrame'], usettk=True, width=side_pane_width)
         # self.properties['notebook'].pack(fill='both', expand=True)
         # self.properties['notebook'].add(self.properties['scrollFrame'], text='Object Properties')
         # self.properties['notebook'].add(ttk.Frame(self.properties['notebook']), text='Level Properties')
@@ -444,17 +409,17 @@ class WME(tk.Tk):
 
         self.level_canvas = tk.Canvas(self.separator, width=90*self.scale, height=120*self.scale)
         self.separator.add(self.level_canvas, weight=1)
-        
+
         self.level_images = {
             'background': self.level_canvas.create_image(
                 0,0,
                 anchor = 'c',
                 image = None,
-                tag = 'level',
+                tag = 'level'
             ),
             'objects': {}
         }
-        
+
         self.level_scrollbars = {
             'horizontal' : ttk.Scrollbar(
                 self.level_canvas,
@@ -467,197 +432,176 @@ class WME(tk.Tk):
                 command = self.level_canvas.yview
             ),
         }
-        
+
         self.level_scrollbars['horizontal'].pack(side='bottom', fill='x')
         self.level_scrollbars['vertical'].pack(side='right', fill='y')
-        
+
         self.level_canvas.configure(xscrollcommand=self.level_scrollbars['horizontal'].set)
         self.level_canvas.configure(yscrollcommand=self.level_scrollbars['vertical'].set)
-        
-        
+
         self.createLevelContextMenu()
-        
+
         self.resetProperties()
         self.createProgressBar()
-    
+
     def enableWindow(self):
         self.bind(f'<{crossplatform.modifier()}-s>', self.saveLevel)
         self.bind(f'<{crossplatform.modifier()}-S>', self.saveLevelAs)
         self.bind(f'<{crossplatform.modifier()}-o>', self.openLevel)
-        
+
         if platform.system() == 'Linux':
             self.level_canvas.bind("<Button-4>", self.onLevelMouseWheel)
             self.level_canvas.bind("<Button-5>", self.onLevelMouseWheel)
-            
+
             self.level_canvas.bind("<Shift-Button-4>", lambda *args: self.onLevelMouseWheel(*args, type = 1))
             self.level_canvas.bind("<Shift-Button-5>", lambda *args: self.onLevelMouseWheel(*args, type = 1))
         else:
             self.level_canvas.bind("<MouseWheel>", self.onLevelMouseWheel)
             self.level_canvas.bind("<Shift-MouseWheel>", lambda *args: self.onLevelMouseWheel(*args, type = 1))
-        
+
         self.level_canvas.bind('<Button-1>', self.onLevelClick)
         self.level_canvas.bind('<Button1-Motion>', self.onLevelMove)
-        
+
         self.level_canvas.bind('<Enter>', self.bindKeyboardShortcuts)
         self.level_canvas.bind('<Leave>', self.unbindKeyboardShortcuts)
-        
+
         if platform.system() == 'Darwin':
             self.level_canvas.bind('<Button-2>', self.onLevelRightClick)
         else:
             self.level_canvas.bind('<Button-3>', self.onLevelRightClick)
-        
+
         self.object_selector['treeview'].configure(selectmode = 'browse')
         self.object_selector['treeview'].state(("!disabled",))
         # re-enable item opening on click
         self.object_selector['treeview'].unbind('<Button-1>')
-        
+
         items = self.menubar.index('end')
-        
+
         for item in range(items):
             self.menubar.entryconfig(item + 1, state = 'normal')
-        
+
         self.updateLevel()
-        
+
         self.bindKeyboardShortcuts()
-    
+
     def disableWindow(self):
         self.unbind(f'<{crossplatform.modifier()}-s>')
         self.unbind(f'<{crossplatform.modifier()}-S>')
         self.unbind(f'<{crossplatform.modifier()}-o>')
-        
+
         if platform.system() == 'Linux':
             self.level_canvas.unbind("<Button-4>")
             self.level_canvas.unbind("<Button-5>")
-            
+
             self.level_canvas.unbind("<Shift-Button-4>")
             self.level_canvas.unbind("<Shift-Button-5>")
         else:
             self.level_canvas.unbind("<MouseWheel>")
             self.level_canvas.unbind("<Shift-MouseWheel>")
-            
+
         self.level_canvas.unbind('<Button-1>')
         self.level_canvas.unbind('<Button1-Motion>')
-        
+
         if platform.system() == 'Darwin':
             self.level_canvas.unbind('<Button-2>')
         else:
             self.level_canvas.unbind('<Button-3>')
-        
+
         self.level_canvas.unbind('<Enter>')
         self.level_canvas.unbind('<Leave>')
         self.unbindKeyboardShortcuts()
-        
+
         objects = self.level_canvas.find_withtag('object')
         objects = list(objects) + list(self.level_canvas.find_withtag('selection'))
-        
+
         for id in objects:
             self.unbindObject(id)
-        
+
         self.object_selector['treeview'].configure(selectmode = 'none')
-        
+
         self.object_selector['treeview'].state(("disabled",))
         # disable item opening on click
         self.object_selector['treeview'].bind('<Button-1>', lambda e: 'break')
-        
+
         items = self.menubar.index('end')
-        
+
         for item in range(items):
             self.menubar.entryconfig(item + 1, state = 'disabled')
-    
+
     def bindKeyboardShortcuts(self, *args):
         logging.debug('Binding keyboard shortcuts')
-        
+
         self.bind(f'<{crossplatform.modifier()}-v>', self.pasteObject)
         self.bind(f'<{crossplatform.modifier()}-c>', self.copyObject)
         self.bind(f'<{crossplatform.modifier()}-x>', self.cutObject)
         self.bind('<KeyPress-Delete>', self.deleteObject)
-        
+
         self.bind('<Up>', lambda *args : self.moveObject(amount = (0,1)))
         self.bind('<Down>', lambda *args : self.moveObject(amount = (0,-1)))
         self.bind('<Left>', lambda *args : self.moveObject(amount = (-1,0)))
         self.bind('<Right>', lambda *args : self.moveObject(amount = (1,0)))
-        
+
         self.bind(f'<{crossplatform.modifier()}-Up>', lambda *args : self.moveObject(amount = (0,0.5)))
         self.bind(f'<{crossplatform.modifier()}-Down>', lambda *args : self.moveObject(amount = (0,-0.5)))
         self.bind(f'<{crossplatform.modifier()}-Left>', lambda *args : self.moveObject(amount = (-0.5,0)))
         self.bind(f'<{crossplatform.modifier()}-Right>', lambda *args : self.moveObject(amount = (0.5,0)))
-        
+
         self.bind(f'<Alt-Up>', lambda *args : self.moveObject(amount = (0,0.1)))
         self.bind(f'<Alt-Down>', lambda *args : self.moveObject(amount = (0,-0.1)))
         self.bind(f'<Alt-Left>', lambda *args : self.moveObject(amount = (-0.1,0)))
         self.bind(f'<Alt-Right>', lambda *args : self.moveObject(amount = (0.1,0)))
-        
+
         self.bind(f'<Shift-Up>', lambda *args : self.moveObject(amount = (0,4)))
         self.bind(f'<Shift-Down>', lambda *args : self.moveObject(amount = (0,-4)))
         self.bind(f'<Shift-Left>', lambda *args : self.moveObject(amount = (-4,0)))
         self.bind(f'<Shift-Right>', lambda *args : self.moveObject(amount = (4,0)))
-    
+
     def unbindKeyboardShortcuts(self, *args):
         logging.debug('unbinding keyboard shortcuts')
-        
+
         self.unbind(f'<{crossplatform.modifier()}-v>')
         self.unbind(f'<{crossplatform.modifier()}-c>')
         self.unbind(f'<{crossplatform.modifier()}-x>')
         self.unbind('<KeyPress-Delete>')
-        
+
         self.unbind('<Up>')
         self.unbind('<Down>')
         self.unbind('<Left>')
         self.unbind('<Right>')
-        
+
         self.unbind(f'<{crossplatform.modifier()}-Up>')
         self.unbind(f'<{crossplatform.modifier()}-Down>')
         self.unbind(f'<{crossplatform.modifier()}-Left>')
         self.unbind(f'<{crossplatform.modifier()}-Right>')
-        
+
         self.unbind(f'<Alt-Up>')
         self.unbind(f'<Alt-Down>')
         self.unbind(f'<Alt-Left>')
         self.unbind(f'<Alt-Right>')
-        
+
         self.unbind(f'<Shift-Up>')
         self.unbind(f'<Shift-Down>')
         self.unbind(f'<Shift-Left>')
         self.unbind(f'<Shift-Right>')
-    
+
     def createProgressBar(self):
-        self.progress_bar : dict[typing.Literal[
-            'frame',
-            'progress_bar',
-            'label',
-            'var',
-        ],
-           ttk.Frame |
-           ttk.Progressbar |
-           ttk.Label |
-           tk.StringVar
-        ] = {}
-        
+        self.progress_bar : dict[typing.Literal['frame', 'progress_bar', 'label', 'var'], ttk.Frame | ttk.Progressbar | ttk.Label | tk.StringVar] = {}
+
         self.progress_bar['frame'] = ttk.Frame()
         self.progress_bar['frame'].pack(side = 'bottom', fill = 'x')
-        
+
         self.progress_bar['var'] = tk.StringVar()
-        
-        self.progress_bar['progress_bar'] = ttk.Progressbar(
-            self.progress_bar['frame'],
-        )
-        self.progress_bar['label'] = ttk.Label(
-            self.progress_bar['frame'],
-            textvariable = self.progress_bar['var'],
-        )
-        
+
+        self.progress_bar['progress_bar'] = ttk.Progressbar(self.progress_bar['frame'])
+        self.progress_bar['label'] = ttk.Label(self.progress_bar['frame'], textvariable = self.progress_bar['var'])
+
         self.progress_bar['progress_bar'].grid(column = 0, row = 0, sticky = 'we')
         self.progress_bar['label'].grid(column = 1, row = 0, sticky = 'we')
-        
+
         self.progress_bar['frame'].columnconfigure(0, weight = 1, uniform = 'progress_bar')
         self.progress_bar['frame'].columnconfigure(1, weight = 2, uniform = 'progress_bar')
-    
-    def updateProgressBar(
-        self,
-        progress : int = 0,
-        text : str = '',
-        max : int = None,
-    ):
+
+    def updateProgressBar(self, progress : int = 0, text : str = '', max : int = None):
         self.progress_bar['var'].set(text)
         if max != None:
             self.progress_bar['progress_bar']['max'] = max
@@ -671,29 +615,30 @@ class WME(tk.Tk):
             return self._state
         except:
             return 'enabled'
+
     @state.setter
     def state(self, state : typing.Literal['enabled', 'normal', 'disabled']):
         if state == 'enabled':
             state = 'normal'
         elif state not in ['enabled', 'normal', 'disabled']:
             raise ValueError(f'unknown state {state}')
-        
+
         self._state = state
 
         if self._state == 'normal':
             self.enableWindow()
         elif self._state == 'disabled':
             self.disableWindow()
-    
+
     def setState(self, state : typing.Literal['normal', 'disabled']):
         self.level_canvas.configure(state = state)
-    
+
     def onLevelMouseWheel(self, event : tk.Event, type = 0):
         if type:
             scroll = self.level_canvas.xview_scroll
         else:
             scroll = self.level_canvas.yview_scroll
-        
+
         if platform.system() == 'Windows':
             scroll(int(-1* (event.delta/120)), "units")
         elif platform.system() == 'Darwin':
@@ -703,21 +648,21 @@ class WME(tk.Tk):
                 scroll( -1, "units" )
             elif event.num == 5:
                 scroll( 1, "units" )
-    
+
     OBJECT_MULTIPLIER = 1.25
-    
+
     def updateLayers(self):
         objects = self.level_canvas.find_withtag('object')
         if len(objects) < 0:
             return
-        
+
         def raise_tag(bottom, top):
             objects = self.level_canvas.find_withtag(top)
             if len(objects):
                 self.level_canvas.tag_raise(top, bottom)
                 return top
             return bottom
-        
+
         order = [
             'level',
             *[f'object&&object-{obj.id}' for obj in self.level.objects],
@@ -727,13 +672,16 @@ class WME(tk.Tk):
             'radius',
             'pathLine',
             'pathPoint',
+            'particleTrajectory',
+            'vacuum',
+            'parent'
         ]
-        
+
         last_tag = order[0]
-        
+
         for tag in order[1::]:
             last_tag = raise_tag(last_tag, tag)
-        
+
         # for obj in self.level.objects:
         #     obj_id = f'object-{obj.id}'
         #     last_tag = raise_tag(last_tag, f'object&&{obj_id}')
@@ -749,9 +697,9 @@ class WME(tk.Tk):
         # 
         # if len(self.level_canvas.find_withtag('selection')) > 0:
         #     last_tag = raise_tag('object', 'selection')
-    
+
     SELECTION_BORDER_WIDTH = 2
-    
+
     def updateSelectionRectangle(self, obj : wmwpy.classes.Object | None = None):
         if obj == None:
             obj = self.selectedObject
@@ -759,75 +707,59 @@ class WME(tk.Tk):
             self.level_canvas.delete('selection')
             # logging.info('deleted selection')
             return
-        
+
         obj_id = f'object-{str(obj.id)}'
-        
+
         platinum_type = obj.properties.get('PlatinumType', obj.defaultProperties.get('PlatinumType', 'none'))
 
         if not self.settings.get(['view.PlatinumType', platinum_type], True):
             self.level_canvas.delete('selection')
             return
-        
+
         pos = numpy.array(obj.pos)
         size = numpy.maximum(numpy.array(obj.size), [1,1])
         logging.debug(f'object size: {size}')
-        
+
         selectionImage = Image.new('RGBA', tuple(size * obj.scale), 'black')
         selectionImageDraw = ImageDraw.Draw(selectionImage)
         logging.debug(f'image size: {selectionImage.size}')
         logging.debug(f'rectangle size: {(0,0) + tuple(numpy.array(selectionImage.size) - (self.SELECTION_BORDER_WIDTH - 1))}')
-        selectionImageDraw.rectangle(
-            (0,0) + tuple(numpy.array(selectionImage.size) - (self.SELECTION_BORDER_WIDTH - 1)),
-            fill = '#0000',
-            outline = 'black',
-            width = self.SELECTION_BORDER_WIDTH,
-        )
+        selectionImageDraw.rectangle((0,0) + tuple(numpy.array(selectionImage.size) - (self.SELECTION_BORDER_WIDTH - 1)), fill = '#0000', outline = 'black', width = self.SELECTION_BORDER_WIDTH)
         selectionImage = obj.rotateImage(selectionImage)
         self.selectionPhotoImage = ImageTk.PhotoImage(selectionImage)
-        
+
         pos = self.getObjectPosition(pos, obj.offset)
-        
+
         id = self.level_canvas.find_withtag('selection')
         if len(id) <= 0:
-            self.level_canvas.create_image(
-                *pos,
-                image = self.selectionPhotoImage,
-                tags = 'selection'
-            )
+            self.level_canvas.create_image(*pos, image = self.selectionPhotoImage, tags = 'selection')
         else:
-            self.level_canvas.itemconfig(
-                id,
-                image = self.selectionPhotoImage
-            )
-            self.level_canvas.coords(
-                id,
-                *pos
-            )
-        
-    
+            self.level_canvas.itemconfig(id, image = self.selectionPhotoImage)
+            self.level_canvas.coords(id, *pos)
+
         self.bindObject(id, obj)
-        
+
     def getObjectPosition(self, pos = (0,0), offset  = (0,0)):
         pos = numpy.array(pos)
         offset = numpy.array(offset)
-        
+
         pos = pos - offset
         pos = self.toLevelCanvasCoord(pos)
-        
+
         return pos
-    
+
     def toLevelCanvasCoord(self, pos: int | float | numpy.ndarray, multiplier: float | int = OBJECT_MULTIPLIER) -> float | numpy.ndarray:
         if isinstance(pos, (int,float)):
             return (pos * multiplier) * self.level.scale
         else:
             return (pos * numpy.array([multiplier, -multiplier])) * self.level.scale
-    
+
     def updateObject(self, obj : wmwpy.classes.Object | None):
         if obj == None:
             self.updateSelectionRectangle()
             self.updateLevelScroll()
             return
-        
+
         try:
             offset = numpy.array(obj.offset)
         except Exception as e:
@@ -836,22 +768,22 @@ class WME(tk.Tk):
         canvas_pos = numpy.array(obj.pos)
         canvas_pos = self.getObjectPosition(canvas_pos, offset)
         true_pos = self.getObjectPosition(obj.pos)
-        
+
         id = f'object-{str(obj.id)}'
-        
+
         platinum_type = obj.properties.get('PlatinumType', obj.defaultProperties.get('PlatinumType', 'none'))
 
         if not self.settings.get(['view.PlatinumType', platinum_type], True):
             self.level_canvas.delete(id)
             return
-        
+
         items = self.level_canvas.find_withtag(id)
-        
+
         logging.debug(f'items: {items}')
-        
+
         background = None
         foreground = None
-        
+
         for item in items:
             tags = self.level_canvas.gettags(item)
             logging.debug(f'tags: {tags}')
@@ -859,109 +791,189 @@ class WME(tk.Tk):
                 background = item
             elif 'foreground' in tags:
                 foreground = item
-        
+
         self.level_canvas.delete(f'radius&&{id}')
         self.level_canvas.delete(f'path&&{id}')
-        
+        self.level_canvas.delete(f'child_sprite&&{id}')
+
         if len(items) > 0:
             if background:
-                self.level_canvas.coords(
-                    background,
-                    canvas_pos[0],
-                    canvas_pos[1],
-                )
-                self.level_canvas.itemconfig(
-                    background,
-                    image = obj.background_PhotoImage,
-                )
-            
+                self.level_canvas.coords(background, canvas_pos[0], canvas_pos[1])
+                self.level_canvas.itemconfig(background, image = obj.background_PhotoImage)
+
             if foreground:
-                self.level_canvas.coords(
-                    foreground,
-                    canvas_pos[0],
-                    canvas_pos[1],
-                )
-                self.level_canvas.itemconfig(
-                    foreground,
-                    image = obj.foreground_PhotoImage,
-                )
+                self.level_canvas.coords(foreground, canvas_pos[0], canvas_pos[1])
+                self.level_canvas.itemconfig(foreground, image = obj.foreground_PhotoImage)
         else:
             if len(obj._background) > 0:
-                self.level_canvas.create_image(
-                    canvas_pos[0],
-                    canvas_pos[1],
-                    anchor = 'c',
-                    image = obj.background_PhotoImage,
-                    tags = ('object', 'background', id),
-                )
-                
+                self.level_canvas.create_image(canvas_pos[0], canvas_pos[1], anchor = 'c', image = obj.background_PhotoImage, tags = ('object', 'background', id))
+
             if len(obj._foreground) > 0:
                 try:
-                    self.level_canvas.create_image(
-                        canvas_pos[0],
-                        canvas_pos[1],
-                        anchor = 'c',
-                        image = obj.foreground_PhotoImage,
-                        tags = ('object', 'foreground', id)
-                    )
+                    self.level_canvas.create_image(canvas_pos[0], canvas_pos[1], anchor = 'c', image = obj.foreground_PhotoImage, tags = ('object', 'foreground', id))
                 except Exception as e:
                     logging.warning(f'Failed to create foreground image for {obj.name}: {e}')
                     pass
-            
+
             if len(obj._foreground) == 0 and len(obj._background) == 0:
-                self.level_canvas.create_image(
-                    canvas_pos[0],
-                    canvas_pos[1],
-                    anchor = 'c',
-                    image = ImageTk.PhotoImage(Image.new('RGBA', (1, 1), 'black')),
-                    tags = ('object', 'foreground', id),
-                )
-        
+                self.level_canvas.create_image(canvas_pos[0], canvas_pos[1], anchor = 'c', image = ImageTk.PhotoImage(Image.new('RGBA', (1, 1), 'black')), tags = ('object', 'foreground', id))
+
+        if hasattr(obj, '_child_sprites') and len(obj._child_sprites) > 0:
+            for sprite in obj._child_sprites:
+                try:
+                    sprite_pos = numpy.array(sprite.pos)
+                    sprite_size = (numpy.array(sprite.image.size) / sprite.scale) * [1, -1]
+
+                    obj_angle = float(obj.properties.get('Angle', 0))
+
+                    fluid_list = ['_ooze', '_poison']
+                    filename = sprite.properties.get('filename', '')
+                    icicle_corner = ''
+                    icicle_corner_left = ''
+                    icicle_medium = ''
+                    icicle_small = ''
+                    icicle_large = ''
+                    icicle = ''
+                    icicle_corner_glow = ''
+                    icicle_large_glow = ''
+                    icicle_medium_glow = ''
+                    icicle_small_glow = ''
+                    if fluid_list[0] in filename.lower():
+                        icicle_corner = f'icicle_corner{fluid_list[0]}'
+                        icicle_medium = f'icicle_medium{fluid_list[0]}'
+                        icicle_small = f'icicle_small{fluid_list[0]}'
+                        icicle_large = f'icicle_large{fluid_list[0]}'
+                        icicle = f'icicle{fluid_list[0]}'
+                        icicle_corner_left = f'icicle_corner_left{fluid_list[0]}'
+                        icicle_corner_glow = f'icicle_corner_glow{fluid_list[0]}'
+                        icicle_large_glow = f'icicle_large_glow{fluid_list[0]}'
+                        icicle_medium_glow = f'icicle_medium_glow{fluid_list[0]}'
+                        icicle_small_glow = f'icicle_small_glow{fluid_list[0]}'
+                    elif fluid_list[1] in filename.lower():
+                        icicle_corner = f'icicle_corner{fluid_list[1]}'
+                        icicle_medium = f'icicle_medium{fluid_list[1]}'
+                        icicle_small = f'icicle_small{fluid_list[1]}'
+                        icicle_large = f'icicle_large{fluid_list[1]}'
+                        icicle = f'icicle{fluid_list[1]}'
+                        icicle_corner_left = f'icicle_corner_left{fluid_list[1]}'
+                        icicle_corner_glow = f'icicle_corner_glow{fluid_list[1]}'
+                        icicle_large_glow = f'icicle_large_glow{fluid_list[1]}'
+                        icicle_medium_glow = f'icicle_medium_glow{fluid_list[1]}'
+                        icicle_small_glow = f'icicle_small_glow{fluid_list[1]}'
+                    else:
+                        icicle_corner = 'icicle_corner'
+                        icicle_medium = 'icicle_medium'
+                        icicle_small = 'icicle_small'
+                        icicle_large = 'icicle_large'
+                        icicle = 'icicle'
+                        icicle_corner_left = 'icicle_corner_left'
+                        icicle_corner_glow = 'icicle_corner_glow'
+                        icicle_large_glow = 'icicle_large_glow'
+                        icicle_medium_glow = 'icicle_medium_glow'
+                        icicle_small_glow = 'icicle_small_glow'
+                    if 'icicle' in filename.lower() and 'glow' in filename.lower():
+                        obj_filename = getattr(obj, 'filename', '')
+                        if not '/Water/' in filename:
+                            print("Execute WMW")
+                            if 'icicle_corner_left' in obj_filename.lower():
+                                sprite_image, sprite_pos = Icicle.icicle_corner_left(sprite, filename, sprite.image, sprite_pos, sprite_size, 'icicle_corner_glow', False)
+                                print(f"icicle_corner_left: {sprite_image} & {list(sprite_pos)}")
+                            elif 'icicle_corner' in obj_filename.lower() and 'left' not in obj_filename.lower():
+                                sprite_image, sprite_pos = Icicle.icicle_corner(sprite, filename, sprite.image, sprite_pos, sprite_size, 'icicle_corner_glow', False)
+                                print(f"icicle_corner: {sprite_image} & {list(sprite_pos)}")
+                            elif 'icicle_large' in obj_filename.lower():
+                                sprite_image, sprite_pos = Icicle.icicle_large(sprite, filename, sprite.image, sprite_pos, 'icicle_large_glow', False)
+                                print(f"icicle_large: {sprite_image} & {list(sprite_pos)}")
+                            elif 'icicle_medium' in obj_filename.lower():
+                                sprite_image, sprite_pos = Icicle.icicle_medium(sprite, filename, sprite.image, sprite_pos, 'icicle_medium_glow', False)
+                                print(f"icicle_medium: {sprite_image} & {list(sprite_pos)}")
+                            elif 'icicle_small' in obj_filename.lower():
+                                sprite_image, sprite_pos = Icicle.icicle_small(sprite, filename, sprite.image, sprite_pos, 'icicle_small_glow', False)
+                                print(f"icicle_small: {sprite_image} & {list(sprite_pos)}")
+                            else:
+                                sprite_image = sprite.image.rotate(180, resample = Image.BILINEAR)
+                                print(f"icicle_glow: {sprite_image} & {list(sprite_pos)}")
+                        elif '/Water/' in filename:
+                            print("Execute WMW2")
+                            if icicle_corner_left in obj_filename.lower():
+                                sprite_image, sprite_pos = Icicle.icicle_corner_left(sprite, filename, sprite.image, sprite_pos, sprite_size, icicle_corner_glow, True)
+                                print(f"icicle_corner_left: {sprite_image} & {list(sprite_pos)}")
+                            elif icicle_corner in obj_filename.lower() and 'left' not in obj_filename.lower():
+                                sprite_image, sprite_pos = Icicle.icicle_corner(sprite, filename, sprite.image, sprite_pos, sprite_size, icicle_corner_glow, True)
+                                print(f"icicle_corner: {sprite_image} & {list(sprite_pos)}")
+                            elif icicle_large in obj_filename.lower():
+                                sprite_image, sprite_pos = Icicle.icicle_large(sprite, filename, sprite.image, sprite_pos, icicle_large_glow, True)
+                                print(f"icicle_large: {sprite_image} & {list(sprite_pos)}")
+                            elif icicle_medium in obj_filename.lower():
+                                sprite_image, sprite_pos = Icicle.icicle_medium(sprite, filename, sprite.image, sprite_pos, icicle_medium_glow, True)
+                                print(f"icicle_medium: {sprite_image} & {list(sprite_pos)}")
+                            elif icicle_small in obj_filename.lower():
+                                sprite_image, sprite_pos = Icicle.icicle_small(sprite, filename, sprite.image, sprite_pos, icicle_small_glow, True)
+                                print(f"icicle_small: {sprite_image} & {list(sprite_pos)}")
+                            else:
+                                sprite_image = sprite.image.rotate(180, resample = Image.BILINEAR)
+                                print(f"icicle_glow: {sprite_image} & {list(sprite_pos)}")
+                        else:
+                            print("Skip icicle")
+                    else:
+                        sprite_image = sprite.image
+
+                    if obj_angle != 0:
+                        angle_rad = numpy.radians(obj_angle)
+                        cos_a = numpy.cos(angle_rad)
+                        sin_a = numpy.sin(angle_rad)
+                        rotated_x = sprite_pos[0] * cos_a - sprite_pos[1] * sin_a
+                        rotated_y = sprite_pos[0] * sin_a + sprite_pos[1] * cos_a
+                        sprite_pos = numpy.array([rotated_x, rotated_y])
+
+                    sprite_canvas_pos = self.getObjectPosition(obj.pos + sprite_pos, offset)
+
+                    if obj_angle != 0:
+                        sprite_image = sprite_image.rotate(obj_angle, resample = Image.BILINEAR)
+
+                    sprite_photoimage = ImageTk.PhotoImage(sprite_image)
+
+                    self.level_canvas.create_image(sprite_canvas_pos[0], sprite_canvas_pos[1], anchor = 'c', image = sprite_photoimage, tags = ('object', 'child_sprite', id))
+
+                    if not hasattr(obj, '_child_sprite_photoimages'):
+                        obj._child_sprite_photoimages = []
+                    obj._child_sprite_photoimages.append(sprite_photoimage)
+                except Exception as e:
+                    logging.warning(f'Failed to create child sprite for {obj.name}: {e}')
+
         if (obj == self.selectedObject or self.settings.get('view.radius', True)) and obj.Type is not None:
             properties = filter(lambda name : obj.Type.PROPERTIES[name].get('type', 'string') == 'radius', obj.Type.PROPERTIES)
-            
+
             for property in properties:
                 props = obj.Type.get_properties(property)
                 for name, radius in props.items():
                     logging.debug(f'radius: {radius}')
                     radius_canvas_size = self.toLevelCanvasCoord(radius)
                     if radius_canvas_size > 0:
-                        r_id = self.level_canvas.create_circle(
-                            true_pos[0],
-                            true_pos[1],
-                            radius_canvas_size,
-                            fill = '',
-                            outline = 'red',
-                            width = self.OBJECT_MULTIPLIER,
-                            tags = ('passthrough', 'part', 'radius', property, id),
-                        )
-                        
+                        r_id = self.level_canvas.create_circle(true_pos[0], true_pos[1], radius_canvas_size, fill = '', outline = 'red', width = self.OBJECT_MULTIPLIER, tags = ('passthrough', 'part', 'radius', property, id))
+
                         logging.debug(f'radius tags: {self.level_canvas.gettags(r_id)}')
-        
+
         is_selected = obj == self.selectedObject
         view_path = self.settings.get('view.path', True)
         has_type = obj.Type is not None
-        
-        logging.debug(f'Path drawing conditions for {obj.name}: selected={is_selected}, view.path={view_path}, has_type={has_type}')
-        
+
+        # logging.debug(f'Path drawing conditions for {obj.name}: selected={is_selected}, view.path={view_path}, has_type={has_type}')
+
         if (is_selected or view_path) and has_type:
-            # Handle PathPos# properties (existing code)
             path_points = obj.Type.get_properties('PathPos#')
             logging.debug(f'path_points: {path_points}')
             if isinstance(path_points, dict) and len(path_points) > 0:
                 self._drawPathPosPoints(obj, path_points, canvas_pos, id)
-            
-            # Handle PathPoints property (for pipes and similar objects)
+
             try:
                 path_points_data = obj.Type.get_property('PathPoints')
                 logging.debug(f'PathPoints property value: {path_points_data}')
-                
-                # Handle both string and list formats
+
                 if path_points_data:
                     if isinstance(path_points_data, str):
                         path_points_str = path_points_data
                     elif isinstance(path_points_data, list):
-                        # Convert list of lists to string format
                         points = []
                         for point in path_points_data:
                             if isinstance(point, (list, tuple)) and len(point) >= 2:
@@ -970,7 +982,7 @@ class WME(tk.Tk):
                     else:
                         logging.debug(f'PathPoints has unexpected format: {type(path_points_data)}')
                         return
-                    
+
                     if path_points_str and path_points_str.strip():
                         logging.debug(f'Calling _drawPathPoints for {obj.name} with: {path_points_str}')
                         self._drawPathPoints(obj, path_points_str, canvas_pos, id)
@@ -979,24 +991,614 @@ class WME(tk.Tk):
                 else:
                     logging.debug(f'PathPoints is None for {obj.name}')
             except AttributeError as e:
-                # PathPoints property doesn't exist for this object type
                 logging.debug(f'PathPoints property not found for {obj.name}: {e}')
                 pass
-        
+
         # logging.info(f"id: {id}")
         # logging.info(f"pos: {pos}\n")
-        
+
         self.updateLayers()
-        
+
         self.bindObject(f'object&&{id}', obj)
-        
-        
-        self.updateSelectionRectangle()
-        self.updateLevelScroll()
-    
-    
+
+        if obj == self.selectedObject:
+            self.updateSelectionRectangle()
+            self.updateLevelScroll()
+
+        # self._updateParticleTrajectories(obj)
+        # self._updateVacuum()
+
+    def _updateParticleTrajectories(self, specific_obj=None):
+        trajectory_enabled = self.settings.get('view.particleTrajectory', False)
+        self.level_canvas.delete('particleTrajectory')
+        self.level_canvas.delete('offsetVariation')
+        self.level_canvas.delete('angleVariation')
+        self.level_canvas.delete('particleVariation')
+        self.level_canvas.delete('particleOffset')
+        if trajectory_enabled:
+            objects_to_check = self.level.objects
+
+            for obj in objects_to_check:
+                if hasattr(obj, 'defaultProperties') and obj.defaultProperties:
+                    if obj.defaultProperties.get('TemperatureType') == 'cold' or 'icicle' in obj.defaultProperties.get('ObjectType', '').lower():
+                        continue
+
+                is_spout = False
+                if hasattr(obj, 'defaultProperties') and obj.defaultProperties:
+                    spout_indicators = ['ParticleSpeed', 'Angle', 'ExpulsionAngle', 'FluidType', 'OffsetToMouth']
+                    for prop in spout_indicators:
+                        if prop in obj.defaultProperties:
+                            is_spout = True
+                            break
+
+                if is_spout:
+                    canvas_pos = self.getObjectPosition(obj.pos, obj.offset)
+                    obj_id = f'object-{str(obj.id)}'
+                    self._drawParticleTrajectory(obj, canvas_pos, obj_id)
+
+    def _updateVacuum(self):
+        vacuum_enabled = self.settings.get('view.vacuum', False)
+        self.level_canvas.delete('drainAngleVariation')
+        self.level_canvas.delete('vacuumWindField')
+        self.level_canvas.delete('vacuumForces')
+        self.level_canvas.delete('vacuumFriction')
+        if vacuum_enabled:
+            for obj in self.level.objects:
+                has_vacuum_force = (obj.properties and 'VacuumForce' in obj.properties) or (obj.Type and 'VacuumForce' in obj.Type.PROPERTIES)
+                if has_vacuum_force:
+                    canvas_pos = self.getObjectPosition(obj.pos, obj.offset)
+                    obj_id = f'object-{str(obj.id)}'
+                    self._drawDrainVisualizations(obj, canvas_pos, obj_id)
+
+    def _drawParticleTrajectory(self, obj, canvas_pos, id):
+        try:
+            properties = dict(obj.properties) if obj.properties else {}
+            if hasattr(obj, 'defaultProperties') and obj.defaultProperties:
+                for prop_name, prop_value in obj.defaultProperties.items():
+                    if prop_name not in properties:
+                        properties[prop_name] = prop_value
+
+            particle_speed = None
+            if 'ParticleSpeed' in properties:
+                particle_speed = float(properties.get('ParticleSpeed', 1))
+            elif obj.Type and 'ParticleSpeed' in obj.Type.PROPERTIES:
+                default_prop = obj.Type.PROPERTIES['ParticleSpeed']
+                if 'default' in default_prop:
+                    particle_speed = float(default_prop['default'])
+
+            if particle_speed is None:
+                return
+
+            spout_pos = numpy.array(obj.pos)
+
+            spout_angle = float(properties.get('Angle', 0))
+            expulsion_angle = float(properties.get('ExpulsionAngle', 0))
+            total_angle = spout_angle + expulsion_angle
+
+            fluid_type = properties.get('FluidType', 'water').lower()
+            trajectory_color = self._getFluidTypeColor(fluid_type)
+
+            offset_variation = float(properties.get('OffsetVariation', 0))
+            angle_variation = float(properties.get('ExpulsionAngleVariation', 0))
+            particle_variation = float(properties.get('ParticleVariation', 0))
+            particle_offset = properties.get('ParticleOffset', '0 0')
+
+            sprinkler_steps = int(properties.get('SprinklerSteps', 1))
+            sprinkler_width = float(properties.get('SprinklerWidth', 0))
+
+            offset_to_mouth = properties.get('OffsetToMouth', None)
+
+            if offset_to_mouth is None and hasattr(obj, 'filename') and obj.filename:
+                hs_filename = obj.filename
+                if hs_filename.startswith(':game:'):
+                    hs_filename = hs_filename[6:]
+
+                hs_files_to_check = [
+                    'shower_head.hs',
+                    f'touch_spout_{obj.name}.hs' if obj.name else None
+                ]
+
+                if hs_filename and hs_filename.startswith('/'):
+                    hs_files_to_check.append(hs_filename[1:])
+
+                for hs_file in hs_files_to_check:
+                    if hs_file is None:
+                        continue
+
+                    if '/' in hs_file and hs_file.endswith('.hs'):
+                        hs_path = wmwpy.utils.path.joinPath(self.game.gamepath, self.game.assets, hs_file)
+                    else:
+                        hs_path = wmwpy.utils.path.joinPath(self.game.gamepath, self.game.assets, self.game.baseassets, 'Objects', hs_file)
+
+                    if os.path.exists(hs_path):
+                        try:
+                            with open(hs_path, 'r') as f:
+                                content = f.read()
+                            import xml.etree.ElementTree as ET
+                            root = ET.fromstring(content)
+                            if offset_to_mouth is None:
+                                for prop in root.findall('.//Property[@name="OffsetToMouth"]'):
+                                    value = prop.get('value')
+                                    if value:
+                                        offset_to_mouth = value
+                                        break
+                            if offset_to_mouth:
+                                break
+                        except Exception as e:
+                            pass
+
+            if offset_to_mouth is None:
+                offset_to_mouth = '0 0'
+
+            spout_true_pos = self.getObjectPosition(spout_pos, obj.offset)
+
+            offset_x = -1.8
+            offset_y = 0
+            offset_parts = offset_to_mouth.split()
+            if len(offset_parts) >= 2:
+                parsed_offset_x = float(offset_parts[0])
+                parsed_offset_y = float(offset_parts[1])
+                if parsed_offset_x != 0 or parsed_offset_y != 0:
+                    offset_x += parsed_offset_x
+                    offset_y += parsed_offset_y
+
+            angle_rad = numpy.radians(spout_angle)
+            rotated_offset_x = offset_x * numpy.cos(angle_rad) - offset_y * numpy.sin(angle_rad)
+            rotated_offset_y = offset_x * numpy.sin(angle_rad) + offset_y * numpy.cos(angle_rad)
+
+            spout_true_pos = spout_true_pos + numpy.array([rotated_offset_x * self.OBJECT_MULTIPLIER * self.level.scale, rotated_offset_y * self.OBJECT_MULTIPLIER * self.level.scale])
+
+            particle_origin_canvas = spout_true_pos
+
+            particle_origin_x = (particle_origin_canvas[0] / self.level.scale) / self.OBJECT_MULTIPLIER
+            particle_origin_y = -(particle_origin_canvas[1] / self.level.scale) / self.OBJECT_MULTIPLIER
+            particle_origin = numpy.array([particle_origin_x, particle_origin_y])
+
+            if sprinkler_steps > 1 and sprinkler_width > 0:
+                gravity = 9.8
+                gravity_sign = 0.5 if fluid_type == 'steam' else -0.5
+                time_step = 0.1
+                max_iterations = 50
+                multiplier = self.OBJECT_MULTIPLIER * self.level.scale
+
+                for step in range(sprinkler_steps):
+                    horizontal_offset = -sprinkler_width / 2 + (sprinkler_width / (sprinkler_steps - 1)) * step
+
+                    step_origin = particle_origin + numpy.array([horizontal_offset, 0])
+
+                    angle_rad = numpy.radians(total_angle)
+
+                    vx = particle_speed * numpy.cos(angle_rad)
+                    vy = particle_speed * numpy.sin(angle_rad)
+
+                    t_values = numpy.arange(0, max_iterations * time_step, time_step)
+                    x_values = step_origin[0] + vx * t_values
+                    y_values = step_origin[1] + vy * t_values + gravity_sign * gravity * t_values**2
+
+                    canvas_x = x_values * multiplier
+                    canvas_y = y_values * -multiplier
+
+                    valid_mask = (numpy.abs(canvas_x) <= 2000) & (numpy.abs(canvas_y) <= 2000)
+                    valid_indices = numpy.where(valid_mask)[0]
+
+                    if len(valid_indices) > 1:
+                        points = []
+                        for i in valid_indices:
+                            points.extend([canvas_x[i], canvas_y[i]])
+                        self.level_canvas.create_line(points, fill=trajectory_color, width=2, tags=('passthrough', 'part', 'particleTrajectory', f'particleTrajectory&&{id}'))
+            else:
+                gravity = 9.8
+                gravity_sign = 0.5 if fluid_type == 'steam' else -0.5
+                time_step = 0.1
+                max_iterations = 50
+                multiplier = self.OBJECT_MULTIPLIER * self.level.scale
+
+                angle_rad = numpy.radians(total_angle)
+                vx = particle_speed * numpy.cos(angle_rad)
+                vy = particle_speed * numpy.sin(angle_rad)
+
+                t_values = numpy.arange(0, max_iterations * time_step, time_step)
+                x_values = particle_origin[0] + vx * t_values
+                y_values = particle_origin[1] + vy * t_values + gravity_sign * gravity * t_values**2
+
+                canvas_x = x_values * multiplier
+                canvas_y = y_values * -multiplier
+
+                valid_mask = (numpy.abs(canvas_x) <= 2000) & (numpy.abs(canvas_y) <= 2000)
+                valid_indices = numpy.where(valid_mask)[0]
+
+                if len(valid_indices) > 1:
+                    points = []
+                    for i in valid_indices:
+                        points.extend([canvas_x[i], canvas_y[i]])
+                    self.level_canvas.create_line(points, fill=trajectory_color, width=2, tags=('passthrough', 'part', 'particleTrajectory', f'particleTrajectory&&{id}'))
+
+                if offset_variation > 0:
+                    self._drawOffsetVariationArrow(obj, particle_origin_canvas, offset_variation, id)
+                if angle_variation > 0:
+                    self._drawAngleVariationArrow(obj, particle_origin_canvas, total_angle, angle_variation, id)
+                if particle_variation > 0:
+                    self._drawParticleVariationIndicator(obj, particle_origin_canvas, particle_variation, id)
+                if particle_offset != '0 0':
+                    self._drawParticleOffsetIndicator(obj, particle_origin_canvas, particle_offset, id)
+        except Exception as e:
+            pass
+
+    def _drawOffsetVariationArrow(self, obj, origin, variation, id):
+        radius = variation * 10
+        if radius < 5:
+            radius = 5
+
+        self.level_canvas.create_circle(origin[0], origin[1], radius, fill='', outline='black', width=2, tags=('passthrough', 'part', 'offsetVariation', f'offsetVariation&&{id}'))
+
+        cross_size = radius * 0.7
+        self.level_canvas.create_line(origin[0] - cross_size, origin[1], origin[0] + cross_size, origin[1], fill='black', width=1, tags=('passthrough', 'part', 'offsetVariation', f'offsetVariation&&{id}'))
+        self.level_canvas.create_line(origin[0], origin[1] - cross_size, origin[0], origin[1] + cross_size, fill='black', width=1, tags=('passthrough', 'part', 'offsetVariation', f'offsetVariation&&{id}'))
+
+        self.level_canvas.create_circle(origin[0], origin[1], 2, fill='black', outline='', tags=('passthrough', 'part', 'offsetVariation', f'offsetVariation&&{id}'))
+
+    def _drawAngleVariationArrow(self, obj, origin, base_angle, variation, id):
+        variation_deg = variation
+        if variation_deg < 5:
+            variation_deg = 5
+
+        variation_rad = numpy.radians(variation_deg)
+        arrow_length = 30
+
+        start_angle = base_angle - variation_deg
+        end_angle = base_angle + variation_deg
+
+        for angle in [start_angle, end_angle]:
+            angle_rad = numpy.radians(angle)
+            end_x = origin[0] + arrow_length * numpy.cos(angle_rad)
+            end_y = origin[1] + arrow_length * numpy.sin(angle_rad)
+
+            self.level_canvas.create_line(origin[0], origin[1], end_x, end_y, fill='white', width=2, tags=('passthrough', 'part', 'angleVariation', f'angleVariation&&{id}'))
+
+            arrow_size = 4
+            arrow_angle1 = angle_rad + numpy.radians(150)
+            arrow_angle2 = angle_rad - numpy.radians(150)
+
+            arrow_x1 = end_x + arrow_size * numpy.cos(arrow_angle1)
+            arrow_y1 = end_y + arrow_size * numpy.sin(arrow_angle1)
+            arrow_x2 = end_x + arrow_size * numpy.cos(arrow_angle2)
+            arrow_y2 = end_y + arrow_size * numpy.sin(arrow_angle2)
+
+            self.level_canvas.create_polygon(end_x, end_y, arrow_x1, arrow_y1, arrow_x2, arrow_y2, fill='white', outline='white', tags=('passthrough', 'part', 'angleVariation', f'angleVariation&&{id}'))
+
+    def _drawParticleVariationIndicator(self, obj, origin, variation, id):
+        indicator_radius = 8
+        variation_size = min(variation * 2, 15)
+
+        outer_radius = indicator_radius + variation_size
+        self.level_canvas.create_circle(origin[0] + 40, origin[1], outer_radius, outline='red', width=2, fill='', tags=('passthrough', 'part', 'particleVariation', f'particleVariation&&{id}'))
+
+        inner_radius = max(indicator_radius - variation_size, 2)
+        self.level_canvas.create_circle(origin[0] + 40, origin[1], inner_radius, outline='blue', width=2, fill='', tags=('passthrough', 'part', 'particleVariation', f'particleVariation&&{id}'))
+
+        self.level_canvas.create_circle(origin[0] + 40, origin[1], 2, fill='black', outline='', tags=('passthrough', 'part', 'particleVariation', f'particleVariation&&{id}'))
+
+    def _drawParticleOffsetIndicator(self, obj, origin, offset_str, id):
+        try:
+            offset_parts = offset_str.split()
+            offset_x = float(offset_parts[0])
+            offset_y = float(offset_parts[1]) if len(offset_parts) > 1 else 0
+
+            canvas_offset_x = offset_x * self.OBJECT_MULTIPLIER * self.level.scale
+            canvas_offset_y = offset_y * self.OBJECT_MULTIPLIER * self.level.scale
+
+            offset_pos_x = origin[0] + canvas_offset_x
+            offset_pos_y = origin[1] + canvas_offset_y
+
+            self.level_canvas.create_line(origin[0], origin[1], offset_pos_x, offset_pos_y, fill='green', width=2, dash=(5, 3), tags=('passthrough', 'part', 'particleOffset', f'particleOffset&&{id}'))
+
+            self.level_canvas.create_circle(offset_pos_x, offset_pos_y, 4, fill='', outline='green', width=2, tags=('passthrough', 'part', 'particleOffset', f'particleOffset&&{id}'))
+
+            self.level_canvas.create_circle(origin[0], origin[1], 2, fill='green', outline='', tags=('passthrough', 'part', 'particleOffset', f'particleOffset&&{id}'))
+        except:
+            pass
+
+    def _getFluidTypeColor(self, fluid_type):
+        fluid_colors = {
+            'water': '#0066CC',
+            'contaminatedwater': "#8B1385",
+            'lava': "#26E200",
+            'steam': '#E0E0E0',
+            'mud': '#654321', 
+            'drymud': '#8B7355',
+            'wetmud': '#5C4033'
+        }
+        return fluid_colors.get(fluid_type, '#000000')
+
+    def _drawDrainVisualizations(self, obj, canvas_pos, id):
+        try:
+            if not obj.properties:
+                return
+
+            properties = dict(obj.properties) if obj.properties else {}
+            if hasattr(obj, 'defaultProperties') and obj.defaultProperties:
+                for prop_name, prop_value in obj.defaultProperties.items():
+                    if prop_name not in properties:
+                        properties[prop_name] = prop_value
+
+            spout_type = properties.get('SpoutType', None)
+            fan_type = properties.get('FanType', None)
+
+            if spout_type is None:
+                spout_type = 'spout'
+            if fan_type is None:
+                fan_type = 'fan'
+
+            if spout_type not in ['Drain', 'DrainSpout'] and fan_type != 'fan':
+                return
+
+            obj_angle = -float(properties.get('Angle', 0))
+
+            angle_variation = float(properties.get('AngleVariation', obj.defaultProperties.get('AngleVariation', 0)))
+            vacuum_base_angle = float(properties.get('VacuumBaseAngle', obj.defaultProperties.get('VacuumBaseAngle', 0)))
+            vacuum_min_angle = float(properties.get('VacuumMinAngle', obj.defaultProperties.get('VacuumMinAngle', 0)))
+            vacuum_max_angle = float(properties.get('VacuumMaxAngle', obj.defaultProperties.get('VacuumMaxAngle', 0)))
+            vacuum_force = float(properties.get('VacuumForce', obj.defaultProperties.get('VacuumForce', 0)))
+            vacuum_max_force = float(properties.get('VacuumMaxForce', obj.defaultProperties.get('VacuumMaxForce', 0)))
+            vacuum_max_d = float(properties.get('VacuumMaxD', obj.defaultProperties.get('VacuumMaxD', 0)))
+            vacuum_friction = float(properties.get('VacuumFriction', obj.defaultProperties.get('VacuumFriction', 0)))
+
+            vacuum_center_offset_A_str = properties.get('VacuumCenterOffsetA', '0 0')
+            vacuum_center_offset_B_str = properties.get('VacuumCenterOffsetB', '0 0')
+            vacuum_center_offset_A = [float(x) for x in vacuum_center_offset_A_str.split()]
+            vacuum_center_offset_B = [float(x) for x in vacuum_center_offset_B_str.split()]
+
+            if angle_variation > 0:
+                self._drawDrainAngleVariation(obj, canvas_pos, angle_variation, obj_angle, id)
+
+            if vacuum_min_angle != 0 or vacuum_max_angle != 0 or vacuum_max_d > 0:
+                self._drawVacuumWindField(obj, canvas_pos, vacuum_min_angle, vacuum_max_angle, vacuum_max_d, obj_angle, id, vacuum_center_offset_A, vacuum_center_offset_B, vacuum_base_angle)
+
+            if vacuum_force > 0 or vacuum_max_force > 0:
+                self._drawVacuumForces(obj, canvas_pos, vacuum_force, vacuum_max_force, obj_angle, id, vacuum_center_offset_A, vacuum_center_offset_B, vacuum_base_angle)
+
+            if vacuum_friction > 0:
+                self._drawVacuumFriction(obj, canvas_pos, vacuum_friction, obj_angle, id)
+        except Exception as e:
+            pass
+
+    def _drawDrainAngleVariation(self, obj, origin, variation, obj_angle, id):
+        variation_deg = variation
+        if variation_deg < 5:
+            variation_deg = 5
+
+        arrow_length = 30
+
+        start_angle = -variation_deg + obj_angle
+        end_angle = variation_deg + obj_angle
+
+        for angle in [start_angle, end_angle]:
+            angle_rad = numpy.radians(angle)
+            end_x = origin[0] + arrow_length * numpy.cos(angle_rad)
+            end_y = origin[1] + arrow_length * numpy.sin(angle_rad)
+
+            self.level_canvas.create_line(origin[0], origin[1], end_x, end_y, fill='white', width=2, tags=('passthrough', 'part', 'drainAngleVariation', f'drainAngleVariation&&{id}'))
+
+            arrow_size = 4
+            arrow_angle1 = angle_rad + numpy.radians(150)
+            arrow_angle2 = angle_rad - numpy.radians(150)
+
+            arrow_x1 = end_x + arrow_size * numpy.cos(arrow_angle1)
+            arrow_y1 = end_y + arrow_size * numpy.sin(arrow_angle1)
+            arrow_x2 = end_x + arrow_size * numpy.cos(arrow_angle2)
+            arrow_y2 = end_y + arrow_size * numpy.sin(arrow_angle2)
+
+            self.level_canvas.create_polygon(end_x, end_y, arrow_x1, arrow_y1, arrow_x2, arrow_y2, fill='white', outline='white', tags=('passthrough', 'part', 'drainAngleVariation', f'drainAngleVariation&&{id}'))
+
+    def _drawVacuumWindField(self, obj, origin, min_angle, max_angle, max_d, obj_angle, id, center_offset_A=None, center_offset_B=None, base_angle=0):
+        x_axis_angle = obj_angle + base_angle
+        angle_rad = numpy.radians(x_axis_angle)
+        cos_angle = numpy.cos(angle_rad)
+        sin_angle = numpy.sin(angle_rad)
+
+        if center_offset_A is not None and len(center_offset_A) >= 2:
+            point_A_x = origin[0] - center_offset_A[0] * 5 * cos_angle - center_offset_A[1] * 5 * sin_angle
+            point_A_y = origin[1] - center_offset_A[0] * 5 * sin_angle + center_offset_A[1] * 5 * cos_angle
+        else:
+            point_A_x = origin[0]
+            point_A_y = origin[1]
+
+        if center_offset_B is not None and len(center_offset_B) >= 2:
+            point_B_x = origin[0] - center_offset_B[0] * 5 * cos_angle - center_offset_B[1] * 5 * sin_angle
+            point_B_y = origin[1] - center_offset_B[0] * 5 * sin_angle + center_offset_B[1] * 5 * cos_angle
+        else:
+            point_B_x = origin[0]
+            point_B_y = origin[1]
+
+        if center_offset_A is not None and len(center_offset_A) >= 2:
+            self.level_canvas.create_oval(point_A_x - 3, point_A_y - 3, point_A_x + 3, point_A_y + 3, fill='cyan', outline='cyan', tags=('passthrough', 'part', 'vacuumWindField', f'vacuumWindField&&{id}'))
+        if center_offset_B is not None and len(center_offset_B) >= 2:
+            self.level_canvas.create_oval(point_B_x - 3, point_B_y - 3, point_B_x + 3, point_B_y + 3, fill='magenta', outline='magenta', tags=('passthrough', 'part', 'vacuumWindField', f'vacuumWindField&&{id}'))
+
+        self._drawArrowLine(point_A_x, point_A_y, point_B_x, point_B_y, 'blue', 2, id, 'vacuumWindField')
+
+        if max_d > 0:
+            angle_rad = numpy.radians(x_axis_angle - min_angle + 180)
+            length = max_d * 5
+            point_A_prime_x = point_A_x + length * numpy.cos(angle_rad)
+            point_A_prime_y = point_A_y + length * numpy.sin(angle_rad)
+            self._drawArrowLine(point_A_x, point_A_y, point_A_prime_x, point_A_prime_y, 'green', 2, id, 'vacuumWindField')
+        else:
+            point_A_prime_x = point_A_x
+            point_A_prime_y = point_A_y
+
+        if max_d > 0:
+            angle_rad = numpy.radians(x_axis_angle - max_angle + 180)
+            length = max_d * 5
+            point_B_prime_x = point_B_x + length * numpy.cos(angle_rad)
+            point_B_prime_y = point_B_y + length * numpy.sin(angle_rad)
+            self._drawArrowLine(point_B_x, point_B_y, point_B_prime_x, point_B_prime_y, 'red', 2, id, 'vacuumWindField')
+        else:
+            point_B_prime_x = point_B_x
+            point_B_prime_y = point_B_y
+
+        if min_angle != 0 or max_angle != 0:
+            self.level_canvas.create_line(point_A_prime_x, point_A_prime_y, point_B_prime_x, point_B_prime_y, fill='purple', width=2, tags=('passthrough', 'part', 'vacuumWindField', f'vacuumWindField&&{id}'))
+
+    def _drawArrowLine(self, x1, y1, x2, y2, color, width, id, tag):
+        self.level_canvas.create_line(x1, y1, x2, y2, fill=color, width=width, tags=('passthrough', 'part', tag, f'{tag}&&{id}'))
+
+        angle = numpy.arctan2(y2 - y1, x2 - x1)
+        arrow_size = 5
+        arrow_angle1 = angle + numpy.radians(150)
+        arrow_angle2 = angle - numpy.radians(150)
+
+        arrow_x1 = x2 + arrow_size * numpy.cos(arrow_angle1)
+        arrow_y1 = y2 + arrow_size * numpy.sin(arrow_angle1)
+        arrow_x2 = x2 + arrow_size * numpy.cos(arrow_angle2)
+        arrow_y2 = y2 + arrow_size * numpy.sin(arrow_angle2)
+
+        self.level_canvas.create_polygon(x2, y2, arrow_x1, arrow_y1, arrow_x2, arrow_y2, fill=color, outline=color, tags=('passthrough', 'part', tag, f'{tag}&&{id}'))
+
+    def _drawVacuumForces(self, obj, origin, force, max_force, obj_angle, id, center_offset_A=None, center_offset_B=None, base_angle=0):
+        x_axis_angle = obj_angle + base_angle
+        angle_rad = numpy.radians(x_axis_angle)
+        cos_angle = numpy.cos(angle_rad)
+        sin_angle = numpy.sin(angle_rad)
+
+        if center_offset_A is not None and len(center_offset_A) >= 2 and center_offset_B is not None and len(center_offset_B) >= 2:
+            point_A_x = origin[0] - center_offset_A[0] * 5 * cos_angle - center_offset_A[1] * 5 * sin_angle
+            point_A_y = origin[1] - center_offset_A[0] * 5 * sin_angle + center_offset_A[1] * 5 * cos_angle
+
+            point_B_x = origin[0] - center_offset_B[0] * 5 * cos_angle - center_offset_B[1] * 5 * sin_angle
+            point_B_y = origin[1] - center_offset_B[0] * 5 * sin_angle + center_offset_B[1] * 5 * cos_angle
+
+            if max_force > 0:
+                midpoint_AB_x = (point_A_x + point_B_x) / 2
+                midpoint_AB_y = (point_A_y + point_B_y) / 2
+                self.level_canvas.create_text(midpoint_AB_x, midpoint_AB_y + 10, text=str(int(max_force)), fill='red', font=('Arial', 10, 'bold'), tags=('passthrough', 'part', 'vacuumForces', f'vacuumForces&&{id}'))
+
+            if force > 0:
+                min_angle = float(obj.properties.get('VacuumMinAngle', obj.defaultProperties.get('VacuumMinAngle', 0)))
+                max_angle = float(obj.properties.get('VacuumMaxAngle', obj.defaultProperties.get('VacuumMaxAngle', 0)))
+                max_d = float(obj.properties.get('VacuumMaxD', obj.defaultProperties.get('VacuumMaxD', 0)))
+
+                if max_d > 0:
+                    angle_rad = numpy.radians(x_axis_angle - min_angle + 180)
+                    length = max_d * 5
+                    point_A_prime_x = point_A_x + length * numpy.cos(angle_rad)
+                    point_A_prime_y = point_A_y + length * numpy.sin(angle_rad)
+
+                    angle_rad = numpy.radians(x_axis_angle - max_angle + 180)
+                    length = max_d * 5
+                    point_B_prime_x = point_B_x + length * numpy.cos(angle_rad)
+                    point_B_prime_y = point_B_y + length * numpy.sin(angle_rad)
+
+                    midpoint_A_primeB_prime_x = (point_A_prime_x + point_B_prime_x) / 2
+                    midpoint_A_primeB_prime_y = (point_A_prime_y + point_B_prime_y) / 2
+                    self.level_canvas.create_text(midpoint_A_primeB_prime_x, midpoint_A_primeB_prime_y - 10, text=str(int(force)), fill='red', font=('Arial', 10, 'bold'), tags=('passthrough', 'part', 'vacuumForces', f'vacuumForces&&{id}'))
+        else:
+            if force > 0:
+                line_length = (force * 5) / 2
+                x1 = origin[0] + line_length * cos_angle
+                y1 = origin[1] + line_length * sin_angle
+                x2 = origin[0] - line_length * cos_angle
+                y2 = origin[1] - line_length * sin_angle
+                self.level_canvas.create_line(x1, y1, x2, y2, fill='red', width=3, tags=('passthrough', 'part', 'vacuumForces', f'vacuumForces&&{id}'))
+
+            if max_force > 0:
+                line_length = (max_force * 5) / 2
+                x1 = origin[0] + line_length * cos_angle
+                y1 = origin[1] + line_length * sin_angle
+                x2 = origin[0] - line_length * cos_angle
+                y2 = origin[1] - line_length * sin_angle
+                self.level_canvas.create_line(x1, y1, x2, y2, fill='red', width=2, dash=(5, 3), tags=('passthrough', 'part', 'vacuumForces', f'vacuumForces&&{id}'))
+
+    def _drawVacuumFriction(self, obj, origin, friction, obj_angle, id):
+        radius = friction * 10
+        if radius < 3:
+            radius = 3
+
+        self.level_canvas.create_circle(origin[0], origin[1], radius, fill='', outline='orange', width=2, tags=('passthrough', 'part', 'vacuumFriction', f'vacuumFriction&&{id}'))
+
+    def _updateParentConnections(self):
+        self.level_canvas.delete('parent')
+        self.level_canvas.delete('connectedSpout')
+        parent_enabled = self.settings.get('view.parent', True)
+        if parent_enabled:
+            for obj in self.level.objects:
+                canvas_pos = self.getObjectPosition(obj.pos, obj.offset)
+                obj_id = f'object-{str(obj.id)}'
+                self._drawParentConnections(obj, canvas_pos, obj_id)
+            self.updateLayers()
+
+    def _drawParentConnections(self, obj, canvas_pos, id):
+        try:
+            if not obj.properties:
+                return
+
+            parent_name = obj.properties.get('Parent', '')
+            if parent_name:
+                parent_obj = None
+                for other_obj in self.level.objects:
+                    if other_obj.name == parent_name:
+                        parent_obj = other_obj
+                        break
+
+                if parent_obj:
+                    parent_canvas_pos = self.getObjectPosition(parent_obj.pos, parent_obj.offset)
+                    self._drawParentLine(parent_canvas_pos, canvas_pos, 'Parent', id, parent_obj.id)
+
+            for prop_name, prop_value in obj.properties.items():
+                if prop_name.startswith('ConnectedSpout') or prop_name.startswith('ConnectedObject') or prop_name.startswith('ConnectedConverter'):
+                    connected_obj_name = str(prop_value)
+                    if connected_obj_name and connected_obj_name != '0':
+                        connected_obj = None
+                        for other_obj in self.level.objects:
+                            if other_obj.name == connected_obj_name:
+                                connected_obj = other_obj
+                                break
+
+                        if connected_obj:
+                            connected_canvas_pos = self.getObjectPosition(connected_obj.pos, connected_obj.offset)
+                            self._drawConnectedSpoutLine(canvas_pos, connected_canvas_pos, prop_name, id, connected_obj.id)
+        except Exception as e:
+            pass
+
+    def _drawParentLine(self, parent_pos, child_pos, property_name, child_id, parent_id):
+        self.level_canvas.create_line(parent_pos[0], parent_pos[1], child_pos[0], child_pos[1], fill='blue', width=2, dash=(8, 4), tags=('passthrough', 'part', 'parent', f'parent&&{child_id}', f'parent&&{parent_id}'))
+
+        self._drawArrow(parent_pos, child_pos, 'blue', 'parent')
+
+    def _drawConnectedSpoutLine(self, from_pos, to_pos, property_name, from_id, to_id):
+        connection_num = ''
+        if property_name != 'ConnectedSpout' and property_name != 'ConnectedObject' and property_name != 'ConnectedConverter':
+            import re
+            match = re.match(r'(ConnectedSpout|ConnectedObject|ConnectedConverter)(\d+)', property_name)
+            if match:
+                connection_num = match.group(2)
+
+        self.level_canvas.create_line(from_pos[0], from_pos[1], to_pos[0], to_pos[1], fill='green', width=2, tags=('passthrough', 'part', 'connectedSpout', f'connectedSpout&&{from_id}', f'connectedSpout&&{to_id}'))
+
+        if connection_num:
+            mid_x = (from_pos[0] + to_pos[0]) / 2
+            mid_y = (from_pos[1] + to_pos[1]) / 2
+            self.level_canvas.create_text(mid_x, mid_y, text=connection_num, fill='white', font=('Arial', 8, 'bold'), tags=('passthrough', 'part', 'connectedSpout', f'connectedSpout&&{from_id}', f'connectedSpout&&{to_id}'))
+
+        self._drawArrow(from_pos, to_pos, 'green', 'connectedSpout')
+
+    def _drawArrow(self, from_pos, to_pos, color, tag_prefix):
+        arrow_ratio = 0.75
+        arrow_x = from_pos[0] + (to_pos[0] - from_pos[0]) * arrow_ratio
+        arrow_y = from_pos[1] + (to_pos[1] - from_pos[1]) * arrow_ratio
+
+        angle = numpy.arctan2(to_pos[1] - from_pos[1], to_pos[0] - from_pos[0])
+        arrow_length = 8
+        arrow_angle = numpy.pi / 6
+
+        arrow_x1 = arrow_x - arrow_length * numpy.cos(angle - arrow_angle)
+        arrow_y1 = arrow_y - arrow_length * numpy.sin(angle - arrow_angle)
+        arrow_x2 = arrow_x - arrow_length * numpy.cos(angle + arrow_angle)
+        arrow_y2 = arrow_y - arrow_length * numpy.sin(angle + arrow_angle)
+
+        self.level_canvas.create_polygon(arrow_x, arrow_y, arrow_x1, arrow_y1, arrow_x2, arrow_y2, fill=color, outline=color, tags=('passthrough', 'part', tag_prefix))
+
     def _drawPathPosPoints(self, obj, path_points, canvas_pos, id):
-        """Draw PathPos# properties (existing functionality)"""
         is_global = obj.Type.get_property('PathIsGlobal')
         is_closed = obj.Type.get_property('PathIsClosed')
 
@@ -1004,178 +1606,119 @@ class WME(tk.Tk):
             path_start = obj.pos
         else:
             path_start = (0, 0)
-        
+
         path_canvas_points = []
 
         for property, path_point in path_points.items():
             logging.debug(f'property: {property}')
             logging.debug(f'value: {path_point}')
             path_pos = copy(path_start)
-                
+
             if isinstance(path_point, list):
                 if len(path_point) == 1:
                     path_point += [path_start[1]]
                     path_pos = tuple(path_point)
                 elif len(path_point) >= 2:
                     path_pos = (path_point[0], path_point[1])
-            
+
             path_pos = numpy.array(path_pos)
-            
+
             global_pos = copy(canvas_pos)
             if is_global:
                 global_pos = self.toLevelCanvasCoord(path_pos)
             else:
                 global_pos = self.toLevelCanvasCoord(obj.pos) + self.toLevelCanvasCoord(path_pos, 1)
-            
+
             path_canvas_points.append(tuple(global_pos))
-            
+
             color = 'black'
             if obj == self.selectedObject and self.selectedPart['property'] == property:
                 color = 'yellow'
-            
-            point_id = self.level_canvas.create_circle(
-                global_pos[0],
-                global_pos[1],
-                3,
-                fill = color,
-                outline = '',
-                tags = ('part', 'path', property, 'pathPoint', id),
-            )
+
+            point_id = self.level_canvas.create_circle(global_pos[0], global_pos[1], 3, fill = color, outline = '', tags = ('part', 'path', property, 'pathPoint', id))
 
         if len(path_canvas_points) > 1:
             if is_closed:
-                line = self.level_canvas.create_polygon(
-                    path_canvas_points,
-                    fill = '',
-                    outline = 'black',
-                    width = 2,
-                    tags = ('passthrough', 'part', 'path', property, 'pathLine', id),
-                )
+                line = self.level_canvas.create_polygon(path_canvas_points, fill = '', outline = 'black', width = 2, tags = ('passthrough', 'part', 'path', property, 'pathLine', id))
             else:
-                line = self.level_canvas.create_line(
-                    path_canvas_points,
-                    fill = 'black',
-                    width = 2,
-                    tags = ('passthrough', 'part', 'path', property, 'pathLine', id),
-                )
-    
-    
+                line = self.level_canvas.create_line(path_canvas_points, fill = 'black', width = 2, tags = ('passthrough', 'part', 'path', property, 'pathLine', id))
+
     def _drawPathPoints(self, obj, path_points_str, canvas_pos, id):
-        """Draw PathPoints property (for pipes and similar objects)"""
         logging.debug(f'_drawPathPoints called for {obj.name} with: {path_points_str}')
         try:
-            # Parse PathPoints string: "x1 y1,x2 y2,x3 y3,..."
             points = []
             point_pairs = path_points_str.split(',')
-            
+
             for pair in point_pairs:
                 coords = pair.strip().split()
                 if len(coords) >= 2:
                     x, y = float(coords[0]), float(coords[1])
                     points.append((x, y))
-            
+
             logging.debug(f'Parsed {len(points)} points: {points}')
-            
+
             if len(points) < 2:
                 logging.debug(f'PathPoints has less than 2 points: {len(points)}')
                 return
-            
+
             logging.debug(f'Drawing {len(points)} PathPoints for {obj.name}')
-            
-            # Convert to canvas coordinates
+
             path_canvas_points = []
             for i, (x, y) in enumerate(points):
-                # PathPoints are relative to object position
                 global_pos = self.toLevelCanvasCoord(obj.pos) + self.toLevelCanvasCoord((x, y), 1)
                 path_canvas_points.append(tuple(global_pos))
-                
-                # Draw point with size based on point index
+
                 point_size = 4 if i == 0 or i == len(points) - 1 else 3  # Larger endpoints
                 color = 'black'
                 if obj == self.selectedObject and self.selectedPart.get('property') == f'PathPoints[{i}]':
                     color = 'yellow'
-                
+
                 logging.debug(f'Drawing point {i} at {global_pos}')
-                point_id = self.level_canvas.create_circle(
-                    global_pos[0],
-                    global_pos[1],
-                    point_size,
-                    fill = color,
-                    outline = 'darkblue' if i == 0 else 'darkred' if i == len(points) - 1 else '',
-                    width = 1,
-                    tags = ('part', 'path', f'PathPoints[{i}]', 'pathPoint', id),
-                )
-            
-            # Draw connecting lines between all points
+                point_id = self.level_canvas.create_circle(global_pos[0], global_pos[1], point_size, fill = color, outline = 'darkblue' if i == 0 else 'darkred' if i == len(points) - 1 else '', width = 1, tags = ('part', 'path', f'PathPoints[{i}]', 'pathPoint', id))
+
             if len(path_canvas_points) > 1:
                 logging.debug(f'Drawing {len(path_canvas_points)-1} connecting lines')
-                # Draw lines between consecutive points
                 for i in range(len(path_canvas_points) - 1):
-                    line = self.level_canvas.create_line(
-                        [path_canvas_points[i], path_canvas_points[i + 1]],
-                        fill = 'black',
-                        width = 2,
-                        tags = ('passthrough', 'part', 'path', f'PathPoints[{i}-{i+1}]', 'pathLine', id),
-                    )
-                
-                # Optional: Draw dashed line for path direction indicator
+                    line = self.level_canvas.create_line([path_canvas_points[i], path_canvas_points[i + 1]], fill = 'black', width = 2, tags = ('passthrough', 'part', 'path', f'PathPoints[{i}-{i+1}]', 'pathLine', id))
+
                 if len(path_canvas_points) > 2:
-                    # Create arrow-like indicators along the path
                     for i in range(len(path_canvas_points) - 1):
                         start = path_canvas_points[i]
                         end = path_canvas_points[i + 1]
-                        # Calculate midpoint for direction indicator
                         mid_x = (start[0] + end[0]) / 2
                         mid_y = (start[1] + end[1]) / 2
-                        
-                        # Small arrow indicator
-                        arrow_id = self.level_canvas.create_polygon(
-                            [mid_x - 2, mid_y - 2, mid_x + 2, mid_y - 2, mid_x, mid_y + 2],
-                            fill = 'gray',
-                            outline = '',
-                            tags = ('passthrough', 'part', 'path', 'PathPoints', 'pathDirection', id),
-                        )
-                
+
+                        arrow_id = self.level_canvas.create_polygon([mid_x - 2, mid_y - 2, mid_x + 2, mid_y - 2, mid_x, mid_y + 2], fill = 'gray', outline = '', tags = ('passthrough', 'part', 'path', 'PathPoints', 'pathDirection', id))
+
         except (ValueError, IndexError) as e:
             logging.error(f'Error parsing PathPoints "{path_points_str}": {e}')
         except Exception as e:
             logging.error(f'Unexpected error drawing PathPoints: {e}')
-    
-    
-    def selectObjectAt(
-        self,
-        pos: tuple[float, float] | list[float] | tk.Event,
-        halo: int | float = 5,
-    ):
+
+    def selectObjectAt(self, pos: tuple[float, float] | list[float] | tk.Event, halo: int | float = 5):
         event = None
         if isinstance(pos, tk.Event):
             event = pos
             logging.debug(f'select obj event: {event.__dict__}')
             pos = (pos.x, pos.y)
 
-            pos = (
-                self.level_canvas.canvasx(pos[0]),
-                self.level_canvas.canvasy(pos[1])
-            )
-        
+            pos = (self.level_canvas.canvasx(pos[0]), self.level_canvas.canvasy(pos[1]))
+
         # objects = self.level_canvas.find_overlapping(*mouse, *mouse)
-        objects = self.level_canvas.find_overlapping(
-            pos[0] - halo, pos[1] - halo,
-            pos[0] + halo, pos[1] + halo,
-        )
+        objects = self.level_canvas.find_overlapping(pos[0] - halo, pos[1] - halo, pos[0] + halo, pos[1] + halo)
         logging.debug(f'under mouse: {objects}')
-        
+
         for id in reversed(objects):
             tags = self.level_canvas.gettags(id)
             logging.debug(f'tags: {tags}')
             if tags[0] in ['selection', 'level']:
                 continue
-            
+
             obj_tag = -1
             if not tags[obj_tag].startswith('object-'):
                 logging.debug(f'tag not obj: {tags}')
                 obj_tag = -2
-            
+
             if tags[obj_tag].startswith('object-'):
                 obj = self.level.getObjectById(tags[obj_tag][7::])
                 logging.debug(f'obj: {obj}')
@@ -1185,7 +1728,7 @@ class WME(tk.Tk):
                     logging.debug(f'obj name: {obj.name}')
             else:
                 continue
-            
+
             if tags[0] == 'passthrough':
                 continue
             elif tags[0] == 'object':
@@ -1193,68 +1736,59 @@ class WME(tk.Tk):
                 self.selectObject(obj, event)
                 return 'object', obj
             elif tags[0] == 'part':
-                self.selectPart(
-                    obj,
-                    tags[1],
-                    id,
-                    tags[2],
-                )
+                self.selectPart(obj, tags[1], id, tags[2])
                 return 'part', obj, self.selectedPart
-        
+
         self.selectObject(None)
-        
+
         return None, None
-    
+
     def onLevelClick(self, event : tk.Event):
         logging.debug('level')
-        
+
         if self.level == None:
             return
-        
+
         self.selectObjectAt(event)
-            
-            
-    
+
     def onLevelMove(self, event: tk.Event):
         if self.selectedPart['type'] != None:
             self.dragPart(event)
         elif self.selectedObject:
             self.dragObject(self.selectedObject, event)
-        
-    
+
     def createLevelContextMenu(self):
         self.levelContextMenu = tk.Menu(self.level_canvas, tearoff = 0)
         self.levelContextMenu.add_command(label = 'add object', command = lambda *args: self.addObjectSelector(self.getRelativeMousePos(self.level_canvas.winfo_pointerxy(), self.level_canvas)))
         self.levelContextMenu.add_command(label = 'paste', command = self.pasteObject, accelerator = f'{crossplatform.shortModifier()}+V')
-    
+
     def onLevelRightClick(self, event):
         logging.debug('level context menu')
-        
+
         selected_type, selected_obj, *extra = self.selectObjectAt(event)
-        
+
         if selected_type == None:
             self.showPopup(self.levelContextMenu, event)
         elif selected_type == 'object':
             self.showPopup(self.createObjectContextMenu(selected_obj), event)
         elif selected_type == 'part':
             self.showPopup(self.createPartContextMenu(selected_obj, extra[0]), event)
-            
-    
+
     def bindObject(self, id, obj : wmwpy.classes.Object | None = None):
         if obj == None:
             if self.selectedObject != None:
                 obj = self.selectedObject
             else:
                 return
-        
+
         # self.level_canvas.tag_bind(
         #     id,
         #     '<Button1-Motion>',
         #     lambda e, object = obj: self.dragObject(object, e)
         # )
-        
+
         context_menu = self.createObjectContextMenu(obj)
-        
+
         # if platform.system() == 'Darwin':
         #     self.level_canvas.tag_bind(
         #         id,
@@ -1267,53 +1801,30 @@ class WME(tk.Tk):
         #         '<Button-3>',
         #         lambda e, object = obj, menu = context_menu: self.showPopup(menu, e, callback = lambda : self.selectObject(object))
         #     )
-    
+
     def unbindObject(self, id):
-        self.level_canvas.tag_unbind(
-            id,
-            '<Button1-Motion>',
-        )
-        self.level_canvas.tag_unbind(
-            id,
-            '<Button-1>',
-        )
-        
+        self.level_canvas.tag_unbind(id, '<Button1-Motion>')
+        self.level_canvas.tag_unbind(id, '<Button-1>')
+
         if platform.system() == 'Darwin':
-            self.level_canvas.tag_unbind(
-                id,
-                '<Button-2>',
-            )
+            self.level_canvas.tag_unbind(id, '<Button-2>')
         else:
-            self.level_canvas.tag_unbind(
-                id,
-                '<Button-3>',
-            )
-        
+            self.level_canvas.tag_unbind(id, '<Button-3>')
+
     def createObjectContextMenu(self, obj : wmwpy.classes.Object):
         self.objectContextMenu.delete(0, 3)
         self.objectContextMenu.add_command(label = 'copy', command = lambda *args : self.copyObject(obj), accelerator = f'{crossplatform.shortModifier()}+C')
         self.objectContextMenu.add_command(label = 'cut', command = lambda *args : self.cutObject(obj), accelerator = f'{crossplatform.shortModifier()}+X')
         self.objectContextMenu.add_command(label = 'delete', command = lambda *args : self.deleteObject(obj), accelerator = 'Del')
-        
+
         return self.objectContextMenu
 
-    def createPartContextMenu(
-        self,
-        obj: wmwpy.classes.Object,
-        part: dict[
-            typing.Literal[
-                'type',
-                'id',
-                'property'
-            ], str | None,
-        ],
-        ):
-        
+    def createPartContextMenu(self, obj: wmwpy.classes.Object, part: dict[typing.Literal['type', 'id', 'property'], str | None]):
         self.objectContextMenu.delete(0, 3)
         self.objectContextMenu.add_command(label = 'delete', command = lambda *args : self.deleteProperty(obj, part['property']), accelerator = 'Del')
-        
+
         return self.objectContextMenu
-    
+
     def showPopup(self, menu : tk.Menu, event : tk.Event = None, callback : typing.Callable = None):
         try:
             if callback != None:
@@ -1321,35 +1832,33 @@ class WME(tk.Tk):
             menu.tk_popup(event.x_root, event.y_root, 0)
         finally:
             menu.grab_release()
-    
+
     def moveObject(self, obj : wmwpy.classes.Object | None = None, amount : tuple[float,float] = (0,0)) -> tuple[float,float]:
         if not self.checkLevelFocus():
             return
-        
+
         if (obj == None) or isinstance(obj, tk.Event):
             obj = self.selectedObject
-        
+
         if self.selectedPart['type']:
-            self.dragPart(
-                obj = obj,
-                amount = amount,
-            )
+            self.dragPart(obj = obj, amount = amount)
         else:
             if obj == None:
                 return
-            
+
             amount = numpy.array(amount)
             pos = tuple(obj.pos + amount)
             obj.pos = pos
             self.updateObject(obj)
-            
+            self._updateParentConnections()
+
             if self.selectedObject == obj:
                 if 'pos' in self.objectProperties:
                     self.objectProperties['pos']['var'][0].set(pos[0])
                     self.objectProperties['pos']['var'][1].set(pos[1])
-        
+
             return pos
-    
+
     def deleteObject(self, obj : wmwpy.classes.Object = None):
         if (obj == None) or isinstance(obj, tk.Event):
             if isinstance(obj, tk.Event):
@@ -1357,24 +1866,28 @@ class WME(tk.Tk):
                     return
 
             obj = self.selectedObject
-        
+
         if obj == None:
             return
-        
+
         if self.selectedPart['type']:
             self.deleteProperty(obj, self.selectedPart['property'])
         else:
             self.level_canvas.delete(f'object-{str(obj.id)}')
-            
+
             if obj in self.level.objects:
                 index = self.level.objects.index(obj)
                 del self.level.objects[index]
-            
+
+                self._updateParticleTrajectories()
+                self._updateVacuum()
+                self._updateParentConnections()
+
             if obj == self.selectedObject:
                 self.selectObject(None)
-            
+
             self.updateObjectSelector()
-    
+
     def deleteProperty(self, obj: wmwpy.classes.Object, property: str):
         if property in obj.properties:
             del obj.properties[property]
@@ -1382,102 +1895,70 @@ class WME(tk.Tk):
             self.updateObject(obj)
             if self.selectedObject == obj:
                 self.updateProperties()
-    
-    def checkLevelFocus(
-        self,
-    ):
+
+    def checkLevelFocus(self):
         focus = self.focus_get()
         return not isinstance(focus, tk.Entry)
-        
-    
-    def copyObject(
-        self,
-        obj : wmwpy.classes.Object | None = None,
-    ):
+
+    def copyObject(self, obj : wmwpy.classes.Object | None = None):
         if not self.checkLevelFocus():
             return
-        
+
         if (obj == None) or isinstance(obj, tk.Event):
             obj = self.selectedObject
-        
+
         if obj == None:
             return
 
         self.clipboard : wmwpy.classes.Object = obj.copy()
-    
-    def cutObject(
-        self,
-        obj : wmwpy.classes.Object = None,
-    ):
+
+    def cutObject(self, obj : wmwpy.classes.Object = None):
         if not self.checkLevelFocus():
             return
-        
+
         if (obj == None) or isinstance(obj, tk.Event):
             obj = self.selectedObject
-        
+
         if obj == None:
             return
-        
+
         self.copyObject(obj)
         self.deleteObject(obj)
-    
-    def pasteObject(
-        self,
-        pos : tuple[int,int] = None,
-    ):
+
+    def pasteObject(self, pos : tuple[int,int] = None):
         if not self.checkLevelFocus():
             return
-        
+
         if pos == None or isinstance(pos, tk.Event):
             pos = self.getRelativeMousePos(self.level_canvas.winfo_pointerxy(), self.level_canvas)
-        
+
         if isinstance(self.clipboard, wmwpy.classes.Object):
-            self.selectObject(
-                self.addObject(
-                    self.clipboard.copy(),
-                    pos = self.windowPosToWMWPos(pos),
-                    name = self.clipboard.name,
-                )
-            )
-    
-    def addObject(
-        self,
-        obj : wmwpy.classes.Object | str,
-        properties: dict = {},
-        pos: tuple[float, float] = (0, 0),
-        name: str = 'Obj',
-    ):
+            self.selectObject(self.addObject(self.clipboard.copy(), pos = self.windowPosToWMWPos(pos), name = self.clipboard.name))
+
+    def addObject(self, obj : wmwpy.classes.Object | str, properties: dict = {}, pos: tuple[float, float] = (0, 0), name: str = 'Obj'):
         if not isinstance(obj, (wmwpy.classes.Object, wmwpy.filesystem.File)):
             obj = self.getFile(obj)
-        
-        obj = self.level.addObject(
-            filename = obj,
-            properties = properties,
-            pos = pos,
-            name = name,
-        )
-        
+
+        obj = self.level.addObject(filename = obj, properties = properties, pos = pos, name = name)
+
         self.updateObject(obj)
         self.updateObjectSelector()
-        
+        self._updateParentConnections()
+
         return obj
 
-    def changeObjectFilename(
-        self,
-        obj: wmwpy.classes.Object,
-        new_path: str | None,
-    ):
+    def changeObjectFilename(self, obj: wmwpy.classes.Object, new_path: str | None):
         if obj not in self.level.objects:
             return
-        
+
         level_index = self.level.objects.index(obj)
-        
+
         if new_path == None:
             new_path = filedialog.askopenfilename(
                 defaultextension = '.hs',
                 filetypes = (
                     ('WMW Object', '*.hs'),
-                    ('Any', '*.*'),
+                    ('Any', '*.*')
                 ),
                 initialdir = wmwpy.utils.path.joinPath(
                     self.game.gamepath,
@@ -1486,41 +1967,33 @@ class WME(tk.Tk):
                     'Objects'
                 ),
             )
-        
-        if new_path == None:
-            return
-        
+
         if not isinstance(new_path, (wmwpy.filesystem.File)):
             new_path = self.getFile(new_path)
-        
+
         if new_path == None:
             return
-        
+
         self.level.objects.remove(obj)
-        
-        new_obj = self.level.addObject(
-            new_path,
-            properties = deepcopy(obj.properties),
-            pos = copy(obj.pos),
-            name = obj.name,
-        )
-        
+
+        new_obj = self.level.addObject(new_path, properties = deepcopy(obj.properties), pos = copy(obj.pos), name = obj.name)
+
         self.level.objects.insert(level_index, self.level.objects.pop(self.level.objects.index(new_obj)))
 
-        
         self.updateObject(new_obj)
         self.updateObjectSelector()
+        self._updateParentConnections()
         if self.selectedObject == obj:
             self.selectObject(new_obj)
-        
+
         return new_obj
-    
+
     def addObjectSelector(self, pos : tuple = (0,0)):
         filename = filedialog.askopenfilename(
             defaultextension = '.hs',
             filetypes = (
                 ('WMW Object', '*.hs'),
-                ('Any', '*.*'),
+                ('Any', '*.*')
             ),
             initialdir = wmwpy.utils.path.joinPath(
                 self.game.gamepath,
@@ -1529,36 +2002,33 @@ class WME(tk.Tk):
                 'Objects'
             ),
         )
-        
-        self.addObject(
-            filename,
-            pos = self.windowPosToWMWPos(pos)
-        )
-    
+
+        self.addObject(filename, pos = self.windowPosToWMWPos(pos))
+
     def updateProperties(self, obj : wmwpy.classes.Object | None = None):
         if obj == None:
             obj = self.selectedObject
-        
+
         self.resetProperties()
 
         isLevel = False
-        
+
         if obj == None:
             # no object
             logging.debug('level properties')
             isLevel = True
             obj = self.level
-            
+
             if obj == None:
                 self.properties['panned'].configure(height = 1)
                 self.properties['scrollFrame'].resetCanvasScroll()
                 return
-            
+
         if isLevel:
             self.properties['title'].set('Level Properties')
         else:
             self.properties['title'].set('Properties')
-        
+
         def addProperty(
             property: str,
             value: str,
@@ -1576,48 +2046,36 @@ class WME(tk.Tk):
             label_color: str | tuple = None,
             button_image: tk.PhotoImage = None,
             button_bitmap: tk.BitmapImage = None,
-            **kwargs,
+            **kwargs
         ) -> dict[typing.Literal[
             'label',
             'inputs',
             'button',
             'size',
-            'var',
+            'var'
         ], tkwidgets.EditableLabel | list[ttk.Entry | tk.StringVar] | ttk.Button]:
             row_size = 25
-            
+
             label_frame = ttk.Frame(self.properties['left'])
-            
+
             if label_editable:
-                name = tkwidgets.EditableLabel(
-                    label_frame,
-                    text = property,
-                    callback = label_callback,
-                    foreground = label_color,
-                )
+                name = tkwidgets.EditableLabel(label_frame, text = property, callback = label_callback, foreground = label_color)
             else:
-                name = ttk.Label(
-                    label_frame,
-                    text = property,
-                    foreground = label_color,
-                )
-                
+                name = ttk.Label(label_frame, text = property, foreground = label_color)
+
             if label_prefix not in ['', None]:
-                prefix = ttk.Label(
-                    label_frame,
-                    text = label_prefix,
-                )
+                prefix = ttk.Label(label_frame, text = label_prefix)
                 prefix.pack(side = 'left')
-            
+
             label_frame.grid(row=row, sticky='we')
             name.pack(side = 'left')
-            
+
             if name.winfo_reqheight() > row_size:
                 row_size = name.winfo_reqheight()
-            
+
             inputs = []
             vars = []
-            
+
             def inputType(type, value):
                 if type == 'number':
                     var = tk.DoubleVar(value = value)
@@ -1629,23 +2087,14 @@ class WME(tk.Tk):
                 else:
                     var = tk.StringVar(value = value)
                     if options and len(options) > 0:
-                        input = ttk.Combobox(
-                            self.properties['right'],
-                            textvariable = var,
-                            values = options,
-                            **kwargs,
-                        )
+                        input = ttk.Combobox(self.properties['right'], textvariable = var, values = options, **kwargs)
                     else:
-                        input = ttk.Entry(
-                            self.properties['right'],
-                            textvariable = var,
-                            **kwargs,
-                        )
-                
+                        input = ttk.Entry(self.properties['right'], textvariable = var, **kwargs)
+
                 # input.insert(0, value)
-                
+
                 return input, var
-            
+
             if isinstance(type, (tuple, list)):
                 column = 0
                 for t in type:
@@ -1654,44 +2103,44 @@ class WME(tk.Tk):
                     input.grid(column = column, row=row, sticky='ew', padx=2)
                     if callable(entry_callback) and update_on_entry_edit:
                         var.trace_add('write', lambda *args, value = var.get, col = column: entry_callback(value(), col))
-                    
+
                     input.bind('<Return>', lambda e: self.focus())
                     if not update_on_entry_edit:
                         input.bind('<FocusOut>', lambda e, value = input.get, col = column: entry_callback(value(), col))
-                        
+
                         # input.bind('<Return>', lambda e, value = input.get, col = column: entry_callback(value(), col))
-                    
+
                     column += 1
-                    
+
                     inputs.append(input)
                     vars.append(var)
-                    
+
                     if input.winfo_reqheight() > row_size:
                         row_size = input.winfo_reqheight()
-                    
+
             else:
                 type = type.lower()
-                
+
                 input, var = inputType(type, value)
                 input.grid(column = 0, row=row, sticky = 'ew', columnspan=2, padx=2)
-                
+
                 if entry_callback and update_on_entry_edit:
                     var.trace_add('write', lambda *args: entry_callback(var.get()))
                     # input.bind('<Return>', lambda e: entry_callback(input.get()))
                     input.bind('<FocusOut>', lambda e: entry_callback(input.get()))
-                
+
                 input.bind('<Return>', lambda e: self.focus())
                 if not update_on_entry_edit:
                     input.bind('<FocusOut>', lambda e: entry_callback(input.get()))
-                
+
                 if input.winfo_reqheight() > row_size:
                     row_size = input.winfo_reqheight()
-                
+
                 inputs.append(input)
                 vars.append(var)
-            
+
             button = None
-            
+
             if show_button:
                 def callback(*args):
                     if callable(button_callback):
@@ -1702,76 +2151,77 @@ class WME(tk.Tk):
                                     vars[i].set(str(val))
                             else:
                                 vars[0].set(str(value))
-                
+
                 # if isinstance(button_image, Image.Image):
                 #     logging.debug(f'button is PIL image: {button_image}')
                 #     button_image = ImageTk.PhotoImage(button_image.resize((32,32)))
                 #     button_text = None
                 # else:
                 #     logging.debug(f'button not PIL image: {button_image}')
-                    
-                
-                button = crossplatform.Button(
-                    self.properties['right'],
-                    text = button_text,
-                    width = 2,
-                    command = callback,
-                    bitmap = button_bitmap,
-                    image = button_image,
-                )
+
+                button = crossplatform.Button(self.properties['right'], text = button_text, width = 2, command = callback, bitmap = button_bitmap, image = button_image)
                 button.grid(column = 2, row = row)
-                
+
                 if button.winfo_reqheight() > row_size:
                     row_size = button.winfo_reqheight()
-            
+
             # row_size += 5
-            
+
             logging.debug(f'{row_size = }')
-            
+
             self.properties['left'].rowconfigure(row, minsize = row_size)
             self.properties['right'].rowconfigure(row, minsize = row_size)
-            
-            return {
-                'label' : name,
-                'inputs' : inputs,
-                'button' : button,
-                'size' : row_size,
-                'var' : vars,
-            }
-        
+
+            return {'label' : name, 'inputs' : inputs, 'button' : button, 'size' : row_size, 'var' : vars}
+
         def removeProperty(property):
             if property in obj.properties:
                 del obj.properties[property]
                 if not isLevel:
                     self.updateObject(obj)
+                    self._updateParticleTrajectories()
+                    if property in ['AngleVariation', 'VacuumBaseAngle', 'VacuumMinAngle', 'VacuumMaxAngle', 'VacuumForce', 'VacuumMaxForce', 'VacuumMaxD', 'VacuumFriction']:
+                        self._updateVacuum()
+                    if property in ['Parent', 'ConnectedSpout', 'ConnectedObject', 'ConnectedConverter'] or property.startswith('ConnectedSpout') or property.startswith('ConnectedObject') or property.startswith('ConnectedConverter'):
+                        self._updateParentConnections()
                     self.updateProperties(obj)
                 else:
                     self.updateProperties()
-    
+
         def updateProperty(property, value):
             obj.properties[property] = value
             if not isLevel:
                 self.updateObject(obj)
-        
+                self._updateParticleTrajectories()
+                if property in ['Angle', 'AngleVariation', 'VacuumBaseAngle', 'VacuumMinAngle', 'VacuumMaxAngle', 'VacuumForce', 'VacuumMaxForce', 'VacuumMaxD', 'VacuumFriction', 'VacuumCenterOffsetA', 'VacuumCenterOffsetB']:
+                    self._updateVacuum()
+                if property in ['Parent', 'ConnectedSpout', 'ConnectedObject', 'ConnectedConverter'] or property.startswith('ConnectedSpout') or property.startswith('ConnectedObject') or property.startswith('ConnectedConverter'):
+                    self._updateParentConnections()
+
         def resetProperty(property):
             if property in obj.defaultProperties:
                 obj.properties[property] = obj.defaultProperties[property]
-                
+
                 self.updateObject(obj)
                 self.updateProperties(obj)
-        
+                self._updateParticleTrajectories()
+                if property in ['Angle', 'AngleVariation', 'VacuumBaseAngle', 'VacuumMinAngle', 'VacuumMaxAngle', 'VacuumForce', 'VacuumMaxForce', 'VacuumMaxD', 'VacuumFriction', 'VacuumCenterOffsetA', 'VacuumCenterOffsetB']:
+                    self._updateVacuum()
+                if property in ['Parent', 'ConnectedSpout', 'ConnectedObject', 'ConnectedConverter'] or property.startswith('ConnectedSpout') or property.startswith('ConnectedObject') or property.startswith('ConnectedConverter'):
+                    self._updateParentConnections()
+
         def updatePropertyName(property, newName, skip_unedited = False):
             if newName == property and not skip_unedited:
                 return True
             logging.debug(f'{newName = }')
             logging.debug(f'{property = }')
-            
+
             if newName in obj.properties:
                 messagebox.showerror(
                     'Property name already exists',
                     f'Property "{newName}" already exists.'
                 )
-                
+
                 return False
             else:
                 value = 0
@@ -1779,91 +2229,53 @@ class WME(tk.Tk):
                     value = obj.properties[property]
                     del obj.properties[property]
                 obj.properties[newName] = value
-                
+
                 if isLevel:
                     self.updateProperties()
                 else:
                     self.updateObject(obj)
                     self.updateProperties(obj)
-                
+
                 self.updateObjectSelector()
                 return True
-        
+
         def updatePosition(value, column):
             newPos = float(value)
             pos = list(obj.pos)
-            
+
             pos[column] = newPos
-            
+
             obj.pos = tuple(pos)
-            
+
             self.updateObject(obj)
+            self._updateParentConnections()
 
         def updateObjectName(name):
             obj.name = name
             self.updateObject(obj)
             self.updateObjectSelector()
-        
+            self._updateParentConnections()
+
         sizes : list[int] = []
-        
+
         row = -1
-        
+
         if not isLevel:
-            self.objectProperties['name'] = addProperty(
-                'Name',
-                obj.name,
-                'text',
-                label_editable = False,
-                show_button = False,
-                entry_callback = lambda value : updateObjectName(value),
-                row=0,
-            )
+            self.objectProperties['name'] = addProperty('Name', obj.name, 'text', label_editable = False, show_button = False, entry_callback = lambda value : updateObjectName(value), row=0)
             sizes.append(self.objectProperties['name']['size'])
-            
-            self.objectProperties['pos'] = addProperty(
-                'Pos',
-                obj.pos,
-                ['number', 'number'],
-                label_editable = False,
-                show_button=False,
-                row=1,
-                entry_callback = lambda value, col : updatePosition(value, col),
-                from_ = -99,
-                to = 99,
-            )
+
+            self.objectProperties['pos'] = addProperty('Pos', obj.pos, ['number', 'number'], label_editable = False, show_button=False, row=1, entry_callback = lambda value, col : updatePosition(value, col), from_ = -10000, to = 10000)
             sizes.append(self.objectProperties['pos']['size'])
-            
-            
+
             angle = obj.properties.setdefault('Angle', 0)
-            self.objectProperties['angle'] = addProperty(
-                'Angle',
-                angle,
-                'number',
-                label_editable = False,
-                show_button = False,
-                row=2,
-                from_=-360,
-                to=360,
-                entry_callback = lambda value: updateProperty('Angle', value),
-            )
+            self.objectProperties['angle'] = addProperty('Angle', angle, 'number', label_editable = False, show_button = False, row=2, from_=-360, to=360, entry_callback = lambda value: updateProperty('Angle', value))
             sizes.append(self.objectProperties['angle']['size'])
-            
-            self.objectProperties['Filename'] = addProperty(
-                'Filename',
-                obj.filename,
-                'text',
-                label_editable = False,
-                show_button = True,
-                row = 3,
-                update_on_entry_edit = False,
-                entry_callback = lambda name, object = obj: self.changeObjectFilename(object, f':game:{name}'),
-                button_callback = lambda vars, object = obj: self.changeObjectFilename(object, None),
-                button_image = self.getAsset('folder_icon'),
-            )
-            sizes.append(self.objectProperties['angle']['size'])
-            
+
+            self.objectProperties['Filename'] = addProperty('Filename', obj.filename, 'text', label_editable = False, show_button = True, row = 3, update_on_entry_edit = False, entry_callback = lambda name, object = obj: self.changeObjectFilename(object, f':game:{name}'), button_callback = lambda vars, object = obj: self.changeObjectFilename(object, None), button_image = self.getAsset('folder_icon'))
+            sizes.append(self.objectProperties['Filename']['size'])
+
             row = 4
-        
+
         for property in obj.properties:
             if property not in ['Angle', 'Filename']:
                 row += 1
@@ -1872,33 +2284,33 @@ class WME(tk.Tk):
                 button_text = '-'
                 button_callback = lambda *args, prop = property : removeProperty(prop)
                 color = 'black'
-                
+
                 if not isLevel and property in obj.defaultProperties:
                     prefix = '*'
                     # button_text = '↺'
-                    
+
                     # button_callback = lambda *args, prop = property : resetProperty(prop)
-                
+
                 logging.debug(f'selectedPart: {self.selectedPart}')
                 logging.debug(f'property selected: {self.selectedPart["property"] == property}')
                 if self.selectedPart['property'] == property:
                     color = 'blue'
-                
+
                 options = []
-                
+
                 if not isLevel and obj.Type:
                     options_property = property
                     split_property = obj.Type.split_property_num(property)
                     if split_property[1]:
                         options_property = split_property[0] + '#'
-                    
+
                     logging.debug(f'options_property: {options_property}')
-                    
+
                     property_def = obj.Type.PROPERTIES.get(options_property, {})
                     logging.debug(f'property_def: {property_def}')
-                    
+
                     property_type = property_def.get('type', 'string')
-                    
+
                     if property_type == 'object':
                         options = [o.name for o in self.level.objects if o is not obj]
                     elif property_type == 'fluid':
@@ -1909,12 +2321,12 @@ class WME(tk.Tk):
                                 options.extend(name)
                             elif name:
                                 options.append(name)
-                    
+
                     if len(options) == 0:
                         options = property_def.get('options', [])
 
                     logging.debug(f'options: {options}')
-                
+
                 self.objectProperties[property] = addProperty(
                     property,
                     obj.properties[property],
@@ -1926,23 +2338,23 @@ class WME(tk.Tk):
                     label_callback = lambda name, prop = property: updatePropertyName(prop, name),
                     button_callback = button_callback,
                     label_prefix = prefix,
-                    label_color = color,
+                    label_color = color
                 )
-                
+
                 sizes.append(self.objectProperties[property]['size'])
-        
+
         if len(sizes) == 0:
             self.properties['panned'].configure(height = 1)
         else:
             self.properties['panned'].configure(height = sum(sizes))
         self.properties['scrollFrame'].resetCanvasScroll()
-        
+
         def addNewProperty(row):
             if isLevel:
                 properties = {}
             else:
                 properties = deepcopy(obj.defaultProperties)
-            
+
             if not isLevel and obj.Type:
                 for prop in obj.Type.PROPERTIES:
                     property = prop
@@ -1952,77 +2364,46 @@ class WME(tk.Tk):
                         while split_prop[0] + str(num) in obj.properties:
                             num += 1
                         property = split_prop[0] + str(num)
-                    
+
                     if property in properties:
                         continue
-                    
+
                     properties[property] = obj.Type.PROPERTIES[prop].get('default', '')
-            
+
             for prop in obj.properties:
                 if prop in properties:
                     del properties[prop]
-            
-            property = popups.askstringoptions(
-                self,
-                'New property',
-                'New property',
-                validate_message = 'Property already exists',
-                options = sorted(properties),
-                validate_callback = lambda name : (name != '') and (name not in obj.properties),
-            )
-            
+
+            property = popups.askstringoptions(self, 'New property', 'New property', validate_message = 'Property already exists', options = sorted(properties), validate_callback = lambda name : (name != '') and (name not in obj.properties))
+
             if property != None:
                 obj.properties[property] = properties.get(property, '')
-                
+
                 self.updateProperties()
-        
+
         logging.debug(f'{row = }')
-        
-        add = crossplatform.Button(
-            self.properties['frame'],
-            text = 'Add',
-            command = lambda *args,
-            r = row + 1 : addNewProperty(r),
-        )
+
+        add = crossplatform.Button(self.properties['frame'], text = 'Add', command = lambda *args, r = row + 1 : addNewProperty(r))
         add.pack(side = 'bottom', expand = True, fill = 'x')
-        
-        
+
     def resetProperties(self):
-        self.objectProperties : dict[
-            str, dict[
-                typing.Literal[
-                    'var',
-                    'label',
-                    'inputs',
-                    'button',
-                    'size',
-                ],
-                tkwidgets.EditableLabel |
-                ttk.Button |
-                list[tk.StringVar | ttk.Entry] |
-                int
-            ]
-        ] = {}
-        
+        self.objectProperties : dict[str, dict[typing.Literal['var', 'label', 'inputs', 'button', 'size'], tkwidgets.EditableLabel | ttk.Button | list[tk.StringVar | ttk.Entry] | int]] = {}
+
         for child in self.properties['frame'].winfo_children():
             if child != self.properties.get('panned', None):
                 child.destroy()
-        
+
         if not 'panned' in self.properties:
-            self.properties['panned'] = ttk.PanedWindow(
-                self.properties['frame'],
-                orient='horizontal',
-                style = 'Horizontal.TPanedWindow'
-            )
+            self.properties['panned'] = ttk.PanedWindow(self.properties['frame'], orient='horizontal', style = 'Horizontal.TPanedWindow')
             self.properties['panned'].pack(expand=True, fill='both')
-        
+
         if 'left' in self.properties:
             for widget in self.properties['left'].winfo_children():
                 widget.destroy()
         else:
             self.properties['left'] = ttk.Frame(self.properties['panned'])
             self.properties['panned'].add(self.properties['left'], weight=2)
-            
+
         if 'right' in self.properties:
             for widget in self.properties['right'].winfo_children():
                 widget.destroy()
@@ -2032,22 +2413,15 @@ class WME(tk.Tk):
             self.properties['right'].columnconfigure(0, weight = 2)
             self.properties['right'].columnconfigure(1, weight = 2)
             # self.properties['right'].columnconfigure(2, weight = 1)
-    
+
     def updateObjectSelector(self):
         self.resetObjectSelector()
-        
+
         for obj in self.level.objects:
-            self.object_selector['treeview'].insert(
-                '',
-                'end',
-                text = obj.name,
-                open = True,
-                values = [obj.name, obj.type if obj.type != None else '', obj.id],
-                tags = 'object'
-            )
-            
+            self.object_selector['treeview'].insert('', 'end', text = obj.name, open = True, values = [obj.name, obj.type if obj.type != None else '', obj.id], tags = 'object')
+
             # self.object_selector['treeview'].item(item_id, '')
-        
+
         def selectObject(event: tk.Event):
             if event.widget.identify_row(event.y) not in event.widget.selection():
                 event.widget.selection_set(event.widget.identify_row(event.y))
@@ -2056,7 +2430,7 @@ class WME(tk.Tk):
             # logging.debug(f"selection: {self.object_selector['treeview'].selection()}")
             item = self.object_selector['treeview'].item(item)
             self.level_canvas.focus_set()
-            
+
             if 'object' in item['tags']:
                 id = item['values'][2]
                 obj = self.level.getObjectById(id)
@@ -2064,52 +2438,54 @@ class WME(tk.Tk):
                 return obj, item
 
             return None, None
-        
+
         def move_object(obj: wmwpy.classes.Object, target_index: int):
             self.level.objects.insert(target_index, self.level.objects.pop(self.level.objects.index(obj)))
 
-            self.redrawLevel()
-            self.selectObject(obj)
-            
+            self.updateLevel()
+            self.updateObjectSelector()
+            if obj in self.level.objects:
+                self.selectObject(obj)
+
         def move_to_bottom(obj: wmwpy.classes.Object):
             current_pos = self.level.objects.index(obj)
 
             if current_pos == len(self.level.objects) - 1:
                 return
-            
+
             move_object(obj, len(self.level.objects) - 1)
-        
+
         def move_down(obj: wmwpy.classes.Object):
             current_pos = self.level.objects.index(obj)
 
             if current_pos == len(self.level.objects) - 1:
                 return
-            
+
             move_object(obj, current_pos + 1)
-        
+
         def move_up(obj: wmwpy.classes.Object):
             current_pos = self.level.objects.index(obj)
 
             if current_pos == 0:
                 return
-            
+
             move_object(obj, current_pos - 1)
-        
+
         def move_to_top(obj: wmwpy.classes.Object):
             current_pos = self.level.objects.index(obj)
 
             if current_pos == 0:
                 return
-            
+
             move_object(obj, 0)
-        
+
         def rightClick(event):
             logging.debug('object selector context menu')
-            
+
             obj, item = selectObject(event)
 
             logging.debug(f'item: {item}')
-            
+
             if obj is None:
                 return
 
@@ -2122,106 +2498,110 @@ class WME(tk.Tk):
             self.object_selector['menu'].add_command(label = 'copy', command = lambda *args : self.copyObject(obj))
             self.object_selector['menu'].add_command(label = 'cut', command = lambda *args : self.cutObject(obj))
             self.object_selector['menu'].add_command(label = 'delete', command = lambda *args : self.deleteObject(obj))
-            
+
             self.showPopup(self.object_selector['menu'], event)
-        
+
         self.object_selector['treeview'].bind('<ButtonRelease-1>', selectObject)
 
         if platform.system() == 'Darwin':
             self.object_selector['treeview'].bind('<Button-2>', rightClick)
         else:
             self.object_selector['treeview'].bind('<Button-3>', rightClick)
-        
+
     def resetObjectSelector(self):
-        
+
         for row in self.object_selector['treeview'].get_children():
             self.object_selector['treeview'].delete(row)
 
-    
     def updateLevelScroll(self):
         if self.level == None:
             self.level_canvas.config(scrollregion=(0, 0, 0, 0))
             return
-        
+
         LEVEL_CANVAS_PADDING = [200,200]
-        
+
         level_size = numpy.array(
             (((self.level.image.size[0] / 2) * -1,
             (self.level.image.size[1] / 2) * -1),
             ((self.level.image.size[0] / 2),
             (self.level.image.size[1] / 2)))
         )
-        
+
         objects = self.level_canvas.find_withtag('object')
         coords = numpy.array([self.level_canvas.coords(id) for id in objects])
         if len(coords) > 0:
             coords = coords.swapaxes(0,1)
         else:
             coords = numpy.array([[0],[0]])
-        
+
         min = numpy.array([a.min() for a in coords])
         max = numpy.array([a.max() for a in coords])
-        
-        
+
         min = numpy.append(min, level_size[0]).reshape([2,2]).swapaxes(0,1)  - LEVEL_CANVAS_PADDING
         max = numpy.append(max, level_size[1]).reshape([2,2]).swapaxes(0,1)  + LEVEL_CANVAS_PADDING
-        
+
         # logging.debug(f'{max = }')
         # logging.debug(f'{min = }')
-        
+
         min = [a.min() for a in min]
         max = [a.max() for a in max]
-        
+
         scrollregion = tuple(numpy.append(min,max))
-        
+
         # logging.debug(f'scrollregion = {scrollregion}')
-        
+
         self.level_canvas.config(scrollregion = scrollregion)
-        
-    
+
     def updateLevel(self):
         if self.level == None:
             return
-        
-        self.level_canvas.itemconfig(
-            self.level_images['background'],
-            image = self.level.PhotoImage
-        )
-        
+
+        self.level_canvas.itemconfig(self.level_images['background'], image = self.level.PhotoImage)
+
         logging.info('updating level')
-        
+
         self.selectedObject = None
-        self.selectedPart = {
-            'type': None,
-            'id': None,
-            'property': None,
-        }
+        self.selectedPart = {'type': None, 'id': None, 'property': None}
+
+        for obj in self.level.objects:
+            self.updateObject(obj)
+
+        for obj in reversed(self.level.objects):
+            id = f'object-{str(obj.id)}'
+            items = self.level_canvas.find_withtag(id)
+            for item in items:
+                self.level_canvas.tag_raise(item)
+
         self.updateProperties()
         self.updateSelectionRectangle()
         self.updateObjectSelector()
-        
-        for obj in self.level.objects:
-            self.updateObject(obj)
-        
+
+        self._updateParticleTrajectories()
+        self._updateVacuum()
+        self._updateParentConnections()
+
         self.updateLevelScroll()
         self.level_canvas.xview_moveto(0.23)
         self.level_canvas.yview_moveto(0.2)
-        
+
         self.level_canvas.tag_bind('passthrough', '<Button-1>', self.onLevelClick)
-    
+
     def redrawLevel(self):
         self.level_canvas.delete('object')
         self.level_canvas.delete('selection')
-        
+
         self.updateLevel()
-    
+
     def dragObject(self, obj : wmwpy.classes.Object, event = None):
         logging.debug(f"offset: {self.dragInfo['offset']}")
-        
+
         obj.pos = self.windowPosToWMWPos(numpy.array((event.x, event.y)) + self.dragInfo['offset'])
-        
+
         self.updateObject(obj)
-    
+        self._updateParticleTrajectories()
+        self._updateVacuum()
+        self._updateParentConnections()
+
     def windowPosToWMWPos(self, pos : tuple = (0,0), multiplier: float = OBJECT_MULTIPLIER):
         if isinstance(pos, (int, float)):
             pos = pos / self.level.scale
@@ -2233,95 +2613,68 @@ class WME(tk.Tk):
                             self.level_canvas.canvasy(pos[1])))
             pos = pos / self.level.scale
             pos = pos / numpy.array([multiplier, -multiplier])
-            
+
             return tuple(pos)
-    
+
     def getRelativeMousePos(self, pos : tuple, widget : tk.Widget):
-        return numpy.array((numpy.array(pos) - (self.winfo_rootx(),
-                             self.winfo_rooty())) - (widget.winfo_x(),
-                                                     widget.winfo_y()))
-    
-    def selectObject(
-        self,
-        obj : wmwpy.classes.Object = None,
-        event: tk.Event | None = None,
-        partInfo: dict[str, str] = None,
-    ):
-        self.selectedPart = {
-            'type': None,
-            'id': None,
-            'property': None,
-        }
+        return numpy.array((numpy.array(pos) - (self.winfo_rootx(), self.winfo_rooty())) - (widget.winfo_x(), widget.winfo_y()))
+
+    def selectObject(self, obj : wmwpy.classes.Object = None, event: tk.Event | None = None, partInfo: dict[str, str] = None):
+        self.selectedPart = {'type': None, 'id': None, 'property': None}
         old_object = self.selectedObject
         self.selectedObject = obj
         if old_object in self.level.objects:
             self.updateObject(old_object)
-        
+
         if isinstance(partInfo, dict):
             self.selectedPart['type'] = partInfo.get('type', None)
             self.selectedPart['id'] = partInfo.get('id', None)
             self.selectedPart['property'] = partInfo.get('property', None)
-        
-        
+
         # logging.debug(obj.name)
         logging.debug('object')
-        
+
         self.updateObject(obj)
         self.updateProperties()
         self.updateSelectionRectangle()
+        self._updateParticleTrajectories()
+        self._updateVacuum()
+        self._updateParentConnections()
         if event:
             obj_pos = self.getObjectPosition(obj.pos, obj.offset)
             self.dragInfo['offset'] = numpy.array((obj_pos[0], obj_pos[1])) - (self.level_canvas.canvasx(event.x), self.level_canvas.canvasy(event.y))
         else:
             self.dragInfo['offset'] = (0,0)
-        
+
         if self.selectedObject == None:
             if len(self.object_selector['treeview'].selection()) > 0:
                 self.object_selector['treeview'].selection_remove(self.object_selector['treeview'].selection()[0])
         else:
-            
+
             children = self.object_selector['treeview'].get_children('')
-            
+
             selected = None
-            
+
             for child in children:
                 item = self.object_selector['treeview'].item(child)
-                
+
                 if not 'object' in item['tags']:
                     logging.info('not object')
                     continue
-                
+
                 if item['values'][2] == obj.id:
                     selected = child
                     break
-            
+
             if selected != None:
                 self.object_selector['treeview'].selection_set(selected)
-    
-    def selectPart(
-        self,
-        obj: wmwpy.classes.Object,
-        type: str,
-        id: str,
-        property: str,
-    ):
-        self.selectObject(
-            obj,
-            partInfo = {
-                'type': type,
-                'id': id,
-                'property': property,
-            }
-        )
+
+    def selectPart(self, obj: wmwpy.classes.Object, type: str, id: str, property: str):
+        self.selectObject(obj, partInfo = {'type': type, 'id': id, 'property': property})
         logging.debug(f'selected part: {self.selectedPart}')
         return self.selectedPart
-    
-    def dragPart(
-        self,
-        event: tk.Event = None,
-        obj: wmwpy.classes.Object | None = None,
-        amount: tuple[float, float] | None = None,
-    ):
+
+    def dragPart(self, event: tk.Event = None, obj: wmwpy.classes.Object | None = None, amount: tuple[float, float] | None = None):
         if obj == None:
             obj = self.selectedObject
         if obj == None:
@@ -2330,26 +2683,26 @@ class WME(tk.Tk):
         logging.debug('dragging part')
         if self.selectedPart['type'] == 'path':
             logging.debug('type: path')
-            
+
             # Handle PathPos# properties (existing functionality)
             if self.selectedPart['property'].startswith('PathPos'):
                 is_global = False
                 if obj.Type and obj.Type.get_property('PathIsGlobal'):
                     is_global = True
-                
+
                 if amount:
                     current = obj.Type.get_property(self.selectedPart['property'])
                     pos = numpy.array(current) + amount
                 else:
                     pos = self.windowPosToWMWPos((event.x, event.y), (0.25 * is_global) + 1)
-                
+
                     if not is_global:
                         pos = numpy.array(pos) - (numpy.array(obj.pos) * 1.25)
-                
+
                 logging.debug(f'new pos: {pos}')
                 obj.properties[self.selectedPart['property']] = ' '.join([str(x) for x in pos])
                 self.objectProperties[self.selectedPart['property']]['var'][0].set(obj.properties[self.selectedPart['property']])
-            
+
             # Handle PathPoints property (new functionality)
             elif self.selectedPart['property'].startswith('PathPoints['):
                 # Extract point index from property name like "PathPoints[0]"
@@ -2357,14 +2710,14 @@ class WME(tk.Tk):
                 match = re.match(r'PathPoints\[(\d+)\]', self.selectedPart['property'])
                 if not match:
                     return
-                
+
                 point_index = int(match.group(1))
-                
+
                 # Get current PathPoints data
                 path_points_data = obj.Type.get_property('PathPoints')
                 if not path_points_data:
                     return
-                
+
                 # Handle both string and list formats
                 if isinstance(path_points_data, str):
                     # Parse string format: "x1 y1,x2 y2,x3 y3"
@@ -2384,10 +2737,10 @@ class WME(tk.Tk):
                 else:
                     logging.debug(f'PathPoints has unexpected format: {type(path_points_data)}')
                     return
-                
+
                 if point_index >= len(points):
                     return
-                
+
                 # Calculate new position
                 if amount:
                     new_pos = numpy.array(points[point_index]) + amount
@@ -2396,10 +2749,10 @@ class WME(tk.Tk):
                     world_pos = self.windowPosToWMWPos((event.x, event.y))
                     # PathPoints are relative to object position
                     new_pos = numpy.array(world_pos) - numpy.array(obj.pos)
-                
+
                 # Update specific point
                 points[point_index] = tuple(new_pos)
-                
+
                 # Update PathPoints in the same format as received
                 if isinstance(path_points_data, str):
                     # Rebuild string format
@@ -2407,7 +2760,7 @@ class WME(tk.Tk):
                 else:
                     # Update list format
                     new_path_points = [[x, y] for x, y in points]
-                
+
                 # Update object property
                 obj.properties['PathPoints'] = new_path_points
                 if 'PathPoints' in self.objectProperties:
@@ -2417,21 +2770,20 @@ class WME(tk.Tk):
                         # For list format, convert to string for display
                         display_str = ','.join([f'{x:.4f} {y:.4f}' for x, y in points])
                         self.objectProperties['PathPoints']['var'][0].set(display_str)
-                
+
                 logging.debug(f'Updated PathPoints[{point_index}] to {new_pos}')
-    
+
     def createMenubar(self):
         self.menubar = tk.Menu(self)
         self.config(menu = self.menubar)
-        
+
         self.file_menu = tk.Menu(self.menubar, tearoff = 0)
-        
+
         self.file_menu.add_command(label = 'Open', command = self.openLevel, accelerator = f'{crossplatform.shortModifier()}+O')
         self.file_menu.add_command(label = 'Save', command = self.saveLevel, accelerator = f'{crossplatform.shortModifier()}+S')
         self.file_menu.add_command(label = 'Save as...', command = self.saveLevelAs, accelerator = f'{crossplatform.shortModifier()}+Shift+S')
         self.file_menu.add_separator()
         self.file_menu.add_command(label = 'Settings', command = self.showSettings)
-
 
         self.help_menu = tk.Menu(self.menubar, tearoff = 0)
 
@@ -2440,7 +2792,6 @@ class WME(tk.Tk):
         self.help_menu.add_command(label = 'Check for update', command = lambda *args : webbrowser.open(__links__['releases']))
         self.help_menu.add_command(label = 'Bug report', command = lambda *args : webbrowser.open(__links__['bugs']))
         self.help_menu.add_command(label = 'Open log', command = lambda *args : crossplatform.open_file(_log_filename))
-
 
         self.view_menu: dict[
             typing.Literal[
@@ -2468,12 +2819,12 @@ class WME(tk.Tk):
                 'path': tk.BooleanVar(value = self.settings.get('view.radius', True)),
             }
         }
-        
+
         self.view_menu['vars']['radius'].trace_add('write', lambda *args : self.updateView('radius', self.view_menu['vars']['radius'].get()))
         self.view_menu['menu'].add_checkbutton(label = 'radius', onvalue = True, offvalue = False, variable = self.view_menu['vars']['radius'])
 
         self.view_menu['sub']['PlatinumType'] = tk.Menu(self.view_menu['menu'], tearoff = 0)
-        
+
         self.view_menu['vars']['PlatinumType']['platinum'].trace_add('write', lambda *args : self.updateView('PlatinumType.platinum', self.view_menu['vars']['PlatinumType']['platinum'].get()))
         self.view_menu['sub']['PlatinumType'].add_checkbutton(label = 'platinum', onvalue = True, offvalue = False, variable = self.view_menu['vars']['PlatinumType']['platinum'])
         self.view_menu['vars']['PlatinumType']['normal'].trace_add('write', lambda *args : self.updateView('PlatinumType.normal', self.view_menu['vars']['PlatinumType']['normal'].get()))
@@ -2484,18 +2835,30 @@ class WME(tk.Tk):
         self.view_menu['sub']['PlatinumType'].add_checkbutton(label = 'none', onvalue = True, offvalue = False, variable = self.view_menu['vars']['PlatinumType']['none'])
 
         self.view_menu['menu'].add_cascade(label = 'platinum type', menu = self.view_menu['sub']['PlatinumType'])
-        
+
         self.view_menu['vars']['path'].trace_add('write', lambda *args : self.updateView('path', self.view_menu['vars']['path'].get()))
         self.view_menu['menu'].add_checkbutton(label = 'path', onvalue = True, offvalue = False, variable = self.view_menu['vars']['path'])
+
+        self.view_menu['vars']['particleTrajectory'] = tk.BooleanVar(value = self.settings.get('view.particleTrajectory', True))
+        self.view_menu['vars']['particleTrajectory'].trace_add('write', lambda *args : self.updateView('particleTrajectory', self.view_menu['vars']['particleTrajectory'].get()))
+        self.view_menu['menu'].add_checkbutton(label = 'particle trajectory', onvalue = True, offvalue = False, variable = self.view_menu['vars']['particleTrajectory'])
+
+        self.view_menu['vars']['vacuum'] = tk.BooleanVar(value = self.settings.get('view.vacuum', True))
+        self.view_menu['vars']['vacuum'].trace_add('write', lambda *args : self.updateView('vacuum', self.view_menu['vars']['vacuum'].get()))
+        self.view_menu['menu'].add_checkbutton(label = 'vacuum visualization', onvalue = True, offvalue = False, variable = self.view_menu['vars']['vacuum'])
+
+        self.view_menu['vars']['parent'] = tk.BooleanVar(value = self.settings.get('view.parent', True))
+        self.view_menu['vars']['parent'].trace_add('write', lambda *args : self.updateView('parent', self.view_menu['vars']['parent'].get()))
+        self.view_menu['menu'].add_checkbutton(label = 'parent connections', onvalue = True, offvalue = False, variable = self.view_menu['vars']['parent'])
 
         self.menubar.add_cascade(label = 'File', menu = self.file_menu)
         self.menubar.add_cascade(label = 'View', menu = self.view_menu['menu'])
         self.menubar.add_cascade(label = 'Help', menu = self.help_menu)
-    
+
     def updateView(self, view: str, state: bool = True):
         self.settings.set(['view', view], state)
         self.updateLevel()
-    
+
     def showAbout(self):
         about = popups.About(
             self,
@@ -2505,15 +2868,12 @@ class WME(tk.Tk):
             version = f'{__version__}\nwmwpy-{wmwpy.__version__}',
             description = """Where's My Editor? is a program to create and modify levels in the Where's My Water? game series.""",
             credits = __credits__,
-            logo = Image.open(self.getAssetPath(self.LOGO)),
+            logo = Image.open(self.getAssetPath(self.LOGO))
         )
-    
+
     def showSettings(self):
-        settings = popups.SettingsDialog(
-            self,
-            self.settings,
-        )
-    
+        settings = popups.SettingsDialog(self, self.settings)
+
     def openLevel(self, *args):
         xml = filedialog.askopenfilename(
             defaultextension = '.xml',
@@ -2528,67 +2888,73 @@ class WME(tk.Tk):
                 'Levels'
             )
         )
-        
+
         if xml in ['', None]:
             logging.debug('Open level canceled')
             return
-        
-        image = os.path.splitext(xml)[0] + '.png'
-        
-        self.loadLevel(xml, image)
-    
-    def saveLevel(self, *args, filename = None):
-        if not isinstance(self.level, wmwpy.classes.Level):
-            self.updateProgressBar(
-                1,
-                'No level to be saved.',
-                1,
+
+        try:
+            with open(xml, 'r', encoding='utf-8') as f:
+                content = f.read().strip()
+
+            if not content.startswith('<?xml'):
+                messagebox.showerror('Invalid File Type', 'The selected file is not a valid XML file')
+                return
+
+            if '<Strokes>' in content:
+                messagebox.showerror('Wrong File Type', 'The XML you load contains hint data, not level data')
+                return
+
+            required_level_elements = ['<Objects>', '<Level>']
+            has_level_structure = any(elem in content for elem in required_level_elements)
+
+            if not has_level_structure:
+                messagebox.showerror('Invalid Level File', 'The XML file does not contain valid WMW level structure. Missing required elements like <Objects> or <Level>.')
+                return
+
+        except Exception as e:
+            logging.debug(f'Error reading XML file: {e}')
+            messagebox.showerror(
+                'File Read Error',
+                f'Could not read the XML file: {e}'
             )
             return
-        xml = self.level.export(
-            filename = filename,
-            saveImage = True,
-        )
-        
+
+        image = os.path.splitext(xml)[0] + '.png'
+
+        self.loadLevel(xml, image)
+
+    def saveLevel(self, *args, filename = None):
+        if not isinstance(self.level, wmwpy.classes.Level):
+            self.updateProgressBar(1, 'No level to be saved.', 1)
+            return
+        xml = self.level.export(filename = filename, saveImage = True)
+
         if filename == None:
-            filename = wmwpy.utils.path.joinPath(
-                self.game.gamepath,
-                self.game.assets,
-                self.game.baseassets,
-                self.level.filename,
-            )
-        
+            filename = wmwpy.utils.path.joinPath(self.game.gamepath, self.game.assets, self.game.baseassets, self.level.filename)
+
         imagePath = os.path.splitext(filename)[0] + '.png'
-        
+
         try:
             self.level.image.save(imagePath, bits = 8)
         except:
-            logging.exception('failed to save level image')
-        
+            logging.exception('Failed to save level image')
+
         try:
             with open(filename, 'wb') as file:
                 file.write(xml)
-            
+
             self.level._image.save(os.path.splitext(filename)[0] + '.png', bits = 8)
-            
-            self.updateProgressBar(
-                1,
-                f'Successfully saved level',
-                1,
-            )
+
+            self.updateProgressBar(1, f'Successfully saved level', 1)
         except:
             messagebox.showerror('Error saving level', f'Unable to save level to {filename}')
-        
-    
+
     def saveLevelAs(self, *args):
         if not isinstance(self.level, wmwpy.classes.Level):
-            self.updateProgressBar(
-                1,
-                'No level to be saved.',
-                1,
-            )
+            self.updateProgressBar(1, 'No level to be saved.', 1)
             return
-        
+
         filename = filedialog.asksaveasfilename(
             initialfile = os.path.basename(self.level.filename),
             defaultextension = '.xml',
@@ -2603,40 +2969,37 @@ class WME(tk.Tk):
                 'Levels'
             ),
         )
-        
+
         if filename in ['', None]:
             return
-        
+
         self.saveLevel(filename = filename)
-    
+
     def getFile(self, path : str):
         logging.debug(f'getFile: path: {path}')
         if not isinstance(path, str):
             raise TypeError('path must be str')
-        
+
         if path in ['', None]:
             logging.debug('getFile: no path')
             return
-        
+
         if path.startswith(':game:'):
             logging.debug(f'getFile: path starts with :game:')
             path = path.partition(':game:')[-1]
-            
+
             path = pathlib.Path('/', path).as_posix()
-            
+
             logging.debug(f'getFile: path after :game: {path}')
-            
+
             file = self.game.filesystem.get(path)
             if isinstance(file, wmwpy.filesystem.File):
                 file.reload()
             return file
-        
+
         path = pathlib.PurePath(path)
-        assets = wmwpy.utils.path.joinPath(
-            self.game.gamepath,
-            self.game.assets,
-        )
-        
+        assets = wmwpy.utils.path.joinPath(self.game.gamepath, self.game.assets)
+
         print(f'getFile: In filesystem? {path.is_relative_to(assets)}')
         if path.is_relative_to(assets):
             logging.debug(f'getFile: relative path')
@@ -2644,79 +3007,70 @@ class WME(tk.Tk):
             relPath = pathlib.Path('/', relPath).as_posix()
             logging.debug(f'getFile: rel path: {relPath}')
             file = self.game.filesystem.get(relPath)
-            
+
             logging.debug(f'getFile: game.filesystem: {self.game.filesystem}')
             logging.debug(f'getFile: game.filesystem.root: {self.game.filesystem.root.path}')
-            
+
             logging.debug(f'getFile: file: {file}')
             if isinstance(file, wmwpy.filesystem.File):
                 logging.debug(f'getFile: file.path: {file.path}')
                 file.reload()
             return file
-        
+
         if path in ['', None]:
             logging.debug('getFile: no path')
             return None
         else:
             logging.debug(f'getFile: absolute path: {path}')
             file = wmwpy.filesystem.File(None, os.path.basename(path), path)
-        
+
         return file
-    
+
     def loadGame(self):
         gamepath = self.settings.get('game.gamepath')
         logging.debug(f'gamepath: {gamepath}')
         if not gamepath:
-            gamepath = filedialog.askdirectory(
-                parent = self,
-                title = 'Select Game directory',
-                mustexist = True,
-            )
+            gamepath = filedialog.askdirectory(parent = self, title = 'Select Game directory', mustexist = True)
             self.settings.set('game.gamepath', gamepath)
-        
+
         self.state = 'disabled'
-        
+
         try:
-            self.game = wmwpy.load(
-                self.settings.get('game.gamepath'),
-                assets = self.settings.get('game.assets'),
-                game = self.settings.get('game.game'),
-                load_callback = self.updateProgressBar,
-            )
+            self.game = wmwpy.load(self.settings.get('game.gamepath'), assets = self.settings.get('game.assets'), game = self.settings.get('game.game'), load_callback = self.updateProgressBar)
         except:
             logging.exception(f'unable to load game: {self.settings.get("game.gamepath")}')
-        
+
         self.state = 'enabled'
-    
+
     def loadLevel(self, xml : str, image : str):
         if self.game in ['', None]:
             logging.warning('no game is loaded')
             return
-        
+
         if (xml in ['', None]) and (image in ['', None]):
             logging.warning('No level to load')
             return
-        
+
         self.state = 'disabled'
-        
+
         logging.debug(f'{xml = }')
         logging.debug(f'{image = }')
-        
+
         xml = self.getFile(xml)
         image = self.getFile(image)
-        
+
         logging.debug(f'loadLevel: xml: {xml}')
         logging.debug(f'loadLevel: image: {image}')
-        
+
         if isinstance(self.level, wmwpy.classes.Level):
             self.level_canvas.delete('object')
             self.level_canvas.delete('part')
             self.level_canvas.delete('selection')
             self.level.objects.clear()
-        
+
         self.resetProperties()
         self.resetObjectSelector()
-        
+
         try:
             logging.debug(f'loading level:')
             logging.debug(f'xml: {xml}')
@@ -2727,41 +3081,38 @@ class WME(tk.Tk):
                 HD = True,
                 TabHD = True,
                 ignore_errors = True,
-                load_callback = self.updateProgressBar,
+                load_callback = self.updateProgressBar
             )
         except:
             logging.exception('Unable to load level')
             self.state = 'enabled'
             return
-        
+
         logging.debug(f'level = {self.level}')
         logging.debug(f'objects = {self.level.objects}')
-        
+
         self.level.scale = 5
         self.updateLevel()
         logging.info('finished loading level')
         self.state = 'enabled'
-        
+
         self.title(f"Where's My Editor - {os.path.splitext(os.path.basename(self.level.filename))[0]}")
-        
+
         return self.level
-    
+
     def close(self):
         result = False
         if self.level != None:
-            result = messagebox.askyesnocancel(
-                'Unsaved changes',
-                message = 'Do you want to save changes?',
-            )
-        
+            result = messagebox.askyesnocancel('Unsaved changes', message = 'Do you want to save changes?')
+
         logging.debug(f'close option: {result}')
-        
+
         if result:
             self.saveLevelAs()
-        
+
         if result != None:
             self.destroy()
-    
+
     def updateSettings(self):
         try:
             gamedir = self.settings.get('gamedir')
@@ -2777,8 +3128,6 @@ class WME(tk.Tk):
                 self.settings.remove('default_level')
         except:
             pass
-
-
 
 class TkErrorCatcher:
 

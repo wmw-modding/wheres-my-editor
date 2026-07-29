@@ -19,20 +19,20 @@ class EditableLabel(ttk.Label):
         self.entry.insert(0, text)
         self.entry.place(relx=.5, rely=.5, relwidth=1.0, relheight=1.0, anchor="center")
         self.entry.focus_set()
-        
+
         self.editing = True
 
     def edit_stop(self, event=None):
         if not self.editing:
             return
         self.editing = False
-        
+
         text = self.entry.get()
         result = True
         if self.callback:
             logging.debug('callback')
             result = self.callback(text)
-        
+
         if result:
             try:
                 self.configure(text=text)
@@ -41,7 +41,6 @@ class EditableLabel(ttk.Label):
                 pass
         else:
             self.edit_start()
-        
 
     def edit_cancel(self, event=None):
         self.entry.delete(0, "end")
