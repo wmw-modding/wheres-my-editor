@@ -122,6 +122,8 @@ import wmwpy
 from scrollframe import ScrollFrame
 import popups
 
+from icicle import Icicle
+
 logging.info(f'wme version: {__version__}')
 logging.info(f'wmwpy version: {wmwpy.__version__}')
 
@@ -824,6 +826,21 @@ class WME(tk.Tk):
 
                     obj_angle = float(obj.properties.get('Angle', 0))
 
+                    filename = sprite.properties.get('filename', '')
+                    if 'icicle' in filename.lower() and 'glow' in filename.lower():
+                        obj_filename = getattr(obj, 'filename', '')
+                        if 'icicle_corner_left' in obj_filename.lower():
+                            sprite_image, sprite_pos = Icicle.icicle_corner_left(sprite, filename, sprite.image, sprite_pos, sprite_size)
+                            print(f"icicle_corner_left: {sprite_image} & {list(sprite_pos)}")
+                        elif 'icicle_corner' in obj_filename.lower() and 'left' not in obj_filename.lower():
+                            sprite_image, sprite_pos = Icicle.icicle_corner(sprite, filename, sprite.image, sprite_pos, sprite_size)
+                            print(f"icicle_corner: {sprite_image} & {list(sprite_pos)}")
+                        else:
+                            sprite_image = sprite.image.rotate(180, resample = Image.BILINEAR)
+                            print(f"icicle_glow: {sprite_image} & {list(sprite_pos)}")
+                    else:
+                        sprite_image = sprite.image
+
                     if obj_angle != 0:
                         angle_rad = numpy.radians(obj_angle)
                         cos_a = numpy.cos(angle_rad)
@@ -834,7 +851,6 @@ class WME(tk.Tk):
 
                     sprite_canvas_pos = self.getObjectPosition(obj.pos + sprite_pos, offset)
 
-                    sprite_image = sprite.image
                     if obj_angle != 0:
                         sprite_image = sprite_image.rotate(obj_angle, resample = Image.BILINEAR)
 
@@ -991,6 +1007,9 @@ class WME(tk.Tk):
             particle_variation = float(properties.get('ParticleVariation', 0))
             particle_offset = properties.get('ParticleOffset', '0 0')
 
+            sprinkler_steps = int(properties.get('SprinklerSteps', 1))
+            sprinkler_width = float(properties.get('SprinklerWidth', 0))
+
             offset_to_mouth = properties.get('OffsetToMouth', None)
 
             if offset_to_mouth is None and hasattr(obj, 'filename') and obj.filename:
@@ -1037,8 +1056,21 @@ class WME(tk.Tk):
 
             spout_true_pos = self.getObjectPosition(spout_pos, obj.offset)
 
-            # canvas_offset_x = offset_x * self.OBJECT_MULTIPLIER * self.level.scale
-            # canvas_offset_y = offset_y * self.OBJECT_MULTIPLIER * self.level.scale
+            offset_x = -1.8
+            offset_y = 0
+            offset_parts = offset_to_mouth.split()
+            if len(offset_parts) >= 2:
+                parsed_offset_x = float(offset_parts[0])
+                parsed_offset_y = float(offset_parts[1])
+                if parsed_offset_x != 0 or parsed_offset_y != 0:
+                    offset_x += parsed_offset_x
+                    offset_y += parsed_offset_y
+
+            angle_rad = numpy.radians(spout_angle)
+            rotated_offset_x = offset_x * numpy.cos(angle_rad) - offset_y * numpy.sin(angle_rad)
+            rotated_offset_y = offset_x * numpy.sin(angle_rad) + offset_y * numpy.cos(angle_rad)
+
+            spout_true_pos = spout_true_pos + numpy.array([rotated_offset_x * self.OBJECT_MULTIPLIER * self.level.scale, rotated_offset_y * self.OBJECT_MULTIPLIER * self.level.scale])
 
             particle_origin_canvas = spout_true_pos
 
@@ -1046,41 +1078,64 @@ class WME(tk.Tk):
             particle_origin_y = -(particle_origin_canvas[1] / self.level.scale) / self.OBJECT_MULTIPLIER
             particle_origin = numpy.array([particle_origin_x, particle_origin_y])
 
-            angle_rad = numpy.radians(total_angle)
+            if sprinkler_steps > 1 and sprinkler_width > 0:
+                gravity = 9.8
+                gravity_sign = 0.5 if fluid_type == 'steam' else -0.5
+                time_step = 0.1
+                max_iterations = 50
+                multiplier = self.OBJECT_MULTIPLIER * self.level.scale
 
-            vx = particle_speed * numpy.cos(angle_rad)
-            vy = particle_speed * numpy.sin(angle_rad)
+                for step in range(sprinkler_steps):
+                    horizontal_offset = -sprinkler_width / 2 + (sprinkler_width / (sprinkler_steps - 1)) * step
 
-            gravity = 9.8
+                    step_origin = particle_origin + numpy.array([horizontal_offset, 0])
 
-            trajectory_points = []
-            time_step = 0.05
-            t = 0
-            max_iterations = 100
+                    angle_rad = numpy.radians(total_angle)
 
-            while t < max_iterations:
-                x = particle_origin[0] + vx * t
-                if fluid_type == 'steam':
-                    y = particle_origin[1] + vy * t + 0.5 * gravity * t**2
-                else:
-                    y = particle_origin[1] + vy * t - 0.5 * gravity * t**2
+                    vx = particle_speed * numpy.cos(angle_rad)
+                    vy = particle_speed * numpy.sin(angle_rad)
 
-                canvas_x = (x * self.OBJECT_MULTIPLIER) * self.level.scale
-                canvas_y = (y * -self.OBJECT_MULTIPLIER) * self.level.scale
+                    t_values = numpy.arange(0, max_iterations * time_step, time_step)
+                    x_values = step_origin[0] + vx * t_values
+                    y_values = step_origin[1] + vy * t_values + gravity_sign * gravity * t_values**2
 
-                if (abs(canvas_x) <= 2000 and abs(canvas_y) <= 2000):
-                    trajectory_points.append((canvas_x, canvas_y))
-                else:
-                    break
+                    canvas_x = x_values * multiplier
+                    canvas_y = y_values * -multiplier
 
-                t += time_step
+                    valid_mask = (numpy.abs(canvas_x) <= 2000) & (numpy.abs(canvas_y) <= 2000)
+                    valid_indices = numpy.where(valid_mask)[0]
 
-            if len(trajectory_points) > 1:
-                for i in range(len(trajectory_points) - 1):
-                    x1, y1 = trajectory_points[i]
-                    x2, y2 = trajectory_points[i + 1]
+                    if len(valid_indices) > 1:
+                        points = []
+                        for i in valid_indices:
+                            points.extend([canvas_x[i], canvas_y[i]])
+                        self.level_canvas.create_line(points, fill=trajectory_color, width=2, tags=('passthrough', 'part', 'particleTrajectory', f'particleTrajectory&&{id}'))
+            else:
+                gravity = 9.8
+                gravity_sign = 0.5 if fluid_type == 'steam' else -0.5
+                time_step = 0.1
+                max_iterations = 50
+                multiplier = self.OBJECT_MULTIPLIER * self.level.scale
 
-                    self.level_canvas.create_line(x1, y1, x2, y2, fill=trajectory_color, width=2, tags=('passthrough', 'part', 'particleTrajectory', f'particleTrajectory&&{id}'))
+                angle_rad = numpy.radians(total_angle)
+                vx = particle_speed * numpy.cos(angle_rad)
+                vy = particle_speed * numpy.sin(angle_rad)
+
+                t_values = numpy.arange(0, max_iterations * time_step, time_step)
+                x_values = particle_origin[0] + vx * t_values
+                y_values = particle_origin[1] + vy * t_values + gravity_sign * gravity * t_values**2
+
+                canvas_x = x_values * multiplier
+                canvas_y = y_values * -multiplier
+
+                valid_mask = (numpy.abs(canvas_x) <= 2000) & (numpy.abs(canvas_y) <= 2000)
+                valid_indices = numpy.where(valid_mask)[0]
+
+                if len(valid_indices) > 1:
+                    points = []
+                    for i in valid_indices:
+                        points.extend([canvas_x[i], canvas_y[i]])
+                    self.level_canvas.create_line(points, fill=trajectory_color, width=2, tags=('passthrough', 'part', 'particleTrajectory', f'particleTrajectory&&{id}'))
 
                 if offset_variation > 0:
                     self._drawOffsetVariationArrow(obj, particle_origin_canvas, offset_variation, id)
@@ -2312,7 +2367,9 @@ class WME(tk.Tk):
             self.level.objects.insert(target_index, self.level.objects.pop(self.level.objects.index(obj)))
 
             self.redrawLevel()
-            self.selectObject(obj)
+            self.updateObjectSelector()
+            if obj in self.level.objects:
+                self.selectObject(obj)
 
         def move_to_bottom(obj: wmwpy.classes.Object):
             current_pos = self.level.objects.index(obj)
